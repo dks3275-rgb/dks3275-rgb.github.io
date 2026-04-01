@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AU 일학습병행 출결알림</title>
   <meta name="description" content="AU 일학습병행 공동훈련센터 출결 알림 앱" />
-  <meta name="theme-color" content="#1a3a5c" />
-
-  <!-- PWA -->
+  <meta name="theme-color" content="#0f2744" />
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,13 +13,16 @@
   <meta name="apple-mobile-web-app-title" content="AU출결알림" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <!-- OneSignal -->
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
+  </script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
         appId: "6bed6730-b167-48a8-a98d-83cdcb1cbc10",
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "OneSignalSDKWorker.js",
         notifyButton: { enable: false },
         allowLocalhostAsSecureOrigin: true,
       });
@@ -29,13 +30,12 @@
   </script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Bebas+Neue&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
 
     :root {
       --navy: #0f2744;
       --blue: #1a4a8a;
       --accent: #e8a020;
-      --light: #f0f5ff;
       --white: #ffffff;
       --gray: #8a9ab5;
       --success: #2ecc71;
@@ -49,17 +49,14 @@
       background: var(--navy);
       color: var(--white);
       min-height: 100vh;
-      overflow-x: hidden;
     }
 
-    /* Background pattern */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background:
-        radial-gradient(ellipse at 20% 20%, rgba(26,74,138,0.6) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 80%, rgba(232,160,32,0.15) 0%, transparent 50%);
+      background: radial-gradient(ellipse at 20% 20%, rgba(26,74,138,0.6) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 80%, rgba(232,160,32,0.15) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
     }
@@ -75,11 +72,9 @@
       flex-direction: column;
     }
 
-    /* Header */
     .header {
       padding: 50px 0 30px;
       text-align: center;
-      animation: fadeDown 0.8s ease both;
     }
 
     .logo-badge {
@@ -92,28 +87,22 @@
       padding: 5px 14px;
       border-radius: 20px;
       margin-bottom: 16px;
-      text-transform: uppercase;
     }
 
     .header h1 {
-      font-family: 'Noto Sans KR', sans-serif;
       font-weight: 900;
       font-size: 28px;
       line-height: 1.2;
       margin-bottom: 8px;
     }
 
-    .header h1 span {
-      color: var(--accent);
-    }
+    .header h1 span { color: var(--accent); }
 
     .header p {
       color: var(--gray);
       font-size: 13px;
-      font-weight: 300;
     }
 
-    /* Status Card */
     .status-card {
       background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.1);
@@ -121,7 +110,6 @@
       padding: 28px 24px;
       margin: 20px 0;
       backdrop-filter: blur(10px);
-      animation: fadeUp 0.8s ease 0.2s both;
     }
 
     .status-label {
@@ -145,7 +133,6 @@
       border-radius: 50%;
       background: var(--gray);
       flex-shrink: 0;
-      position: relative;
     }
 
     .status-dot.active {
@@ -153,20 +140,7 @@
       box-shadow: 0 0 0 4px rgba(46,204,113,0.2);
     }
 
-    .status-dot.active::after {
-      content: '';
-      position: absolute;
-      inset: -4px;
-      border-radius: 50%;
-      border: 1px solid rgba(46,204,113,0.4);
-      animation: pulse 2s infinite;
-    }
-
-    .status-text {
-      font-size: 16px;
-      font-weight: 500;
-    }
-
+    .status-text { font-size: 16px; font-weight: 500; }
     .status-text small {
       display: block;
       font-size: 12px;
@@ -175,7 +149,25 @@
       margin-top: 2px;
     }
 
-    /* Main Button */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .info-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 18px 16px;
+      text-align: center;
+    }
+
+    .info-card .icon { font-size: 28px; margin-bottom: 8px; }
+    .info-card .label { font-size: 11px; color: var(--gray); margin-bottom: 4px; }
+    .info-card .value { font-size: 13px; font-weight: 700; color: var(--accent); }
+
     .btn-main {
       width: 100%;
       padding: 20px;
@@ -187,27 +179,6 @@
       cursor: pointer;
       transition: all 0.3s ease;
       margin: 8px 0;
-      position: relative;
-      overflow: hidden;
-      animation: fadeUp 0.8s ease 0.3s both;
-    }
-
-    .btn-main::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(255,255,255,0.15);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: width 0.5s, height 0.5s;
-    }
-
-    .btn-main:active::before {
-      width: 300px;
-      height: 300px;
     }
 
     .btn-subscribe {
@@ -215,10 +186,7 @@
       color: var(--navy);
     }
 
-    .btn-subscribe:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(232,160,32,0.4);
-    }
+    .btn-subscribe:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(232,160,32,0.4); }
 
     .btn-unsubscribe {
       background: rgba(231,76,60,0.15);
@@ -226,51 +194,6 @@
       border: 1px solid rgba(231,76,60,0.3);
     }
 
-    .btn-unsubscribe:hover {
-      background: rgba(231,76,60,0.25);
-    }
-
-    .btn-icon {
-      margin-right: 8px;
-      font-size: 20px;
-      vertical-align: middle;
-    }
-
-    /* Info Cards */
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin: 16px 0;
-      animation: fadeUp 0.8s ease 0.4s both;
-    }
-
-    .info-card {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 18px 16px;
-      text-align: center;
-    }
-
-    .info-card .icon {
-      font-size: 28px;
-      margin-bottom: 8px;
-    }
-
-    .info-card .label {
-      font-size: 11px;
-      color: var(--gray);
-      margin-bottom: 4px;
-    }
-
-    .info-card .value {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--accent);
-    }
-
-    /* Notice */
     .notice {
       background: rgba(26,74,138,0.4);
       border: 1px solid rgba(26,74,138,0.6);
@@ -281,7 +204,6 @@
       font-size: 13px;
       line-height: 1.7;
       color: rgba(255,255,255,0.8);
-      animation: fadeUp 0.8s ease 0.5s both;
     }
 
     .notice strong {
@@ -290,15 +212,9 @@
       margin-bottom: 4px;
       font-size: 12px;
       letter-spacing: 1px;
-      text-transform: uppercase;
     }
 
-    /* Steps */
-    .steps {
-      margin: 16px 0;
-      animation: fadeUp 0.8s ease 0.6s both;
-    }
-
+    .steps { margin: 16px 0; }
     .steps-title {
       font-size: 12px;
       color: var(--gray);
@@ -339,7 +255,6 @@
       padding-top: 4px;
     }
 
-    /* Toast */
     .toast {
       position: fixed;
       bottom: 30px;
@@ -357,15 +272,11 @@
       white-space: nowrap;
     }
 
-    .toast.show {
-      transform: translateX(-50%) translateY(0);
-    }
-
+    .toast.show { transform: translateX(-50%) translateY(0); }
     .toast.success { border-left: 4px solid var(--success); }
     .toast.error { border-left: 4px solid var(--danger); }
     .toast.info { border-left: 4px solid var(--blue); }
 
-    /* Footer */
     .footer {
       margin-top: auto;
       padding-top: 30px;
@@ -373,77 +284,16 @@
       font-size: 11px;
       color: rgba(255,255,255,0.25);
     }
-
-    /* Animations */
-    @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 0.6; }
-      50% { transform: scale(1.5); opacity: 0; }
-    }
-
-    /* Install Banner */
-    .install-banner {
-      display: none;
-      background: linear-gradient(135deg, var(--blue), var(--navy));
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 16px;
-      padding: 18px 20px;
-      margin: 12px 0;
-      animation: fadeUp 0.5s ease both;
-    }
-
-    .install-banner.show { display: flex; align-items: center; gap: 14px; }
-
-    .install-banner .icon { font-size: 32px; }
-
-    .install-banner-text { flex: 1; }
-    .install-banner-text strong { display: block; font-size: 14px; margin-bottom: 2px; }
-    .install-banner-text span { font-size: 12px; color: var(--gray); }
-
-    .btn-install {
-      background: var(--accent);
-      color: var(--navy);
-      border: none;
-      padding: 10px 18px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      font-family: 'Noto Sans KR', sans-serif;
-      white-space: nowrap;
-    }
   </style>
 </head>
 <body>
 <div class="container">
-
-  <!-- Header -->
   <div class="header">
     <div class="logo-badge">AU 일학습병행</div>
-    <h1>공동훈련센터<br><span>출결 알림</span></h1>
-    <p>비콘 출결 알림을 실시간으로 받아보세요</p>
+    <h1>공동훈련센터<br><span>공지사항 안내</span></h1>
+    <p>센터에서 공지사항을 알려드립니다</p>
   </div>
 
-  <!-- Install Banner (PWA) -->
-  <div class="install-banner" id="installBanner">
-    <div class="icon">📲</div>
-    <div class="install-banner-text">
-      <strong>홈 화면에 앱 추가</strong>
-      <span>앱처럼 편리하게 사용하세요</span>
-    </div>
-    <button class="btn-install" id="installBtn">설치</button>
-  </div>
-
-  <!-- Status Card -->
   <div class="status-card">
     <div class="status-label">알림 수신 상태</div>
     <div class="status-row">
@@ -455,35 +305,31 @@
     </div>
   </div>
 
-  <!-- Info Grid -->
   <div class="info-grid">
     <div class="info-card">
       <div class="icon">🏫</div>
       <div class="label">센터</div>
-      <div class="value" style="font-size:12px;">AU 공동훈련</div>
+      <div class="value">AU 공동훈련</div>
     </div>
     <div class="info-card">
       <div class="icon">📡</div>
       <div class="label">알림 방식</div>
-      <div class="value" style="font-size:12px;">푸시 알림</div>
+      <div class="value">푸시 알림</div>
     </div>
   </div>
 
-  <!-- Main Buttons -->
   <button class="btn-main btn-subscribe" id="subscribeBtn" onclick="subscribeNotification()">
-    <span class="btn-icon">🔔</span> 알림 받기 시작
+    🔔 알림 받기 시작
   </button>
   <button class="btn-main btn-unsubscribe" id="unsubscribeBtn" onclick="unsubscribeNotification()" style="display:none;">
-    <span class="btn-icon">🔕</span> 알림 끄기
+    🔕 알림 끄기
   </button>
 
-  <!-- Notice -->
   <div class="notice">
     <strong>📌 안내</strong>
     알림을 허용하면 비콘 출결 시간에 맞춰 센터에서 알림을 보내드립니다. 앱을 닫아도 알림은 정상적으로 수신됩니다.
   </div>
 
-  <!-- Steps -->
   <div class="steps">
     <div class="steps-title">사용 방법</div>
     <div class="step-item">
@@ -500,42 +346,19 @@
     </div>
   </div>
 
-  <div class="footer">
-    AU 일학습병행 공동훈련센터 · Powered by OneSignal
-  </div>
+  <div class="footer">AU 일학습병행 공동훈련센터 · Powered by OneSignal</div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-  let deferredPrompt = null;
-
-  // PWA Install
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('installBanner').classList.add('show');
-  });
-
-  document.getElementById('installBtn').addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') showToast('앱이 설치되었습니다! 🎉', 'success');
-    deferredPrompt = null;
-    document.getElementById('installBanner').classList.remove('show');
-  });
-
-  // Toast
   function showToast(msg, type = 'info') {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.className = `toast ${type} show`;
-    setTimeout(() => t.classList.remove('show'), 3000);
+    setTimeout(() => t.classList.remove('show'), 3500);
   }
 
-  // Update UI based on subscription status
   function updateStatus(subscribed) {
     const dot = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
@@ -558,23 +381,30 @@
     }
   }
 
-  // Subscribe
   async function subscribeNotification() {
     try {
+      showToast('알림 설정 중...', 'info');
+      
       await OneSignal.Notifications.requestPermission();
-      const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
-      if (isSubscribed) {
-        updateStatus(true);
-        showToast('알림이 활성화되었습니다! 🔔', 'success');
-      } else {
-        showToast('알림 허용을 눌러주세요', 'info');
-      }
+      
+      setTimeout(async () => {
+        try {
+          const isSubscribed = OneSignal.User.PushSubscription.optedIn;
+          if (isSubscribed) {
+            updateStatus(true);
+            showToast('알림이 활성화되었습니다! 🔔', 'success');
+          } else {
+            showToast('알림 허용을 눌러주세요', 'info');
+          }
+        } catch(e) {
+          showToast('알림 허용을 눌러주세요', 'info');
+        }
+      }, 1500);
     } catch (e) {
-      showToast('알림 설정에 실패했습니다', 'error');
+      showToast('브라우저에서 알림을 허용해주세요', 'error');
     }
   }
 
-  // Unsubscribe
   async function unsubscribeNotification() {
     try {
       await OneSignal.User.PushSubscription.optOut();
@@ -585,7 +415,6 @@
     }
   }
 
-  // Check initial status
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
     try {
