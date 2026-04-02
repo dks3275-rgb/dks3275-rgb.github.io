@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AU 자료실</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  :root { --navy: #0f2744; --blue: #1a4a8a; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; }
+  .header { background: var(--navy); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  .header-badge { background: var(--accent); color: var(--navy); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .header h1 { color: white; font-size: 18px; font-weight: 700; }
+  .container { max-width: 700px; margin: 0 auto; padding: 24px 16px; }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; }
+  .tabs::-webkit-scrollbar { height: 4px; }
+  .tabs::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+  .tab { padding: 8px 16px; border-radius: 20px; border: 2px solid #e2e8f0; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; color: #4a5568; transition: all 0.2s; }
+  .tab:hover { border-color: var(--blue); color: var(--blue); }
+  .tab.active { background: var(--navy); border-color: var(--navy); color: white; }
+
+  /* 카드 */
+  .card-grid { display: flex; flex-direction: column; gap: 12px; }
+  .resource-card { background: white; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; transition: all 0.2s; border: 2px solid transparent; }
+  .resource-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .file-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+  .file-icon.pdf { background: #fff0f0; }
+  .file-icon.image { background: #f0f7ff; }
+  .file-icon.link { background: #f0fff4; }
+  .file-icon.file { background: #fffbf0; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a202c; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-desc { font-size: 13px; color: var(--gray); margin-bottom: 6px; }
+  .card-meta { display: flex; gap: 8px; align-items: center; }
+  .card-tag { font-size: 11px; background: var(--light); color: var(--blue); padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .card-date { font-size: 11px; color: #cbd5e0; }
+  .card-arrow { color: var(--gray); font-size: 18px; flex-shrink: 0; }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--gray); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .loading { text-align: center; padding: 40px; color: var(--gray); }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-badge">자료실</div>
+  <h1>AU 일학습병행 자료실</h1>
+</div>
+<div class="container">
+  <div class="tabs" id="tabs"></div>
+  <div class="card-grid" id="cardGrid">
+    <div class="loading">자료를 불러오는 중...</div>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = ['전체', 'P-TECH 1학년', 'P-TECH 2학년', '전문대 마케팅경영학과', '전문대 호텔조리학과', '전문대 회계세무학과', '전문대 호텔경영학과', '공통'];
+let allResources = [];
+let activeCategory = '전체';
+
+const typeIcon = { pdf: '📄', image: '🖼️', link: '🔗', file: '📁' };
+const typeLabel = { pdf: 'PDF', image: '이미지', link: '링크', file: '파일' };
+
+async function loadResources() {
+  try {
+    const res = await fetch('resources.json?t=' + Date.now());
+    allResources = await res.json();
+    renderTabs();
+    renderCards();
+  } catch(e) {
+    document.getElementById('cardGrid').innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>자료를 불러올 수 없어요</div></div>';
+  }
+}
+
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = CATEGORIES.map(cat =>
+    `<button class="tab ${cat === activeCategory ? 'active' : ''}" onclick="selectCategory('${cat}')">${cat}</button>`
+  ).join('');
+}
+
+function selectCategory(cat) {
+  activeCategory = cat;
+  renderTabs();
+  renderCards();
+}
+
+function renderCards() {
+  const grid = document.getElementById('cardGrid');
+  const filtered = activeCategory === '전체' ? allResources : allResources.filter(r => r.category === activeCategory);
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div>등록된 자료가 없어요</div></div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(r => `
+    <a class="resource-card" href="${r.url}" target="_blank" rel="noopener">
+      <div class="file-icon ${r.type}">${typeIcon[r.type] || '📁'}</div>
+      <div class="card-info">
+        <div class="card-title">${r.title}</div>
+        ${r.desc ? `<div class="card-desc">${r.desc}</div>` : ''}
+        <div class="card-meta">
+          <span class="card-tag">${r.category}</span>
+          <span class="card-date">${r.date}</span>
+        </div>
+      </div>
+      <div class="card-arrow">›</div>
+    </a>
+  `).join('');
+}
+
+loadResources();
+</script>
+</body>
+</html>

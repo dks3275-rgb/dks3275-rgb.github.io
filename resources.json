@@ -1,0 +1,26 @@
+[
+  {
+    "title": "2026년 일학습병행 안내문",
+    "desc": "일학습병행 사업 전반 안내",
+    "category": "공통",
+    "type": "pdf",
+    "url": "files/sample.pdf",
+    "date": "2026-04-02"
+  },
+  {
+    "title": "비콘 출결 앱 사용 방법",
+    "desc": "비콘 출결 앱 설치 및 사용 안내",
+    "category": "공통",
+    "type": "image",
+    "url": "files/beacon-guide.jpg",
+    "date": "2026-04-02"
+  },
+  {
+    "title": "P-TECH 1학년 교육과정표",
+    "desc": "2026년 1학기 교육과정 안내",
+    "category": "P-TECH 1학년",
+    "type": "pdf",
+    "url": "files/ptech1-curriculum.pdf",
+    "date": "2026-04-02"
+  }
+]
