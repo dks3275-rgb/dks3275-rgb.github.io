@@ -248,7 +248,7 @@
     .modal-input:focus { border-color: var(--accent); }
     .modal-input::placeholder { color: rgba(255,255,255,0.3); }
 
-    .grade-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 28px; }
+    .grade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 28px; }
 
     .grade-btn {
       padding: 16px 8px;
@@ -288,14 +288,23 @@
 
     <div class="modal-label">학년 선택</div>
     <div class="grade-grid">
-      <button class="grade-btn" onclick="selectGrade('1학년', this)">
-        <span class="g-icon">🎓</span>1학년
+      <button class="grade-btn" onclick="selectGrade('P-TECH 1학년', this)">
+        <span class="g-icon">🎓</span>P-TECH 1학년
       </button>
-      <button class="grade-btn" onclick="selectGrade('2학년', this)">
-        <span class="g-icon">🎓</span>2학년
+      <button class="grade-btn" onclick="selectGrade('P-TECH 2학년', this)">
+        <span class="g-icon">🎓</span>P-TECH 2학년
       </button>
-      <button class="grade-btn" onclick="selectGrade('3학년', this)">
-        <span class="g-icon">🎓</span>3학년
+      <button class="grade-btn" onclick="selectGrade('전문대 마케팅경영학과', this)">
+        <span class="g-icon">📚</span>마케팅경영학과
+      </button>
+      <button class="grade-btn" onclick="selectGrade('전문대 호텔조리학과', this)">
+        <span class="g-icon">🍳</span>호텔조리학과
+      </button>
+      <button class="grade-btn" onclick="selectGrade('전문대 회계세무학과', this)">
+        <span class="g-icon">📊</span>회계세무학과
+      </button>
+      <button class="grade-btn" onclick="selectGrade('전문대 호텔경영학과', this)">
+        <span class="g-icon">🏨</span>호텔경영학과
       </button>
     </div>
 
