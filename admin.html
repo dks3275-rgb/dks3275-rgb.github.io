@@ -359,11 +359,10 @@
     }
 
     try {
-      const response = await fetch("https://api.onesignal.com/notifications", {
+      const response = await fetch("https://damp-leaf-0c5c.dks3275.workers.dev", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${API_KEY}`
         },
         body: JSON.stringify(body)
       });
