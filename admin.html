@@ -319,7 +319,7 @@
     btn.classList.add('selected');
     selectedGroup = group;
     const display = document.getElementById('selectedDisplay');
-    display.innerHTML = `선택됨: <span>${group === '전체' ? '전체 학생' : 'P-TECH ' + group}</span>`;
+    display.innerHTML = `선택됨: <span>${group === '전체' ? '전체 학생' : group}</span>`;
   }
 
   async function sendNotification() {
@@ -412,7 +412,7 @@
     list.innerHTML = history.map(h => `
       <div class="history-item">
         <div class="time">${h.time}</div>
-        <span class="group-tag">${h.group === '전체' ? '전체' : 'P-TECH ' + h.group}</span>
+        <span class="group-tag">${h.group === '전체' ? '전체' : h.group}</span>
         <div style="font-weight:500; margin-top:4px;">${h.title}</div>
         <div style="color:#4a5568; margin-top:2px;">${h.message}</div>
         <div style="color:#718096; font-size:11px; margin-top:4px;">수신자 ${h.recipients}명</div>
