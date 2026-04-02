@@ -75,7 +75,7 @@
 
     .group-buttons {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
       gap: 10px;
       margin-bottom: 4px;
     }
@@ -251,13 +251,29 @@
     <div class="form-group">
       <div class="form-label">발송 대상 선택</div>
       <div class="group-buttons">
-        <button class="group-btn" onclick="selectGroup('1학년', this)">
+        <button class="group-btn" onclick="selectGroup('P-TECH 1학년', this)">
           <span class="icon">🎓</span>
           P-TECH<br>1학년
         </button>
-        <button class="group-btn" onclick="selectGroup('2학년', this)">
+        <button class="group-btn" onclick="selectGroup('P-TECH 2학년', this)">
           <span class="icon">🎓</span>
           P-TECH<br>2학년
+        </button>
+        <button class="group-btn" onclick="selectGroup('전문대 마케팅경영학과', this)">
+          <span class="icon">📚</span>
+          마케팅<br>경영학과
+        </button>
+        <button class="group-btn" onclick="selectGroup('전문대 호텔조리학과', this)">
+          <span class="icon">🍳</span>
+          호텔<br>조리학과
+        </button>
+        <button class="group-btn" onclick="selectGroup('전문대 회계세무학과', this)">
+          <span class="icon">📊</span>
+          회계<br>세무학과
+        </button>
+        <button class="group-btn" onclick="selectGroup('전문대 호텔경영학과', this)">
+          <span class="icon">🏨</span>
+          호텔<br>경영학과
         </button>
         <button class="group-btn" onclick="selectGroup('전체', this)">
           <span class="icon">📣</span>
