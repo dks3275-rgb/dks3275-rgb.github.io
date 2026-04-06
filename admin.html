@@ -240,6 +240,20 @@
 
       await window.addNoticeToFirestore({ title, content, images: imageUrls });
       showNoticeResult('✅ 공지사항이 등록됐어요!', 'success');
+if (confirm('📢 전체 학생에게 알림도 보낼까요?')) {
+  const body = {
+    app_id: APP_ID,
+    headings: { en: title, ko: title },
+    contents: { en: '새 공지사항이 등록됐어요. 확인해주세요!', ko: '새 공지사항이 등록됐어요. 확인해주세요!' },
+    included_segments: ["Total Subscriptions"],
+    url: "https://dks3275-rgb.github.io/notice.html"
+  };
+  await fetch("https://damp-leaf-0c5c.dks3275.workers.dev", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+}    
       document.getElementById('noticeTitle').value = '';
       document.getElementById('noticeContent').value = '';
       document.getElementById('imagePreview').innerHTML = '';
