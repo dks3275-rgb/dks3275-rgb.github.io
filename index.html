@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AU 일학습병행 출결알림</title>
   <meta name="description" content="AU 일학습병행 공동훈련센터 출결 알림 앱" />
-  <meta name="theme-color" content="#0f2744" />
+  <meta name="theme-color" content="#1a4a8a" />
   <link rel="manifest" href="manifest.json" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -33,8 +33,8 @@
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
 
     :root {
-      --navy: #0f2744;
-      --blue: #1a4a8a;
+      --navy: #1a4a8a;
+      --blue: #2a5fa0;
       --accent: #e8a020;
       --white: #ffffff;
       --gray: #8a9ab5;
@@ -55,7 +55,7 @@
       content: '';
       position: fixed;
       inset: 0;
-      background: radial-gradient(ellipse at 20% 20%, rgba(26,74,138,0.6) 0%, transparent 60%),
+      background: radial-gradient(ellipse at 20% 20%, rgba(42,95,160,0.6) 0%, transparent 60%),
                   radial-gradient(ellipse at 80% 80%, rgba(232,160,32,0.15) 0%, transparent 50%);
       pointer-events: none;
       z-index: 0;
@@ -139,7 +139,7 @@
     .status-text { font-size: 16px; font-weight: 500; }
     .status-text small { display: block; font-size: 12px; color: var(--gray); font-weight: 300; margin-top: 2px; }
 
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0; }
 
     .info-card {
       background: rgba(255,255,255,0.05);
@@ -147,8 +147,14 @@
       border-radius: 14px;
       padding: 18px 16px;
       text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
     }
 
+    .info-card:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
     .info-card .icon { font-size: 28px; margin-bottom: 8px; }
     .info-card .label { font-size: 11px; color: var(--gray); margin-bottom: 4px; }
     .info-card .value { font-size: 13px; font-weight: 700; color: var(--accent); }
@@ -206,7 +212,6 @@
     .toast.error { border-left: 4px solid var(--danger); }
     .toast.info { border-left: 4px solid var(--blue); }
 
-    /* 등록 모달 */
     .modal-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.85);
@@ -216,7 +221,7 @@
     }
 
     .modal {
-      background: #1a2e4a;
+      background: #1a3a6a;
       border: 1px solid rgba(255,255,255,0.15);
       border-radius: 24px;
       padding: 32px 24px;
@@ -276,7 +281,6 @@
 </head>
 <body>
 
-<!-- 등록 모달 -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-logo">AU 일학습병행</div>
@@ -315,8 +319,8 @@
 <div class="container">
   <div class="header">
     <div class="logo-badge">AU 일학습병행</div>
-    <h1>공동훈련센터<br><span>공지사항 안내</span></h1>
-    <p>센터에서 공지사항을 알려드립니다</p>
+    <h1>안산대학교<br><span>일학습병행 공동훈련센터</span></h1>
+    <p>안산대학교 일학습병행 공동훈련센터 어플입니다.</p>
   </div>
 
   <div class="user-info-card" id="userInfoCard" style="display:none;">
@@ -350,6 +354,11 @@
       <div class="label">알림 방식</div>
       <div class="value">푸시 알림</div>
     </div>
+    <a class="info-card" href="library.html">
+      <div class="icon">📚</div>
+      <div class="label">자료실</div>
+      <div class="value">바로가기</div>
+    </a>
   </div>
 
   <button class="btn-main btn-subscribe" id="subscribeBtn" onclick="subscribeNotification()">
