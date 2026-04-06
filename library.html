@@ -67,7 +67,7 @@ let allResources = [];
 
 async function loadResources() {
   try {
-    const res = await fetch('https://dks3275-rgb.github.io/resources.json?t=' + Date.now());
+    const res = await fetch('./resources.json?t=' + Date.now());
     allResources = await res.json();
     showCategories();
   } catch(e) {
