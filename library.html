@@ -24,8 +24,8 @@
   .category-name { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
   .category-count { font-size: 12px; color: var(--gray); }
   .file-list { display: flex; flex-direction: column; gap: 12px; }
-  .resource-card { background: white; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 16px; text-decoration: none; color: inherit; transition: all 0.2s; border: 2px solid transparent; }
-  .resource-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+  .resource-card { background: white; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 16px; border: 2px solid transparent; transition: all 0.2s; }
+  .resource-card:hover { border-color: var(--blue); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
   .file-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
   .file-icon.pdf { background: #fff0f0; }
   .file-icon.image { background: #f0f7ff; }
@@ -35,7 +35,9 @@
   .card-title { font-size: 15px; font-weight: 700; color: #1a202c; margin-bottom: 4px; }
   .card-desc { font-size: 13px; color: var(--gray); margin-bottom: 6px; }
   .card-date { font-size: 11px; color: #cbd5e0; }
-  .card-arrow { color: var(--gray); font-size: 18px; flex-shrink: 0; }
+  .card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .btn-view { background: var(--navy); color: white; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; text-align: center; white-space: nowrap; }
+  .btn-download { background: var(--accent); color: var(--navy); padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; text-align: center; white-space: nowrap; }
   .empty { text-align: center; padding: 60px 20px; color: var(--gray); }
   .empty-icon { font-size: 48px; margin-bottom: 12px; }
 </style>
@@ -51,7 +53,6 @@
   <div class="category-grid" id="categoryGrid"></div>
   <div class="file-list" id="fileList" style="display:none;"></div>
 </div>
-
 <script>
 const CATEGORIES = [
   { name: 'P-TECH 1학년', icon: '🎓' },
@@ -101,17 +102,24 @@ function showFiles(categoryName) {
     list.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div>등록된 자료가 없어요</div></div>';
     return;
   }
-  list.innerHTML = filtered.map(r =>
-    '<a class="resource-card" href="' + r.url + '" target="_blank" rel="noopener">' +
-    '<div class="file-icon ' + r.type + '">' + (typeIcon[r.type] || '📁') + '</div>' +
-    '<div class="card-info">' +
-    '<div class="card-title">' + r.title + '</div>' +
-    (r.desc ? '<div class="card-desc">' + r.desc + '</div>' : '') +
-    '<div class="card-date">' + r.date + '</div>' +
-    '</div>' +
-    '<div class="card-arrow">›</div>' +
-    '</a>'
-  ).join('');
+  list.innerHTML = filtered.map(r => {
+    const fullUrl = 'https://dks3275-rgb.github.io/' + r.url;
+    const viewerUrl = r.type === 'pdf'
+      ? 'https://drive.google.com/viewerng/viewer?embedded=true&url=' + encodeURIComponent(fullUrl)
+      : fullUrl;
+    return '<div class="resource-card">' +
+      '<div class="file-icon ' + r.type + '">' + (typeIcon[r.type] || '📁') + '</div>' +
+      '<div class="card-info">' +
+      '<div class="card-title">' + r.title + '</div>' +
+      (r.desc ? '<div class="card-desc">' + r.desc + '</div>' : '') +
+      '<div class="card-date">' + r.date + '</div>' +
+      '</div>' +
+      '<div class="card-actions">' +
+      '<a href="' + viewerUrl + '" target="_blank" rel="noopener" class="btn-view">👁️ 보기</a>' +
+      (r.type === 'pdf' ? '<a href="' + fullUrl + '" download target="_blank" rel="noopener" class="btn-download">⬇️ 저장</a>' : '') +
+      '</div>' +
+      '</div>';
+  }).join('');
 }
 
 loadResources();
