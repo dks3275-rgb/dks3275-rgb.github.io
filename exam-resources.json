@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ptech_L3_시행자료",
+    "department": "ptech1",
+    "title": "[시행자료] 호텔식음료서비스 L3",
+    "description": "호텔식음료서비스 외부평가 시행자료 (지필·면접 평가방법, 합격기준 안내)",
+    "fileUrl": "파일/ptech_L3_시행자료.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "ptech_L3_시행자료2",
+    "department": "ptech2",
+    "title": "[시행자료] 호텔식음료서비스 L3",
+    "description": "호텔식음료서비스 외부평가 시행자료 (지필·면접 평가방법, 합격기준 안내)",
+    "fileUrl": "파일/ptech_L3_시행자료.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "marketing_L3_공개자료",
+    "department": "marketing",
+    "title": "[공개자료] 총무·인사 L3",
+    "description": "총무·인사 직무 능력단위 공개자료 (합격기준, 평가방법 포함)",
+    "fileUrl": "파일/marketing_L3_공개자료.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "hotel_L3_시행자료",
+    "department": "hotel",
+    "title": "[시행자료] 식음료서비스 L3",
+    "description": "식음료서비스 외부평가 시행자료 (지필·면접 평가 방법 및 유의사항)",
+    "fileUrl": "파일/hotel_L3_시행자료.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "cooking_L4_공개자료",
+    "department": "cooking",
+    "title": "[공개자료] 양식조리 L4",
+    "description": "양식조리 직무 공개자료 (합격기준, 능력단위 안내)",
+    "fileUrl": "파일/cooking_L4_공개자료.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "cooking_L4_작업평가_1set",
+    "department": "cooking",
+    "title": "[작업평가] 양식조리 L4 - 1형",
+    "description": "양식조리 작업평가 문제지 및 채점기준 1형 (수프·파스타·디저트 조리)",
+    "fileUrl": "파일/cooking_L4_작업평가_1set.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "cooking_L4_작업평가_2set",
+    "department": "cooking",
+    "title": "[작업평가] 양식조리 L4 - 2형",
+    "description": "양식조리 작업평가 문제지 및 채점기준 2형",
+    "fileUrl": "파일/cooking_L4_작업평가_2set.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "cooking_L4_작업평가_3set",
+    "department": "cooking",
+    "title": "[작업평가] 양식조리 L4 - 3형",
+    "description": "양식조리 작업평가 문제지 및 채점기준 3형",
+    "fileUrl": "파일/cooking_L4_작업평가_3set.pdf",
+    "type": "pdf"
+  },
+  {
+    "id": "accounting_L3_공개자료",
+    "department": "accounting",
+    "title": "[공개자료] 세무·회계정보관리 L3",
+    "description": "세무·회계정보관리 직무 공개자료 (합격기준, 능력단위 안내)",
+    "fileUrl": "파일/accounting_L3_공개자료.pdf",
+    "type": "pdf"
+  }
+]
