@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AU 관리자</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+    :root { --navy: #0f2744; --blue: #1a4a8a; --accent: #e8a020; --gray: #8a9ab5; --light: #f0f4f8; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); color: #2d3748; min-height: 100vh; }
+    .header { background: var(--navy); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+    .header-badge { background: var(--accent); color: var(--navy); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+    .header h1 { color: white; font-size: 18px; font-weight: 700; }
+    .tab-nav { background: white; display: flex; border-bottom: 2px solid var(--light); }
+    .tab-nav button { flex: 1; padding: 14px; border: none; background: none; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 500; color: var(--gray); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab-nav button.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 700; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+    .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--light); }
+    .group-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+    .group-btn { padding: 14px 8px; border: 2px solid #e2e8f0; border-radius: 12px; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #4a5568; text-align: center; }
+    .group-btn:hover { border-color: var(--blue); color: var(--blue); background: #f0f5ff; }
+    .group-btn.selected { border-color: var(--navy); background: var(--navy); color: white; }
+    .group-btn .icon { font-size: 20px; display: block; margin-bottom: 6px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; font-weight: 500; color: #4a5568; margin-bottom: 8px; }
+    .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; color: #2d3748; transition: border-color 0.2s; outline: none; }
+    .form-input:focus { border-color: var(--blue); }
+    textarea.form-input { resize: vertical; min-height: 120px; }
+    .send-btn { width: 100%; padding: 16px; background: var(--navy); color: white; border: none; border-radius: 12px; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+    .send-btn:hover { background: var(--blue); transform: translateY(-1px); }
+    .send-btn:disabled { background: #a0aec0; cursor: not-allowed; transform: none; }
+    .result-box { display: none; padding: 14px 16px; border-radius: 10px; margin-top: 14px; font-size: 14px; font-weight: 500; }
+    .result-box.success { background: #f0fff4; border: 1.5px solid #68d391; color: #276749; display: block; }
+    .result-box.error { background: #fff5f5; border: 1.5px solid #fc8181; color: #c53030; display: block; }
+    .selected-group-display { margin-top: 10px; font-size: 13px; color: var(--gray); text-align: center; }
+    .selected-group-display span { font-weight: 700; color: var(--navy); }
+    .history-item { padding: 12px; background: var(--light); border-radius: 8px; margin-bottom: 8px; font-size: 13px; }
+    .history-item .time { color: var(--gray); font-size: 11px; margin-bottom: 4px; }
+    .history-item .group-tag { display: inline-block; background: var(--navy); color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-bottom: 4px; }
+    .empty-history { text-align: center; color: var(--gray); font-size: 13px; padding: 20px; }
+    .notice-item { padding: 14px; background: var(--light); border-radius: 10px; margin-bottom: 10px; }
+    .notice-item-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .notice-item-meta { font-size: 11px; color: var(--gray); display: flex; justify-content: space-between; align-items: center; }
+    .delete-btn { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+    .file-upload { border: 2px dashed #e2e8f0; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .file-upload:hover { border-color: var(--blue); }
+    .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 8px; }
+    .preview-img { width: 100%; height: 80px; object-fit: cover; border-radius: 8px; }
+    .upload-progress { font-size: 13px; color: var(--gray); margin-top: 8px; text-align: center; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="header-badge">관리자</div>
+  <h1>AU 일학습병행 관리자</h1>
+</div>
+
+<div class="tab-nav">
+  <button class="active" onclick="switchTab('push', this)">🔔 알림 발송</button>
+  <button onclick="switchTab('notice', this)">📢 공지사항</button>
+  <button onclick="switchTab('survey', this)">📋 만족도 조사</button>
+</div>
+
+<div class="tab-content active" id="tab-push">
+<div class="container">
+  <div class="card">
+    <div class="card-title">📢 알림 발송</div>
+    <div class="form-group">
+      <div class="form-label">발송 대상 선택</div>
+      <div class="group-buttons">
+        <button class="group-btn" onclick="selectGroup('P-TECH 1학년', this)"><span class="icon">🎓</span>P-TECH<br>1학년</button>
+        <button class="group-btn" onclick="selectGroup('P-TECH 2학년', this)"><span class="icon">🎓</span>P-TECH<br>2학년</button>
+        <button class="group-btn" onclick="selectGroup('전문대 마케팅경영학과', this)"><span class="icon">📚</span>마케팅<br>경영학과</button>
+        <button class="group-btn" onclick="selectGroup('전문대 호텔조리학과', this)"><span class="icon">🍳</span>호텔<br>조리학과</button>
+        <button class="group-btn" onclick="selectGroup('전문대 회계세무학과', this)"><span class="icon">📊</span>회계<br>세무학과</button>
+        <button class="group-btn" onclick="selectGroup('전문대 호텔경영학과', this)"><span class="icon">🏨</span>호텔<br>경영학과</button>
+        <button class="group-btn" style="grid-column: span 4;" onclick="selectGroup('전체', this)"><span class="icon">📣</span>전체 발송</button>
+      </div>
+      <div class="selected-group-display" id="selectedDisplay">대상을 선택해주세요</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">알림 제목</label>
+      <input type="text" class="form-input" id="title" placeholder="예: AU 일학습병행 공지" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">알림 내용</label>
+      <textarea class="form-input" id="message" placeholder="예: 오늘 오후 3시 비콘 출결 잊지 마세요!"></textarea>
+    </div>
+    <button class="send-btn" id="sendBtn" onclick="sendNotification()">🔔 알림 발송</button>
+    <div class="result-box" id="resultBox"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 발송 기록</div>
+    <div id="historyList"><div class="empty-history">아직 발송 기록이 없어요</div></div>
+  </div>
+</div>
+</div>
+
+<div class="tab-content" id="tab-notice">
+<div class="container">
+  <div class="card">
+    <div class="card-title">✏️ 공지사항 작성</div>
+    <div class="form-group">
+      <label class="form-label">제목</label>
+      <input type="text" class="form-input" id="noticeTitle" placeholder="공지사항 제목을 입력해주세요" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">내용</label>
+      <textarea class="form-input" id="noticeContent" style="min-height:200px;" placeholder="공지사항 내용을 입력해주세요"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">이미지 첨부 (선택)</label>
+      <div class="file-upload" onclick="document.getElementById('imageInput').click()">
+        <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="previewImages(this)">
+        <div>📷 클릭해서 이미지 선택</div>
+        <div style="font-size:12px;color:#aaa;margin-top:4px;">여러 장 선택 가능</div>
+      </div>
+      <div class="preview-grid" id="imagePreview"></div>
+      <div class="upload-progress" id="uploadProgress"></div>
+    </div>
+    <button class="send-btn" id="noticeBtn" onclick="postNotice()">📢 공지사항 등록</button>
+    <div class="result-box" id="noticeResult"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 등록된 공지사항</div>
+    <div id="noticeList"><div class="empty-history">불러오는 중...</div></div>
+  </div>
+</div>
+</div>
+
+<script>
+  const CLOUDINARY_CLOUD = 'dfu06qits';
+  const CLOUDINARY_PRESET = 'au_notices';
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  const APP_ID = "6bed6730-b167-48a8-a98d-83cdcb1cbc10";
+  let selectedGroup = null;
+  let sendHistory = JSON.parse(localStorage.getItem('sendHistory') || '[]');
+  let selectedFiles = [];
+
+  function selectGroup(group, btn) {
+    document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedGroup = group;
+    document.getElementById('selectedDisplay').innerHTML = '선택됨: <span>' + (group === '전체' ? '전체 학생' : group) + '</span>';
+  }
+
+  async function sendNotification() {
+    const title = document.getElementById('title').value.trim();
+    const message = document.getElementById('message').value.trim();
+    const sendBtn = document.getElementById('sendBtn');
+    if (!selectedGroup) { showResult('발송 대상을 선택해주세요!', 'error'); return; }
+    if (!title) { showResult('알림 제목을 입력해주세요!', 'error'); return; }
+    if (!message) { showResult('알림 내용을 입력해주세요!', 'error'); return; }
+    sendBtn.disabled = true; sendBtn.textContent = '발송 중...';
+    let body = { app_id: APP_ID, headings: { en: title, ko: title }, contents: { en: message, ko: message } };
+    if (selectedGroup === '전체') { body.included_segments = ["Total Subscriptions"]; }
+    else { body.filters = [{ field: "tag", key: "학년", relation: "=", value: selectedGroup }]; }
+    try {
+      const response = await fetch("https://damp-leaf-0c5c.dks3275.workers.dev", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await response.json();
+      if (data.id) { showResult('✅ 발송 완료!', 'success'); addHistory(selectedGroup, title, message); document.getElementById('title').value = ''; document.getElementById('message').value = ''; }
+      else { showResult('❌ 발송 실패: ' + JSON.stringify(data.errors || data), 'error'); }
+    } catch(e) { showResult('❌ 오류: ' + e.message, 'error'); }
+    sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
+  }
+
+  function showResult(msg, type) {
+    const box = document.getElementById('resultBox');
+    box.textContent = msg; box.className = 'result-box ' + type;
+    setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 5000);
+  }
+
+  function addHistory(group, title, message) {
+    const now = new Date().toLocaleString('ko-KR');
+    sendHistory.unshift({ group, title, message, time: now });
+    if (sendHistory.length > 20) sendHistory.pop();
+    localStorage.setItem('sendHistory', JSON.stringify(sendHistory));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    if (sendHistory.length === 0) { list.innerHTML = '<div class="empty-history">아직 발송 기록이 없어요</div>'; return; }
+    list.innerHTML = sendHistory.map(h => '<div class="history-item"><div class="time">' + h.time + '</div><span class="group-tag">' + (h.group === '전체' ? '전체' : h.group) + '</span><div style="font-weight:500;margin-top:4px;">' + h.title + '</div><div style="color:#4a5568;margin-top:2px;">' + h.message + '</div></div>').join('');
+  }
+  renderHistory();
+
+  function previewImages(input) {
+    selectedFiles = Array.from(input.files);
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    selectedFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.className = 'preview-img';
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadToCloudinary(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  async function postNotice() {
+    const title = document.getElementById('noticeTitle').value.trim();
+    const content = document.getElementById('noticeContent').value.trim();
+    const btn = document.getElementById('noticeBtn');
+    const progress = document.getElementById('uploadProgress');
+    if (!title) { showNoticeResult('제목을 입력해주세요!', 'error'); return; }
+    if (!content) { showNoticeResult('내용을 입력해주세요!', 'error'); return; }
+    btn.disabled = true; btn.textContent = '등록 중...';
+
+    try {
+      let imageUrls = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        progress.textContent = '이미지 업로드 중... (' + (i+1) + '/' + selectedFiles.length + ')';
+        const url = await uploadToCloudinary(selectedFiles[i]);
+        imageUrls.push(url);
+      }
+      progress.textContent = '';
+
+      await window.addNoticeToFirestore({ title, content, images: imageUrls });
+      showNoticeResult('✅ 공지사항이 등록됐어요!', 'success');
+if (confirm('📢 전체 학생에게 알림도 보낼까요?')) {
+  const body = {
+    app_id: APP_ID,
+    headings: { en: title, ko: title },
+    contents: { en: '새 공지사항이 등록됐어요. 확인해주세요!', ko: '새 공지사항이 등록됐어요. 확인해주세요!' },
+    included_segments: ["Total Subscriptions"],
+    url: "https://dks3275-rgb.github.io/notice.html"
+  };
+  await fetch("https://damp-leaf-0c5c.dks3275.workers.dev", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+}    
+      document.getElementById('noticeTitle').value = '';
+      document.getElementById('noticeContent').value = '';
+      document.getElementById('imagePreview').innerHTML = '';
+      selectedFiles = [];
+      document.getElementById('imageInput').value = '';
+    } catch(e) {
+      showNoticeResult('❌ 오류: ' + e.message, 'error');
+    }
+    btn.disabled = false; btn.textContent = '📢 공지사항 등록';
+  }
+
+  function showNoticeResult(msg, type) {
+    const box = document.getElementById('noticeResult');
+    box.textContent = msg; box.className = 'result-box ' + type;
+    setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 5000);
+  }
+</script>
+
+
+<div class="tab-content" id="tab-survey">
+  <div class="card">
+    <div class="card-title">📋 만족도 조사 개폐 관리</div>
+    <div id="surveyStatusList">
+      <div style="text-align:center;color:#a0aec0;padding:20px">불러오는 중...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 응답 현황</div>
+    <div id="surveyCountList">
+      <div style="text-align:center;color:#a0aec0;padding:20px">불러오는 중...</div>
+    </div>
+    <button class="send-btn" style="margin-top:12px;background:#2e7dff" onclick="loadSurveyCounts()">🔄 새로고침</button>
+  </div>
+</div>
+<script>
+const SURVEY_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0Prf0mhhwe5oHqbb6c0w5vyGHii8nLqSKrnUmFyqy9vEo87vxlhmVmNfkg6OvHrMB/exec';
+
+const SURVEY_LIST = [
+  {id:'initial', name:'초기 만족도 조사', desc:'훈련 시작 1~2달'},
+  {id:'round1',  name:'1차 만족도 조사', desc:'1학년 1학기 종료'},
+  {id:'round2',  name:'2차 만족도 조사', desc:'1학년 2학기 종료'},
+  {id:'round3',  name:'3차 만족도 조사', desc:'2학년 1학기 (P-TECH)'},
+  {id:'round4',  name:'4차 만족도 조사', desc:'2학년 2학기 (P-TECH)'},
+];
+
+async function loadSurveyStatus() {
+  const list = document.getElementById('surveyStatusList');
+  try {
+    const r = await fetch(SURVEY_SCRIPT_URL + '?action=getConfig&t=' + Date.now());
+    const config = await r.json();
+    list.innerHTML = SURVEY_LIST.map(s => {
+      const isOpen = config[s.id] && config[s.id].open;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f0f0f0">
+        <div>
+          <div style="font-weight:700;font-size:14px">${s.name}</div>
+          <div style="font-size:12px;color:#718096;margin-top:2px">${s.desc}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:12px;font-weight:700;color:${isOpen?'#38a169':'#a0aec0'}">${isOpen?'● 진행중':'● 준비중'}</span>
+          <button onclick="toggleSurvey('${s.id}', ${!isOpen})"
+            style="padding:8px 16px;border-radius:8px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;background:${isOpen?'#fff5f5':'#f0fff4'};color:${isOpen?'#c53030':'#276749'}">
+            ${isOpen ? '닫기' : '열기'}
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:#e53e3e;padding:12px">불러오기 실패: ' + e.message + '</div>';
+  }
+}
+
+async function toggleSurvey(id, open) {
+  const action = open ? '열기' : '닫기';
+  if(!confirm(`"${SURVEY_LIST.find(s=>s.id===id)?.name}"를 ${action}할까요?`)) return;
+  try {
+    await fetch(`${SURVEY_SCRIPT_URL}?action=toggleSurvey&id=${id}&open=${open}`);
+    await loadSurveyStatus();
+    await loadSurveyCounts();
+    alert(`설문이 ${action}되었습니다!`);
+  } catch(e) {
+    alert('오류: ' + e.message);
+  }
+}
+
+async function loadSurveyCounts() {
+  const list = document.getElementById('surveyCountList');
+  try {
+    const r = await fetch(SURVEY_SCRIPT_URL + '?action=getSummary&t=' + Date.now());
+    const summary = await r.json();
+    list.innerHTML = SURVEY_LIST.map(s => {
+      const count = summary[s.id] || 0;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:14px;font-weight:500">${s.name}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px;font-weight:700;color:#2b6cb0">${count}</span>
+          <span style="font-size:12px;color:#718096">명 응답</span>
+          <button onclick="viewResponses('${s.id}')"
+            style="padding:6px 12px;border-radius:8px;border:1px solid #e2e8f0;background:white;font-family:'Noto Sans KR',sans-serif;font-size:12px;cursor:pointer">
+            보기
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:#e53e3e;padding:12px">불러오기 실패</div>';
+  }
+}
+
+async function viewResponses(surveyId) {
+  const surveyName = SURVEY_LIST.find(s=>s.id===surveyId)?.name || surveyId;
+  try {
+    const r = await fetch(`${SURVEY_SCRIPT_URL}?action=getStats&surveyId=${surveyId}&t=${Date.now()}`);
+    const data = await r.json();
+    if(!data.data || data.data.length === 0) {
+      alert('아직 응답이 없어요.');
+      return;
+    }
+    // 간단 요약 팝업
+    const rows = data.data;
+    const nameCol = data.headers.indexOf('이름');
+    const deptCol = data.headers.indexOf('훈련종목');
+    const timeCol = data.headers.indexOf('제출시간');
+    let msg = `📋 ${surveyName} 응답자 목록 (${rows.length}명)
+
+`;
+    rows.forEach((row, i) => {
+      const name = nameCol >= 0 ? row[nameCol] : '?';
+      const dept = deptCol >= 0 ? row[deptCol] : '?';
+      const time = timeCol >= 0 ? row[timeCol] : '?';
+      msg += `${i+1}. ${name} (${dept})
+   ${time}
+`;
+    });
+    msg += '
+※ 상세 데이터는 구글 스프레드시트에서 확인하세요.';
+    alert(msg);
+  } catch(e) {
+    alert('불러오기 실패: ' + e.message);
+  }
+}
+
+// 탭 전환 시 만족도 데이터 로드
+const origSwitchTab = window.switchTab;
+window.switchTab = function(tab, btn) {
+  if(origSwitchTab) origSwitchTab(tab, btn);
+  else {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    if(btn) btn.classList.add('active');
+  }
+  if(tab === 'survey') {
+    loadSurveyStatus();
+    loadSurveyCounts();
+  }
+};
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', () => {
+  loadSurveyStatus();
+  loadSurveyCounts();
+});
+</script>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, orderBy, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc",
+    authDomain: "au-ilhaksub.firebaseapp.com",
+    projectId: "au-ilhaksub",
+    storageBucket: "au-ilhaksub.firebasestorage.app",
+    messagingSenderId: "407960160823",
+    appId: "1:407960160823:web:1e830d6b0d69e4a7b84db2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.addNoticeToFirestore = async function({ title, content, images }) {
+    await addDoc(collection(db, 'notices'), { title, content, images, createdAt: serverTimestamp() });
+    loadNotices();
+  };
+
+  async function loadNotices() {
+    const list = document.getElementById('noticeList');
+    try {
+      const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) { list.innerHTML = '<div class="empty-history">등록된 공지사항이 없어요</div>'; return; }
+      list.innerHTML = '';
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        const date = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : '';
+        const item = document.createElement('div');
+        item.className = 'notice-item';
+        item.innerHTML = '<div class="notice-item-title">' + d.title + '</div><div class="notice-item-meta"><span>' + date + (d.images && d.images.length > 0 ? ' · 이미지 ' + d.images.length + '장' : '') + '</span><button class="delete-btn" onclick="deleteNotice(\'' + docSnap.id + '\')">삭제</button></div>';
+        list.appendChild(item);
+      });
+    } catch(e) { list.innerHTML = '<div class="empty-history">불러오기 실패: ' + e.message + '</div>'; }
+  }
+
+  window.deleteNotice = async function(id) {
+    if (!confirm('공지사항을 삭제할까요?')) return;
+    await deleteDoc(doc(db, 'notices', id));
+    loadNotices();
+  };
+
+  loadNotices();
+</script>
+</body>
+</html>
