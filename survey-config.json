@@ -1,0 +1,7 @@
+{
+  "initial": {"open": false, "name": "초기 만족도 조사"},
+  "round1":  {"open": false, "name": "1차 만족도 조사"},
+  "round2":  {"open": false, "name": "2차 만족도 조사"},
+  "round3":  {"open": false, "name": "3차 만족도 조사"},
+  "round4":  {"open": false, "name": "4차 만족도 조사"}
+}
