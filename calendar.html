@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>일정 캘린더 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #2196f3;
+  --navy: #1976d2;
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --border: #e4eaf4;
+  --text: #1a2a3a;
+  --text2: #5a7090;
+  --text3: #8a9ab5;
+  --shadow: 0 2px 12px rgba(33,150,243,0.08);
+  --radius: 14px;
+}
+/* 카테고리 색상 */
+.cat-학교일정  { --cat: #2196f3; } .cat-시험평가  { --cat: #e74c3c; }
+.cat-보강      { --cat: #27ae60; } .cat-휴강공휴일{ --cat: #9b59b6; }
+.cat-과제제출  { --cat: #f39c12; } .cat-현장훈련  { --cat: #16a085; }
+.cat-외부평가  { --cat: #2980b9; } .cat-공지안내  { --cat: #7f8c8d; }
+.cat-긴급공지  { --cat: #c0392b; } .cat-행사이벤트{ --cat: #e91e63; }
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* 헤더 */
+.header { background:var(--blue); padding:20px 20px 0; }
+.header-top { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.back-btn { background:rgba(255,255,255,0.2); border:none; color:white; width:36px; height:36px; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; flex-shrink:0; }
+.header-badge { background:rgba(255,255,255,0.2); color:white; font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; }
+.header h1 { color:white; font-size:20px; font-weight:900; }
+
+/* 탭 */
+.view-tabs { display:flex; gap:0; }
+.view-tab { flex:1; padding:12px; border:none; background:none; color:rgba(255,255,255,0.6); font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:500; cursor:pointer; border-bottom:3px solid transparent; transition:all 0.2s; }
+.view-tab.active { color:white; border-bottom-color:white; font-weight:700; }
+
+/* 월 네비게이션 */
+.month-nav { background:white; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
+.month-btn { width:36px; height:36px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.month-btn:hover { border-color:var(--blue); color:var(--blue); }
+.month-title { font-size:18px; font-weight:800; color:var(--text); }
+.month-sub { font-size:12px; color:var(--text2); text-align:center; }
+
+/* 달력 */
+.calendar-wrap { background:white; padding:12px 16px 16px; border-bottom:1px solid var(--border); }
+.cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:8px; }
+.cal-weekday { text-align:center; font-size:11px; font-weight:700; color:var(--text3); padding:4px 0; }
+.cal-weekday:first-child { color:#e74c3c; }
+.cal-weekday:last-child { color:#2196f3; }
+.cal-days { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-day { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:4px 2px; border-radius:10px; cursor:pointer; transition:all 0.15s; position:relative; min-height:40px; }
+.cal-day:hover { background:var(--bg); }
+.cal-day.other-month { opacity:0.3; }
+.cal-day.today .day-num { background:var(--blue); color:white; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; }
+.cal-day.selected { background:#e3f2fd; }
+.cal-day.selected .day-num { color:var(--blue); font-weight:700; }
+.day-num { font-size:13px; font-weight:500; color:var(--text); line-height:26px; width:26px; text-align:center; }
+.cal-day:first-child .day-num, .cal-day.sunday .day-num { color:#e74c3c; }
+.cal-day.saturday .day-num { color:#2196f3; }
+.cal-day.today .day-num { color:white !important; }
+.day-dots { display:flex; gap:2px; flex-wrap:wrap; justify-content:center; margin-top:2px; max-width:28px; }
+.day-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+
+/* 리스트 섹션 */
+.list-section { padding:16px; max-width:600px; margin:0 auto; }
+.list-month-title { font-size:13px; font-weight:700; color:var(--text2); letter-spacing:1px; text-transform:uppercase; margin-bottom:12px; }
+.day-group { margin-bottom:20px; }
+.day-group-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.day-group-date { font-size:13px; font-weight:700; color:var(--text); }
+.day-group-line { flex:1; height:1px; background:var(--border); }
+.event-card { background:var(--card); border-radius:12px; padding:14px 16px; margin-bottom:8px; border:1.5px solid var(--border); cursor:pointer; transition:all 0.2s; border-left:4px solid var(--cat,var(--blue)); box-shadow:var(--shadow); }
+.event-card:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(33,150,243,0.12); }
+.event-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.event-cat { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; color:var(--cat,var(--blue)); background:color-mix(in srgb, var(--cat,var(--blue)) 12%, white); }
+.event-time { font-size:11px; color:var(--text3); margin-left:auto; }
+.event-title { font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.event-desc { font-size:13px; color:var(--text2); line-height:1.5; }
+.event-footer { display:flex; align-items:center; gap:8px; margin-top:8px; }
+.comment-count { font-size:11px; color:var(--text3); display:flex; align-items:center; gap:3px; }
+
+/* 빈 상태 */
+.empty { text-align:center; padding:40px 20px; color:var(--text3); }
+.empty-icon { font-size:40px; margin-bottom:12px; }
+.empty-text { font-size:14px; }
+
+/* 일정 상세 모달 */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,30,60,0.7); z-index:200; align-items:flex-end; justify-content:center; backdrop-filter:blur(4px); }
+.modal-overlay.show { display:flex; }
+.modal { background:white; border-radius:24px 24px 0 0; width:100%; max-width:600px; max-height:85vh; overflow-y:auto; animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+.modal-handle { width:40px; height:4px; background:var(--border); border-radius:4px; margin:12px auto 0; }
+.modal-content { padding:20px 24px 40px; }
+.modal-cat { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; display:inline-block; margin-bottom:12px; color:var(--cat,var(--blue)); background:color-mix(in srgb, var(--cat,var(--blue)) 12%, white); }
+.modal-title { font-size:20px; font-weight:900; color:var(--text); margin-bottom:8px; }
+.modal-date { font-size:13px; color:var(--text2); margin-bottom:16px; display:flex; align-items:center; gap:6px; }
+.modal-desc { font-size:14px; color:var(--text); line-height:1.7; padding:14px; background:var(--bg); border-radius:10px; margin-bottom:20px; white-space:pre-wrap; }
+.modal-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border:none; background:var(--bg); border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text2); }
+
+/* 댓글 */
+.comments-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.comment-item { padding:12px 0; border-bottom:1px solid var(--border); }
+.comment-item:last-child { border-bottom:none; }
+.comment-header { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.comment-avatar { width:28px; height:28px; border-radius:50%; background:var(--blue); color:white; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.comment-name { font-size:13px; font-weight:700; color:var(--text); }
+.comment-time { font-size:11px; color:var(--text3); margin-left:auto; }
+.comment-text { font-size:13px; color:var(--text2); line-height:1.5; padding-left:36px; }
+.comment-input-wrap { display:flex; gap:10px; margin-top:16px; align-items:flex-end; }
+.comment-input { flex:1; padding:12px 14px; background:var(--bg); border:1.5px solid var(--border); border-radius:12px; font-family:'Noto Sans KR',sans-serif; font-size:14px; color:var(--text); outline:none; resize:none; min-height:44px; max-height:120px; transition:border-color 0.2s; }
+.comment-input:focus { border-color:var(--blue); background:white; }
+.comment-input::placeholder { color:var(--text3); }
+.comment-send { padding:12px 16px; background:var(--blue); color:white; border:none; border-radius:12px; font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+.comment-send:hover { background:var(--navy); }
+
+/* 카테고리 범례 */
+.legend-wrap { padding:0 16px 16px; display:flex; flex-wrap:wrap; gap:8px; max-width:600px; margin:0 auto; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text2); }
+.legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+.loading { text-align:center; padding:40px; color:var(--text3); font-size:14px; }
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+  <div class="header-top">
+    <a href="index.html" class="back-btn">←</a>
+    <span class="header-badge">일정</span>
+    <h1>캘린더</h1>
+  </div>
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="switchView('calendar', this)">📅 달력</button>
+    <button class="view-tab" onclick="switchView('list', this)">📋 목록</button>
+  </div>
+</div>
+
+<!-- 월 네비게이션 -->
+<div class="month-nav">
+  <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+  <div style="text-align:center;">
+    <div class="month-title" id="monthTitle"></div>
+    <div class="month-sub" id="monthSub"></div>
+  </div>
+  <button class="month-btn" onclick="changeMonth(1)">›</button>
+</div>
+
+<!-- 달력 뷰 -->
+<div id="calendarView">
+  <div class="calendar-wrap">
+    <div class="cal-weekdays">
+      <div class="cal-weekday">일</div>
+      <div class="cal-weekday">월</div>
+      <div class="cal-weekday">화</div>
+      <div class="cal-weekday">수</div>
+      <div class="cal-weekday">목</div>
+      <div class="cal-weekday">금</div>
+      <div class="cal-weekday">토</div>
+    </div>
+    <div class="cal-days" id="calDays"></div>
+  </div>
+
+  <!-- 카테고리 범례 -->
+  <div class="legend-wrap" id="legendWrap"></div>
+
+  <!-- 선택한 날 일정 리스트 -->
+  <div class="list-section">
+    <div class="list-month-title" id="selectedDateTitle"></div>
+    <div id="selectedDayEvents"></div>
+  </div>
+</div>
+
+<!-- 리스트 뷰 -->
+<div id="listView" style="display:none;">
+  <div class="list-section">
+    <div class="list-month-title" id="listMonthTitle"></div>
+    <div id="listEvents"></div>
+  </div>
+</div>
+
+<!-- 일정 상세 모달 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div style="position:relative;">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, getDocs, addDoc, query, orderBy, serverTimestamp, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc",
+  authDomain: "au-ilhaksub.firebaseapp.com",
+  projectId: "au-ilhaksub",
+  storageBucket: "au-ilhaksub.firebasestorage.app",
+  messagingSenderId: "407960160823",
+  appId: "1:407960160823:web:1e830d6b0d69e4a7b84db2"
+};
+
+const app = getApps().find(a => a.name === 'calendar') || initializeApp(firebaseConfig, 'calendar');
+const db = getFirestore(app);
+
+// 카테고리 설정
+const CATEGORIES = {
+  '학교일정':   { color:'#2196f3', icon:'📅' },
+  '시험/평가':  { color:'#e74c3c', icon:'📝' },
+  '보강':       { color:'#27ae60', icon:'🔧' },
+  '휴강/공휴일':{ color:'#9b59b6', icon:'🏖️' },
+  '과제/제출':  { color:'#f39c12', icon:'📋' },
+  '현장훈련':   { color:'#16a085', icon:'🏢' },
+  '외부평가':   { color:'#2980b9', icon:'🎓' },
+  '공지/안내':  { color:'#7f8c8d', icon:'📢' },
+  '긴급공지':   { color:'#c0392b', icon:'⚡' },
+  '행사/이벤트':{ color:'#e91e63', icon:'🎉' },
+};
+
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let selectedDate = null;
+let allEvents = [];
+let currentView = 'calendar';
+let currentEventId = null;
+
+// 범례 렌더링
+function renderLegend() {
+  document.getElementById('legendWrap').innerHTML = Object.entries(CATEGORIES).map(([name, info]) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${info.color}"></div>${info.icon} ${name}</div>`
+  ).join('');
+}
+
+// 이벤트 로드
+async function loadEvents() {
+  try {
+    const snapshot = await getDocs(collection(db, 'calendar_events'));
+    allEvents = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAll();
+  } catch(e) {
+    console.error('이벤트 로드 실패:', e);
+  }
+}
+
+function renderAll() {
+  updateMonthNav();
+  renderCalendar();
+  renderListView();
+  if (selectedDate) renderSelectedDay(selectedDate);
+}
+
+function updateMonthNav() {
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('monthTitle').textContent = `${currentYear}년 ${months[currentMonth]}`;
+  document.getElementById('monthSub').textContent = getMonthEventCount() + '개 일정';
+  document.getElementById('listMonthTitle').textContent = `${currentYear}년 ${months[currentMonth]} 일정`;
+}
+
+function getMonthEventCount() {
+  return allEvents.filter(e => {
+    const d = new Date(e.date);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  }).length;
+}
+
+// 달력 렌더링
+function renderCalendar() {
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysInPrev = new Date(currentYear, currentMonth, 0).getDate();
+  const today = new Date();
+
+  // 날짜별 이벤트 맵
+  const eventMap = {};
+  allEvents.forEach(e => {
+    const d = new Date(e.date);
+    if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+      const key = d.getDate();
+      if (!eventMap[key]) eventMap[key] = [];
+      eventMap[key].push(e);
+    }
+  });
+
+  let html = '';
+  // 이전 달
+  for (let i = firstDay - 1; i >= 0; i--) {
+    html += `<div class="cal-day other-month"><span class="day-num">${daysInPrev - i}</span></div>`;
+  }
+  // 현재 달
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(currentYear, currentMonth, d);
+    const dow = date.getDay();
+    const isToday = today.getFullYear()===currentYear && today.getMonth()===currentMonth && today.getDate()===d;
+    const isSelected = selectedDate && selectedDate.getDate()===d && selectedDate.getMonth()===currentMonth && selectedDate.getFullYear()===currentYear;
+    const dateStr = formatDate(currentYear, currentMonth, d);
+    const dayEvents = eventMap[d] || [];
+
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (isSelected) cls += ' selected';
+    if (dow === 0) cls += ' sunday';
+    if (dow === 6) cls += ' saturday';
+
+    const dots = dayEvents.slice(0, 3).map(e => {
+      const cat = CATEGORIES[e.category] || { color: '#2196f3' };
+      return `<div class="day-dot" style="background:${cat.color}"></div>`;
+    }).join('');
+
+    html += `<div class="${cls}" onclick="selectDay('${dateStr}')">
+      <span class="day-num">${d}</span>
+      ${dots ? `<div class="day-dots">${dots}</div>` : ''}
+    </div>`;
+  }
+  // 다음 달
+  const remaining = 42 - firstDay - daysInMonth;
+  for (let d = 1; d <= remaining; d++) {
+    html += `<div class="cal-day other-month"><span class="day-num">${d}</span></div>`;
+  }
+  document.getElementById('calDays').innerHTML = html;
+}
+
+// 날짜 선택
+window.selectDay = function(dateStr) {
+  selectedDate = new Date(dateStr + 'T00:00:00');
+  renderCalendar();
+  renderSelectedDay(selectedDate);
+};
+
+function renderSelectedDay(date) {
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('selectedDateTitle').textContent =
+    `${date.getMonth()+1}월 ${date.getDate()}일 (${days[date.getDay()]})`;
+
+  const dateStr = formatDate(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayEvents = allEvents.filter(e => e.date === dateStr);
+
+  const el = document.getElementById('selectedDayEvents');
+  if (dayEvents.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">이 날 일정이 없어요</div></div>';
+    return;
+  }
+  el.innerHTML = dayEvents.map(e => renderEventCard(e)).join('');
+}
+
+// 리스트 뷰 렌더링
+function renderListView() {
+  const monthEvents = allEvents.filter(e => {
+    const d = new Date(e.date + 'T00:00:00');
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  }).sort((a, b) => a.date.localeCompare(b.date));
+
+  const el = document.getElementById('listEvents');
+  if (monthEvents.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">이번 달 일정이 없어요</div></div>';
+    return;
+  }
+
+  // 날짜별 그룹화
+  const grouped = {};
+  monthEvents.forEach(e => {
+    if (!grouped[e.date]) grouped[e.date] = [];
+    grouped[e.date].push(e);
+  });
+
+  const days = ['일','월','화','수','목','금','토'];
+  el.innerHTML = Object.entries(grouped).map(([date, events]) => {
+    const d = new Date(date + 'T00:00:00');
+    const dateLabel = `${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+    return `<div class="day-group">
+      <div class="day-group-header">
+        <span class="day-group-date">${dateLabel}</span>
+        <div class="day-group-line"></div>
+      </div>
+      ${events.map(e => renderEventCard(e)).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderEventCard(e) {
+  const cat = CATEGORIES[e.category] || { color: '#2196f3', icon: '📅' };
+  const catClass = 'cat-' + (e.category || '').replace(/[\/\s]/g, '');
+  return `<div class="event-card ${catClass}" style="--cat:${cat.color}" onclick="openEvent('${e.id}')">
+    <div class="event-top">
+      <span class="event-cat">${cat.icon} ${e.category || '일정'}</span>
+      ${e.time ? `<span class="event-time">🕐 ${e.time}</span>` : ''}
+    </div>
+    <div class="event-title">${e.title}</div>
+    ${e.description ? `<div class="event-desc">${e.description.substring(0, 60)}${e.description.length > 60 ? '...' : ''}</div>` : ''}
+    <div class="event-footer">
+      <span class="comment-count">💬 댓글 ${e.commentCount || 0}</span>
+    </div>
+  </div>`;
+}
+
+// 이벤트 상세 모달
+window.openEvent = async function(eventId) {
+  currentEventId = eventId;
+  const event = allEvents.find(e => e.id === eventId);
+  if (!event) return;
+
+  const cat = CATEGORIES[event.category] || { color: '#2196f3', icon: '📅' };
+  const d = new Date(event.date + 'T00:00:00');
+  const days = ['일','월','화','수','목','금','토'];
+
+  document.getElementById('modalContent').innerHTML = `
+    <span class="modal-cat" style="--cat:${cat.color}">${cat.icon} ${event.category}</span>
+    <div class="modal-title">${event.title}</div>
+    <div class="modal-date">
+      📅 ${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})
+      ${event.time ? `&nbsp; 🕐 ${event.time}` : ''}
+    </div>
+    ${event.description ? `<div class="modal-desc">${event.description}</div>` : ''}
+    <div class="comments-title">💬 댓글 <span id="commentCount">${event.commentCount || 0}</span></div>
+    <div id="commentList"><div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">불러오는 중...</div></div>
+    <div class="comment-input-wrap">
+      <textarea class="comment-input" id="commentInput" placeholder="댓글을 입력하세요..." rows="1" oninput="autoResize(this)"></textarea>
+      <button class="comment-send" onclick="submitComment('${eventId}')">전송</button>
+    </div>
+  `;
+
+  document.getElementById('modalOverlay').classList.add('show');
+  loadComments(eventId);
+};
+
+async function loadComments(eventId) {
+  try {
+    const q = query(collection(db, 'calendar_events', eventId, 'comments'), orderBy('createdAt', 'asc'));
+    const snapshot = await getDocs(q);
+    const comments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderComments(comments);
+  } catch(e) {
+    document.getElementById('commentList').innerHTML = '<div style="text-align:center;padding:12px;color:var(--text3);font-size:13px;">댓글을 불러올 수 없어요</div>';
+  }
+}
+
+function renderComments(comments) {
+  const el = document.getElementById('commentList');
+  if (comments.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px;">첫 번째 댓글을 남겨보세요!</div>';
+    return;
+  }
+  el.innerHTML = comments.map(c => {
+    const time = c.createdAt ? new Date(c.createdAt.seconds * 1000).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="comment-item">
+      <div class="comment-header">
+        <div class="comment-avatar">${(c.name||'?').charAt(0)}</div>
+        <span class="comment-name">${c.name || '익명'}</span>
+        <span class="comment-time">${time}</span>
+      </div>
+      <div class="comment-text">${c.text}</div>
+    </div>`;
+  }).join('');
+}
+
+window.submitComment = async function(eventId) {
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+  const name = userInfo.name || '익명';
+
+  try {
+    await addDoc(collection(db, 'calendar_events', eventId, 'comments'), {
+      name, text, createdAt: serverTimestamp()
+    });
+    input.value = '';
+    loadComments(eventId);
+    // 댓글 수 업데이트 (로컬)
+    const event = allEvents.find(e => e.id === eventId);
+    if (event) { event.commentCount = (event.commentCount || 0) + 1; }
+    const countEl = document.getElementById('commentCount');
+    if (countEl) countEl.textContent = (event?.commentCount || 0);
+  } catch(e) {
+    alert('댓글 등록에 실패했어요. 다시 시도해주세요.');
+  }
+};
+
+window.closeModal = function(e) {
+  if (!e || e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.remove('show');
+    currentEventId = null;
+  }
+};
+
+window.autoResize = function(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
+
+// 월 변경
+window.changeMonth = function(dir) {
+  currentMonth += dir;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  selectedDate = null;
+  document.getElementById('selectedDateTitle').textContent = '';
+  document.getElementById('selectedDayEvents').innerHTML = '';
+  renderAll();
+};
+
+// 뷰 전환
+window.switchView = function(view, btn) {
+  currentView = view;
+  document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none';
+  document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
+};
+
+function formatDate(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+// 초기화
+renderLegend();
+loadEvents();
+
+// 오늘 날짜 선택
+const today = new Date();
+selectedDate = today;
+const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+setTimeout(() => renderSelectedDay(today), 100);
+</script>
+</body>
+</html>
