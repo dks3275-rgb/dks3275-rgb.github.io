@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>외부평가 | AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --card2:#f0f4f8;
+  --accent:#ff6b35;
+  --accent2:#ff8f5e;
+  --blue:#2196f3;
+  --blue2:#1976d2;
+  --green:#27ae60;
+  --green2:#2ecc71;
+  --red:#e74c3c;
+  --yellow:#f39c12;
+  --text:#1a2a3a;
+  --text2:#5a7090;
+  --text3:#8a9ab5;
+  --border:#e4eaf4;
+  --radius:14px;
+  --shadow:0 2px 12px rgba(33,150,243,0.08);
+}
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.header{
+  position:sticky;top:0;z-index:100;
+  background:var(--blue);
+  padding:16px 20px;
+  display:flex;align-items:center;gap:12px;
+}
+.back-btn{
+  width:36px;height:36px;border-radius:10px;
+  background:rgba(255,255,255,0.2);border:none;
+  color:white;font-size:18px;cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.back-btn.visible{display:flex}
+.back-btn:active{transform:scale(.9);}
+.header-title{font-size:17px;font-weight:700;letter-spacing:-0.3px;color:white;}
+.home-link{
+  margin-left:auto;
+  width:36px;height:36px;border-radius:10px;
+  background:rgba(255,255,255,0.2);border:none;
+  color:white;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  text-decoration:none;transition:all .2s;
+}
+.home-link:active{transform:scale(.9)}
+
+/* 메인 메뉴 */
+.main-menu{padding:24px 16px;display:flex;flex-direction:column;gap:14px;max-width:600px;margin:0 auto;}
+.menu-card{
+  background:var(--card);border-radius:var(--radius);padding:22px 20px;
+  display:flex;align-items:center;gap:16px;cursor:pointer;
+  border:1.5px solid var(--border);transition:all .25s;
+  position:relative;overflow:hidden;box-shadow:var(--shadow);
+}
+.menu-card::after{content:'';position:absolute;top:0;right:0;bottom:0;width:4px;border-radius:0 var(--radius) var(--radius) 0;}
+.menu-card.resources::after{background:var(--blue)}
+.menu-card.quiz::after{background:var(--accent)}
+.menu-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(33,150,243,0.13);border-color:var(--blue);}
+.menu-card:active{transform:scale(.97);}
+.menu-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.menu-card.resources .menu-icon{background:#e3f2fd;}
+.menu-card.quiz .menu-icon{background:#fff3ef;}
+.menu-info{flex:1}
+.menu-info h3{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text);}
+.menu-info p{font-size:13px;color:var(--text2);line-height:1.4}
+.menu-arrow{color:var(--text3);font-size:20px}
+
+/* 학과 선택 */
+.dept-section{padding:16px;display:none;flex-direction:column;gap:10px;max-width:600px;margin:0 auto;}
+.dept-section.active{display:flex}
+.dept-label{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;padding-left:4px}
+.dept-card{
+  background:var(--card);border-radius:12px;padding:16px 18px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  border:1.5px solid var(--border);transition:all .2s;box-shadow:var(--shadow);
+}
+.dept-card:hover{border-color:var(--blue);transform:translateY(-1px);}
+.dept-card:active{transform:scale(.97);}
+.dept-icon{font-size:22px;width:40px;height:40px;border-radius:10px;background:#e3f2fd;display:flex;align-items:center;justify-content:center}
+.dept-name{font-size:15px;font-weight:500;flex:1;color:var(--text);}
+.dept-count{font-size:12px;color:var(--text2);background:var(--bg);padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
+
+/* 자료 목록 */
+.resource-list{padding:16px;display:none;flex-direction:column;gap:10px;max-width:600px;margin:0 auto;}
+.resource-list.active{display:flex}
+.res-card{background:var(--card);border-radius:12px;padding:18px;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+.res-title{font-size:14px;font-weight:700;margin-bottom:6px;color:var(--text);}
+.res-desc{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.4}
+.res-date{font-size:11px;color:var(--text3);margin-bottom:10px}
+.res-actions{display:flex;gap:8px}
+.res-actions a{flex:1;text-align:center;padding:10px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .2s}
+.btn-view{background:#e3f2fd;color:var(--blue);}
+.btn-view:hover{background:#bbdefb;}
+.btn-dl{background:#e8f5e9;color:var(--green);}
+.btn-dl:hover{background:#c8e6c9;}
+
+/* 퀴즈 목록 */
+.quiz-list{padding:16px;display:none;flex-direction:column;gap:10px;max-width:600px;margin:0 auto;}
+.quiz-list.active{display:flex}
+.quiz-card{background:var(--card);border-radius:12px;padding:18px;cursor:pointer;border:1.5px solid var(--border);transition:all .2s;box-shadow:var(--shadow);}
+.quiz-card:hover{border-color:var(--blue);transform:translateY(-1px);}
+.quiz-card:active{transform:scale(.97);}
+.quiz-card-top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.quiz-badge{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;background:#fff3ef;color:var(--accent);}
+.quiz-badge.ai{background:#f3e8ff;color:#7c3aed;}
+.quiz-card-title{font-size:15px;font-weight:700;color:var(--text);}
+.quiz-meta{display:flex;gap:12px;font-size:12px;color:var(--text3);}
+
+/* 시험 화면 */
+.quiz-play{display:none;padding:16px;flex-direction:column;min-height:calc(100vh - 70px);max-width:600px;margin:0 auto;}
+.quiz-play.active{display:flex}
+.quiz-progress{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.progress-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:3px;transition:width .4s ease}
+.progress-text{font-size:12px;color:var(--text2);white-space:nowrap;min-width:50px;text-align:right}
+.question-card{background:var(--card);border-radius:var(--radius);padding:24px 20px;margin-bottom:16px;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+.q-number{font-size:12px;color:var(--blue);font-weight:700;margin-bottom:8px}
+.q-text{font-size:15px;font-weight:500;line-height:1.6;word-break:keep-all;color:var(--text);}
+.options{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.option-btn{
+  width:100%;text-align:left;background:var(--card);border:1.5px solid var(--border);
+  border-radius:12px;padding:16px 18px;color:var(--text);font-size:14px;font-weight:400;
+  cursor:pointer;transition:all .25s;display:flex;align-items:flex-start;gap:12px;
+  line-height:1.5;word-break:keep-all;font-family:'Noto Sans KR',sans-serif;
+}
+.option-btn .opt-num{
+  width:26px;height:26px;border-radius:50%;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  color:var(--text2);flex-shrink:0;transition:all .25s;border:1.5px solid var(--border);
+}
+.option-btn:hover{border-color:var(--blue);}
+.option-btn:active{transform:scale(.98)}
+.option-btn.selected{border-color:var(--blue);background:#e3f2fd;}
+.option-btn.selected .opt-num{background:var(--blue);color:#fff;border-color:var(--blue);}
+.option-btn.correct{border-color:var(--green)!important;background:#e8f5e9!important;}
+.option-btn.correct .opt-num{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important;}
+.option-btn.wrong{border-color:var(--red)!important;background:#fdecea!important;}
+.option-btn.wrong .opt-num{background:var(--red)!important;color:#fff!important;border-color:var(--red)!important;}
+.option-btn.disabled{pointer-events:none}
+.explanation{display:none;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:12px;padding:16px 18px;margin-bottom:16px;font-size:13px;line-height:1.6;color:var(--text);}
+.explanation.visible{display:block}
+.explanation strong{color:var(--yellow);font-weight:700}
+.nav-btns{display:flex;gap:10px;margin-top:auto;padding-top:16px}
+.nav-btn{flex:1;padding:14px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Noto Sans KR',sans-serif;}
+.nav-btn:active{transform:scale(.97)}
+.btn-next{background:var(--blue);color:#fff;}
+.btn-next:disabled{background:var(--border);color:var(--text3);cursor:default}
+.btn-submit{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+
+/* 결과 화면 */
+.result-section{display:none;padding:16px;flex-direction:column;align-items:center;max-width:600px;margin:0 auto;}
+.result-section.active{display:flex}
+.result-circle{width:160px;height:160px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:20px 0 24px;position:relative;}
+.result-circle::before{content:'';position:absolute;inset:0;border-radius:50%;border:6px solid var(--border);}
+.result-circle.pass{background:radial-gradient(circle,rgba(39,174,96,0.12) 0%,transparent 70%);}
+.result-circle.pass::before{border-color:var(--green);}
+.result-circle.fail{background:radial-gradient(circle,rgba(231,76,60,0.12) 0%,transparent 70%);}
+.result-circle.fail::before{border-color:var(--red);}
+.result-score{font-size:48px;font-weight:900;letter-spacing:-2px;color:var(--text);}
+.result-label{font-size:13px;color:var(--text2);margin-top:2px}
+.result-pass{font-size:16px;font-weight:700;margin-bottom:16px}
+.result-pass.pass{color:var(--green)}
+.result-pass.fail{color:var(--red)}
+.result-stats{width:100%;display:flex;gap:10px;margin-bottom:20px}
+.stat-box{flex:1;background:var(--card);border-radius:12px;padding:14px;text-align:center;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+.stat-num{font-size:22px;font-weight:900;color:var(--text);}
+.stat-num.correct-c{color:var(--green)}
+.stat-num.wrong-c{color:var(--red)}
+.stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+.review-title{width:100%;font-size:14px;font-weight:700;margin:16px 0 12px;color:var(--blue);text-align:left}
+.review-card{width:100%;background:var(--card);border-radius:12px;padding:16px;margin-bottom:10px;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+.review-q{font-size:13px;font-weight:600;margin-bottom:8px;line-height:1.5;color:var(--text);}
+.review-answer{font-size:12px;margin-bottom:4px;line-height:1.4}
+.review-answer.my{color:var(--red)}
+.review-answer.right{color:var(--green)}
+.review-explain{font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);line-height:1.5}
+.result-btns{width:100%;display:flex;gap:10px;margin-top:20px;position:sticky;bottom:20px}
+.result-btns .nav-btn{padding:16px;font-size:15px}
+.btn-retry{background:var(--bg);color:var(--text);border:1.5px solid var(--border);}
+.btn-back-list{background:var(--blue);color:#fff}
+
+/* 공통 */
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-text{font-size:14px;line-height:1.5}
+.generating{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center}
+.gen-spinner{width:56px;height:56px;border-radius:50%;border:4px solid var(--border);border-top-color:var(--blue);animation:spin 1s linear infinite;margin-bottom:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.gen-sub{font-size:13px;color:var(--text2);line-height:1.5}
+.gen-dots::after{content:'';animation:dots 1.5s steps(4,end) infinite}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+.gen-tips{margin-top:32px;padding:16px;background:var(--card);border-radius:12px;max-width:300px;font-size:12px;color:var(--text2);line-height:1.6;border:1.5px solid var(--border);}
+.error-box{text-align:center;padding:60px 20px}
+.error-icon{font-size:48px;margin-bottom:16px}
+.error-msg{font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+.error-retry{padding:14px 32px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+.count-section{display:none;padding:16px;flex-direction:column;gap:16px;max-width:600px;margin:0 auto;}
+.count-section.active{display:flex}
+.count-info{background:var(--card);border-radius:var(--radius);padding:20px;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+.count-info-title{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--text);}
+.count-info-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.count-label{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;padding-left:4px}
+.count-options{display:flex;gap:10px;flex-wrap:wrap}
+.count-btn{
+  flex:1;min-width:calc(50% - 5px);padding:18px 16px;border-radius:12px;
+  background:var(--card);border:1.5px solid var(--border);
+  color:var(--text);font-size:15px;font-weight:600;cursor:pointer;text-align:center;
+  transition:all .2s;font-family:'Noto Sans KR',sans-serif;box-shadow:var(--shadow);
+}
+.count-btn:hover{border-color:var(--blue);transform:translateY(-1px);}
+.count-btn:active{transform:scale(.97)}
+.count-btn .count-num{font-size:24px;font-weight:900;display:block;margin-bottom:4px;color:var(--blue)}
+.count-btn .count-text{font-size:12px;color:var(--text2)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.fade-in{animation:fadeIn .35s ease both}
+</style>
+</head>
+<body>
+<div class="header">
+  <button class="back-btn" id="backBtn" onclick="goBack()">←</button>
+  <div class="header-title" id="headerTitle">외부평가</div>
+  <a href="index.html" class="home-link">🏠</a>
+</div>
+<div class="main-menu" id="mainMenu">
+  <div class="menu-card resources fade-in" onclick="showSection('resources')" style="animation-delay:.05s">
+    <div class="menu-icon">📋</div>
+    <div class="menu-info"><h3>평가 자료실</h3><p>외부평가 관련 학습자료 및 기출문제</p></div>
+    <div class="menu-arrow">›</div>
+  </div>
+  <div class="menu-card quiz fade-in" onclick="showSection('quiz')" style="animation-delay:.12s">
+    <div class="menu-icon">✏️</div>
+    <div class="menu-info"><h3>AI 모의시험</h3><p>학습모듈 기반 AI 자동 출제 · 매번 새로운 문제</p></div>
+    <div class="menu-arrow">›</div>
+  </div>
+</div>
+<div class="dept-section" id="resDeptSection"></div>
+<div class="resource-list" id="resourceList"></div>
+<div class="dept-section" id="quizDeptSection"></div>
+<div class="quiz-list" id="quizList"></div>
+<div class="count-section" id="countSection"></div>
+<div class="quiz-play" id="quizPlay"></div>
+<div class="result-section" id="resultSection"></div>
+<script>
+const PROXY_URL = 'https://damp-leaf-0c5c.dks3275.workers.dev';
+const BASE_URL = 'https://dks3275-rgb.github.io';
+let currentView = 'main';
+let viewHistory = [];
+let examResources = [];
+let quizzes = [];
+let currentQuiz = null;
+let currentQ = 0;
+let userAnswers = [];
+let answered = false;
+let selectedQuizForCount = null;
+const DEPARTMENTS = [
+  {id:'ptech1', name:'P-TECH 1학년', icon:'🔧'},
+  {id:'ptech2', name:'P-TECH 2학년', icon:'⚙️'},
+  {id:'marketing', name:'마케팅경영학과', icon:'📊'},
+  {id:'cooking', name:'호텔조리학과', icon:'🍳'},
+  {id:'accounting', name:'회계세무학과', icon:'💰'},
+  {id:'hotel', name:'호텔경영학과', icon:'🏨'},
+];
+function pushView(v){viewHistory.push(currentView);currentView=v;document.getElementById('backBtn').classList.add('visible')}
+function goBack(){
+  if(currentView==='quiz-play'&&!confirm('시험을 종료하시겠습니까?\n진행 내용이 사라집니다.'))return;
+  const prev=viewHistory.pop();
+  if(!prev||prev==='main'){currentView='main';viewHistory=[];document.getElementById('backBtn').classList.remove('visible');showMain()}
+  else{currentView=prev;if(!viewHistory.length)document.getElementById('backBtn').classList.remove('visible');renderCurrentView(prev)}
+}
+function renderCurrentView(v){
+  hideAll();
+  const map={'res-dept':'resDeptSection','quiz-dept':'quizDeptSection','res-list':'resourceList',
+    'quiz-list':'quizList','count-select':'countSection','quiz-play':'quizPlay','result':'resultSection'};
+  if(map[v])document.getElementById(map[v]).classList.add('active');
+}
+function hideAll(){
+  document.getElementById('mainMenu').style.display='none';
+  ['resDeptSection','resourceList','quizDeptSection','quizList','countSection','quizPlay','resultSection']
+    .forEach(id=>document.getElementById(id).classList.remove('active'));
+}
+function showMain(){
+  hideAll();document.getElementById('mainMenu').style.display='flex';
+  document.getElementById('headerTitle').textContent='외부평가';
+  document.getElementById('backBtn').classList.remove('visible');
+  viewHistory=[];currentView='main';
+}
+function showSection(type){
+  hideAll();
+  if(type==='resources'){
+    pushView('res-dept');document.getElementById('headerTitle').textContent='학과 선택';
+    renderDeptList('resDeptSection','resources');document.getElementById('resDeptSection').classList.add('active');
+  }else{
+    pushView('quiz-dept');document.getElementById('headerTitle').textContent='학과 선택';
+    renderDeptList('quizDeptSection','quiz');document.getElementById('quizDeptSection').classList.add('active');
+  }
+}
+function renderDeptList(cid,type){
+  const el=document.getElementById(cid);
+  const label=type==='resources'?'자료를 볼 학과를 선택하세요':'시험을 볼 학과를 선택하세요';
+  let h='<div class="dept-label">'+label+'</div>';
+  DEPARTMENTS.forEach((d,i)=>{
+    let count=type==='resources'?examResources.filter(r=>r.department===d.id).length:quizzes.filter(q=>q.department===d.id).length;
+    h+='<div class="dept-card fade-in" style="animation-delay:'+(i*0.04)+'s" onclick="selectDept(\''+type+'\',\''+d.id+'\',\''+d.name+'\')">'+
+      '<div class="dept-icon">'+d.icon+'</div><div class="dept-name">'+d.name+'</div><div class="dept-count">'+count+'개</div></div>';
+  });
+  el.innerHTML=h;
+}
+function selectDept(type,deptId,deptName){
+  if(type==='resources'){pushView('res-list');document.getElementById('headerTitle').textContent=deptName+' 자료';renderResourceList(deptId)}
+  else{pushView('quiz-list');document.getElementById('headerTitle').textContent=deptName+' 모의시험';renderQuizList(deptId)}
+}
+function renderResourceList(deptId){
+  const el=document.getElementById('resourceList');
+  const filtered=examResources.filter(r=>r.department===deptId);
+  if(!filtered.length){el.innerHTML='<div class="empty"><div class="empty-icon">📂</div><div class="empty-text">등록된 자료가 없어요</div></div>'}
+  else{
+    el.innerHTML=filtered.map((r,i)=>{
+      const fullUrl=r.fileUrl.startsWith('http')?r.fileUrl:BASE_URL+'/'+r.fileUrl;
+      let actions=r.type==='link'?'<a href="'+fullUrl+'" target="_blank" rel="noopener" class="btn-view">🔗 열기</a>':
+        '<a href="'+fullUrl+'" target="_blank" rel="noopener" class="btn-view">👁️ 보기</a><a href="'+fullUrl+'" download target="_blank" rel="noopener" class="btn-dl">⬇️ 저장</a>';
+      return '<div class="res-card fade-in" style="animation-delay:'+(i*0.04)+'s"><div class="res-title">'+r.title+'</div>'+
+        (r.description?'<div class="res-desc">'+r.description+'</div>':'')+
+        '<div class="res-date">'+(r.date||'')+'</div><div class="res-actions">'+actions+'</div></div>';
+    }).join('');
+  }
+  hideAll();el.classList.add('active');
+}
+function renderQuizList(deptId){
+  const el=document.getElementById('quizList');
+  const filtered=quizzes.filter(q=>q.department===deptId);
+  if(!filtered.length){el.innerHTML='<div class="empty"><div class="empty-icon">📝</div><div class="empty-text">등록된 시험이 없어요</div></div>'}
+  else{
+    el.innerHTML=filtered.map((q,i)=>{
+      const isAI=q.type==='ai';
+      return '<div class="quiz-card fade-in" style="animation-delay:'+(i*0.04)+'s" onclick="'+(isAI?'showCountSelect(\''+q.id+'\')':'startStaticQuiz(\''+q.id+'\')')+'">'+
+        '<div class="quiz-card-top"><div class="quiz-badge '+(isAI?'ai':'')+'">'+(isAI?'🤖 AI 출제':q.questions.length+'문항')+'</div></div>'+
+        '<div class="quiz-card-title">'+q.title+'</div>'+
+        '<div class="quiz-meta">'+(q.passingScore?'<span>합격 기준 '+q.passingScore+'점</span>':'')+(isAI?'<span>매번 새로운 문제</span>':'')+'</div></div>';
+    }).join('');
+  }
+  hideAll();el.classList.add('active');
+}
+function showCountSelect(quizId){
+  selectedQuizForCount=quizzes.find(q=>q.id===quizId);
+  if(!selectedQuizForCount)return;
+  pushView('count-select');document.getElementById('headerTitle').textContent='문항 수 선택';
+  const el=document.getElementById('countSection');
+  el.innerHTML='<div class="count-info fade-in"><div class="count-info-title">📚 '+selectedQuizForCount.title+'</div>'+
+    '<div class="count-info-desc">학습모듈을 기반으로 AI가 문제를 출제합니다.<br>시험 시작까지 약 10~20초 소요됩니다.</div></div>'+
+    '<div class="count-label">문항 수를 선택하세요</div>'+
+    '<div class="count-options">'+
+    '<button class="count-btn fade-in" style="animation-delay:.05s" onclick="startAIQuiz(5)"><span class="count-num">5</span><span class="count-text">빠른 테스트</span></button>'+
+    '<button class="count-btn fade-in" style="animation-delay:.1s" onclick="startAIQuiz(10)"><span class="count-num">10</span><span class="count-text">기본 시험</span></button>'+
+    '<button class="count-btn fade-in" style="animation-delay:.15s" onclick="startAIQuiz(15)"><span class="count-num">15</span><span class="count-text">심화 시험</span></button>'+
+    '<button class="count-btn fade-in" style="animation-delay:.2s" onclick="startAIQuiz(20)"><span class="count-num">20</span><span class="count-text">모의평가</span></button></div>';
+  hideAll();el.classList.add('active');
+}
+async function startAIQuiz(num){
+  if(!selectedQuizForCount)return;
+  const quiz=selectedQuizForCount;
+  pushView('quiz-play');document.getElementById('headerTitle').textContent='문제 생성 중...';
+  const el=document.getElementById('quizPlay');
+  el.innerHTML='<div class="generating"><div class="gen-spinner"></div>'+
+    '<div class="gen-title">AI가 문제를 만들고 있어요<span class="gen-dots"></span></div>'+
+    '<div class="gen-sub">학습모듈을 분석하여 '+num+'문항을 출제합니다</div>'+
+    '<div class="gen-tips">💡 매번 다른 문제가 출제되어 반복 학습에 효과적입니다</div></div>';
+  hideAll();el.classList.add('active');
+  try{
+    const pdfUrl=quiz.pdfUrl.startsWith('http')?quiz.pdfUrl:BASE_URL+'/'+quiz.pdfUrl;
+    const pdfResp=await fetch(pdfUrl);
+    if(!pdfResp.ok)throw new Error('PDF를 불러올 수 없습니다');
+    const pdfBlob=await pdfResp.blob();
+    const pdfBase64=await blobToBase64(pdfBlob);
+    const questions=await generateQuestions(pdfBase64,num,quiz.title);
+    if(!questions||!questions.length)throw new Error('문제 생성에 실패했습니다');
+    shuffleArray(questions);
+    currentQuiz={...quiz,questions};currentQ=0;
+    userAnswers=new Array(questions.length).fill(-1);answered=false;
+    document.getElementById('headerTitle').textContent=quiz.title;
+    renderQuestion();
+  }catch(err){
+    el.innerHTML='<div class="error-box fade-in"><div class="error-icon">😥</div>'+
+      '<div class="error-msg">'+(err.message||'문제 생성 중 오류가 발생했습니다')+'<br>잠시 후 다시 시도해주세요</div>'+
+      '<button class="error-retry" onclick="goBack()">돌아가기</button></div>';
+  }
+}
+function blobToBase64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onloadend=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(blob)})}
+async function generateQuestions(pdfBase64,num,title){
+  const sys=`당신은 한국의 일학습병행 외부평가 출제위원입니다.
+주어진 학습모듈 PDF의 내용을 기반으로 객관식 시험 문제를 출제하세요.
+규칙:
+1. 반드시 PDF 내용에서만 출제하세요
+2. 4지선다 객관식으로 출제하세요
+3. 정답은 반드시 하나여야 합니다
+4. 매번 다른 문제를 출제하세요 (랜덤 seed: ${Date.now()})
+5. 난이도는 쉬운 문제 30%, 보통 50%, 어려운 문제 20% 비율로 출제하세요
+6. 각 문제에 상세한 해설을 포함하세요
+7. 보기의 순서도 랜덤으로 배치하세요
+반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 절대 포함하지 마세요:
+[{"question":"문제 내용","options":["보기1","보기2","보기3","보기4"],"answer":0,"explanation":"해설 내용"}]
+answer는 정답의 인덱스입니다 (0=첫번째, 1=두번째, 2=세번째, 3=네번째)
+${num}문제를 출제하세요.`;
+  const resp=await fetch(PROXY_URL,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',max_tokens:4000,system:sys,
+      messages:[{role:'user',content:[
+        {type:'document',source:{type:'base64',media_type:'application/pdf',data:pdfBase64}},
+        {type:'text',text:title+' 학습모듈입니다. 이 내용을 기반으로 '+num+'개의 객관식 문제를 출제해주세요. JSON 배열로만 응답하세요.'}
+      ]}]
+    })
+  });
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||'API 호출 실패 ('+resp.status+')')}
+  const data=await resp.json();
+  let text='';
+  if(data.content)text=data.content.filter(i=>i.type==='text').map(i=>i.text).join('');
+  const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+  const questions=JSON.parse(cleaned);
+  if(!Array.isArray(questions))throw new Error('잘못된 응답 형식');
+  questions.forEach((q,i)=>{if(!q.question||!Array.isArray(q.options)||q.options.length<2||typeof q.answer!=='number')throw new Error('문제 '+(i+1)+'의 형식이 잘못됨')});
+  return questions;
+}
+function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
+function startStaticQuiz(quizId){
+  currentQuiz=quizzes.find(q=>q.id===quizId);if(!currentQuiz)return;
+  const sh=[...currentQuiz.questions];shuffleArray(sh);currentQuiz={...currentQuiz,questions:sh};
+  currentQ=0;userAnswers=new Array(currentQuiz.questions.length).fill(-1);answered=false;
+  pushView('quiz-play');document.getElementById('headerTitle').textContent=currentQuiz.title;renderQuestion();
+}
+function renderQuestion(){
+  const el=document.getElementById('quizPlay');
+  const q=currentQuiz.questions[currentQ],total=currentQuiz.questions.length;
+  const pct=((currentQ+1)/total*100).toFixed(0);
+  answered=userAnswers[currentQ]!==-1;
+  const ol=['①','②','③','④','⑤'];
+  let h='<div class="quiz-progress"><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div><div class="progress-text">'+(currentQ+1)+' / '+total+'</div></div>';
+  h+='<div class="question-card fade-in"><div class="q-number">문제 '+(currentQ+1)+'</div><div class="q-text">'+q.question+'</div></div>';
+  h+='<div class="options">';
+  q.options.forEach((opt,i)=>{
+    let cls='option-btn';
+    if(answered){cls+=' disabled';if(i===q.answer)cls+=' correct';else if(i===userAnswers[currentQ]&&i!==q.answer)cls+=' wrong'}
+    else if(userAnswers[currentQ]===i)cls+=' selected';
+    h+='<button class="'+cls+'" onclick="selectOption('+i+')"><span class="opt-num">'+ol[i]+'</span><span>'+opt+'</span></button>';
+  });
+  h+='</div>';
+  if(answered&&q.explanation)h+='<div class="explanation visible fade-in"><strong>💡 해설</strong><br>'+q.explanation+'</div>';
+  h+='<div class="nav-btns">';
+  if(!answered)h+='<button class="nav-btn btn-next" id="confirmBtn" onclick="confirmAnswer()" disabled>정답 확인</button>';
+  else if(currentQ<total-1)h+='<button class="nav-btn btn-next" onclick="nextQuestion()">다음 문제 →</button>';
+  else h+='<button class="nav-btn btn-submit" onclick="showResult()">결과 보기 🎯</button>';
+  h+='</div>';
+  el.innerHTML=h;hideAll();el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
+}
+function selectOption(idx){if(answered)return;userAnswers[currentQ]=idx;renderQuestion();document.getElementById('confirmBtn').disabled=false}
+function confirmAnswer(){if(userAnswers[currentQ]===-1)return;answered=true;renderQuestion()}
+function nextQuestion(){currentQ++;answered=userAnswers[currentQ]!==-1;renderQuestion()}
+function showResult(){
+  const total=currentQuiz.questions.length;let correct=0;const wrongList=[];
+  currentQuiz.questions.forEach((q,i)=>{if(userAnswers[i]===q.answer)correct++;else wrongList.push({index:i,question:q,userAnswer:userAnswers[i]})});
+  const score=Math.round(correct/total*100),passing=currentQuiz.passingScore||60,passed=score>=passing;
+  pushView('result');document.getElementById('headerTitle').textContent='시험 결과';
+  const ol=['①','②','③','④','⑤'];
+  let h='<div class="result-circle '+(passed?'pass':'fail')+' fade-in"><div class="result-score">'+score+'</div><div class="result-label">점</div></div>';
+  h+='<div class="result-pass '+(passed?'pass':'fail')+' fade-in">'+(passed?'🎉 합격입니다!':'😢 불합격입니다')+'</div>';
+  h+='<div class="result-stats fade-in"><div class="stat-box"><div class="stat-num">'+total+'</div><div class="stat-label">총 문항</div></div>'+
+    '<div class="stat-box"><div class="stat-num correct-c">'+correct+'</div><div class="stat-label">정답</div></div>'+
+    '<div class="stat-box"><div class="stat-num wrong-c">'+wrongList.length+'</div><div class="stat-label">오답</div></div></div>';
+  if(wrongList.length){
+    h+='<div class="review-title fade-in">📌 오답 해설</div>';
+    wrongList.forEach((w,i)=>{
+      h+='<div class="review-card fade-in" style="animation-delay:'+(i*0.04)+'s"><div class="review-q">Q'+(w.index+1)+'. '+w.question.question+'</div>'+
+        '<div class="review-answer my">내 답: '+ol[w.userAnswer]+' '+(w.question.options[w.userAnswer]||'미선택')+'</div>'+
+        '<div class="review-answer right">정답: '+ol[w.question.answer]+' '+w.question.options[w.question.answer]+'</div>'+
+        (w.question.explanation?'<div class="review-explain">💡 '+w.question.explanation+'</div>':'')+'</div>';
+    });
+  }
+  h+='<div class="result-btns"><button class="nav-btn btn-retry" onclick="retryQuiz()">다시 풀기 🔄</button>'+
+    '<button class="nav-btn btn-back-list" onclick="goBackToList()">목록으로</button></div>';
+  const el=document.getElementById('resultSection');el.innerHTML=h;hideAll();el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
+}
+function retryQuiz(){
+  if(!currentQuiz)return;
+  if(selectedQuizForCount&&selectedQuizForCount.type==='ai'){
+    viewHistory=viewHistory.filter(v=>v!=='result'&&v!=='quiz-play');
+    currentView='count-select';renderCurrentView('count-select');return;
+  }
+  viewHistory.pop();const sh=[...currentQuiz.questions];shuffleArray(sh);
+  currentQuiz={...currentQuiz,questions:sh};currentQ=0;
+  userAnswers=new Array(currentQuiz.questions.length).fill(-1);answered=false;
+  currentView='quiz-play';renderQuestion();
+}
+function goBackToList(){viewHistory=[];currentView='main';showMain()}
+async function loadData(){
+  try{
+    const [r1,r2]=await Promise.all([
+      fetch('exam-resources.json').then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch('exam-quizzes.json').then(r=>r.ok?r.json():[]).catch(()=>[])
+    ]);
+    examResources=r1;quizzes=r2;
+  }catch(e){examResources=[];quizzes=[]}
+}
+loadData();
+</script>
+</body>
+</html>
