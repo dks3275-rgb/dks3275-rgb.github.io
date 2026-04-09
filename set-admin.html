@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 설정 - AU</title>
+<meta name="theme-color" content="#0f2744">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "6bed6730-b167-48a8-a98d-83cdcb1cbc10",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+  :root { --navy: #0f2744; --blue: #1a4a8a; --accent: #e8a020; --light: #f0f4f8; --success: #2ecc71; --danger: #e74c3c; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--navy); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+
+  .card {
+    background: white; border-radius: 24px; padding: 40px 32px;
+    max-width: 360px; width: 100%; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .badge { background: var(--accent); color: var(--navy); font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 20px; display: inline-block; margin-bottom: 20px; letter-spacing: 1px; }
+  .icon { font-size: 56px; margin-bottom: 16px; }
+  h1 { font-size: 22px; font-weight: 900; color: var(--navy); margin-bottom: 8px; }
+  .desc { font-size: 14px; color: #718096; line-height: 1.6; margin-bottom: 32px; }
+
+  .set-btn {
+    width: 100%; padding: 18px; border: none; border-radius: 14px;
+    background: var(--navy); color: white;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 12px;
+  }
+  .set-btn:hover:not(:disabled) { background: var(--blue); transform: translateY(-1px); }
+  .set-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .remove-btn {
+    width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 14px;
+    background: white; color: #718096;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .remove-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .status-box {
+    display: none; margin-top: 20px;
+    padding: 16px; border-radius: 12px;
+    font-size: 14px; font-weight: 700; line-height: 1.5;
+  }
+  .status-box.success { background: #f0fff4; border: 2px solid #68d391; color: #276749; display: block; }
+  .status-box.error { background: #fff5f5; border: 2px solid #fc8181; color: #c53030; display: block; }
+  .status-box.info { background: #ebf8ff; border: 2px solid #63b3ed; color: #2b6cb0; display: block; }
+
+  .current-status { background: var(--light); border-radius: 12px; padding: 14px; margin-bottom: 24px; font-size: 13px; color: #4a5568; }
+  .current-status .label { font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot.on { background: var(--success); }
+  .dot.off { background: #a0aec0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">AU 관리자 설정</div>
+  <div class="icon">🔐</div>
+  <h1>관리자 알림 설정</h1>
+  <p class="desc">이 버튼을 누르면 상담신청 알림을<br>이 기기에서 받을 수 있어요.</p>
+
+  <div class="current-status">
+    <div class="label">현재 상태</div>
+    <div id="currentStatus">확인 중...</div>
+  </div>
+
+  <button class="set-btn" id="setBtn" onclick="setAdmin()">
+    ✅ 관리자 알림 받기 설정
+  </button>
+  <button class="remove-btn" id="removeBtn" onclick="removeAdmin()">
+    🔕 관리자 설정 해제
+  </button>
+
+  <div class="status-box" id="statusBox"></div>
+</div>
+
+<script>
+  // 현재 태그 상태 확인
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      const tags = await OneSignal.User.getTags();
+      const isAdmin = tags && tags.role === 'admin';
+      document.getElementById('currentStatus').innerHTML =
+        `<span class="dot ${isAdmin ? 'on' : 'off'}"></span>` +
+        (isAdmin ? '<strong style="color:#276749">관리자 설정됨</strong> — 상담 알림을 받고 있어요' : '관리자 미설정 — 상담 알림을 받지 않아요');
+    } catch(e) {
+      document.getElementById('currentStatus').textContent = '상태 확인 실패';
+    }
+  });
+
+  async function setAdmin() {
+    const btn = document.getElementById('setBtn');
+    btn.disabled = true;
+    btn.textContent = '설정 중...';
+    try {
+      await new Promise((resolve, reject) => {
+        OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            // 알림 구독 먼저 확인
+            const isSubscribed = OneSignal.User.PushSubscription.optedIn;
+            if (!isSubscribed) {
+              await OneSignal.Notifications.requestPermission();
+            }
+            await OneSignal.User.addTags({ role: 'admin' });
+            resolve();
+          } catch(e) { reject(e); }
+        });
+      });
+      showStatus('✅ 설정 완료!\n이제 이 기기로 상담 신청 알림이 와요.', 'success');
+      document.getElementById('currentStatus').innerHTML =
+        '<span class="dot on"></span><strong style="color:#276749">관리자 설정됨</strong> — 상담 알림을 받고 있어요';
+    } catch(e) {
+      showStatus('❌ 설정 실패: ' + e.message, 'error');
+    }
+    btn.disabled = false;
+    btn.textContent = '✅ 관리자 알림 받기 설정';
+  }
+
+  async function removeAdmin() {
+    if (!confirm('관리자 설정을 해제할까요?\n해제하면 상담 알림을 받지 못해요.')) return;
+    try {
+      await new Promise((resolve, reject) => {
+        OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            await OneSignal.User.removeTags(['role']);
+            resolve();
+          } catch(e) { reject(e); }
+        });
+      });
+      showStatus('설정이 해제됐어요.', 'info');
+      document.getElementById('currentStatus').innerHTML =
+        '<span class="dot off"></span>관리자 미설정 — 상담 알림을 받지 않아요';
+    } catch(e) {
+      showStatus('❌ 해제 실패: ' + e.message, 'error');
+    }
+  }
+
+  function showStatus(msg, type) {
+    const box = document.getElementById('statusBox');
+    box.textContent = msg;
+    box.className = 'status-box ' + type;
+  }
+</script>
+</body>
+</html>
