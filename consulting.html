@@ -204,7 +204,7 @@
     // 2. 관리자 4명에게만 푸시 알림 (include_subscription_ids 사용)
     const pushMsg = `${name} (${dept})\n${content.substring(0, 80)}${content.length > 80 ? '...' : ''}`;
     try {
-      const res = await fetch('https://damp-leaf-0c5c.dks3275-rgb.workers.dev', {
+      const res = await fetch('https://damp-leaf-0c5c.dks3275.workers.dev', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
