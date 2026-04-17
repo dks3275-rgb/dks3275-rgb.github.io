@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>학과 소개 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1976d2;
+    --blue: #2196f3;
+    --accent: #e8a020;
+    --bg: #f4f6fb;
+    --white: #ffffff;
+    --text: #1a2a3a;
+    --text2: #5a7090;
+    --text3: #8a9ab5;
+    --border: #e4eaf4;
+    --success: #2ecc71;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 60px; }
+
+  /* 헤더 */
+  .header { background: var(--blue); padding: 20px 20px 28px; position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+  .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; position: relative; z-index: 1; }
+  .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  .header-badge { background: var(--accent); color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .header h1 { color: white; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; position: relative; z-index: 1; }
+  .header-sub { color: rgba(255,255,255,0.8); font-size: 13px; line-height: 1.6; margin-top: 6px; position: relative; z-index: 1; }
+
+  .container { max-width: 600px; margin: 0 auto; padding: 20px 16px; }
+
+  /* 인트로 카드 */
+  .intro-card { background: white; border-radius: 16px; padding: 20px 22px; box-shadow: 0 2px 12px rgba(33,150,243,0.08); margin-bottom: 12px; border-left: 4px solid var(--blue); }
+  .intro-title { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+  .intro-text { font-size: 13px; color: var(--text2); line-height: 1.7; }
+  .intro-highlight { color: var(--blue); font-weight: 700; }
+
+  /* 과정 안내 카드 */
+  .course-info-card { background: white; border-radius: 16px; padding: 18px 20px; box-shadow: 0 2px 12px rgba(33,150,243,0.06); margin-bottom: 20px; }
+  .course-info-title { font-size: 13px; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+  .course-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .course-info-item { padding: 14px 12px; border-radius: 12px; text-align: center; }
+  .course-info-item.ptech { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border: 1.5px solid #90caf9; }
+  .course-info-item.college { background: linear-gradient(135deg, #fff3e0, #ffe0b2); border: 1.5px solid #ffcc80; }
+  .course-info-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .course-info-value { font-size: 18px; font-weight: 900; color: var(--navy); margin-bottom: 2px; }
+  .course-info-item.college .course-info-value { color: #e65100; }
+  .course-info-desc { font-size: 10px; color: var(--text2); }
+
+  /* 학과 탭 (상단 스티키) */
+  .dept-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 16px; scrollbar-width: none; -ms-overflow-style: none; }
+  .dept-tabs::-webkit-scrollbar { display: none; }
+  .dept-tab { flex-shrink: 0; padding: 10px 16px; background: white; border: 1.5px solid var(--border); border-radius: 20px; color: var(--text2); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .dept-tab.active { background: var(--blue); border-color: var(--blue); color: white; }
+  .dept-tab:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+
+  /* 학과 카드 */
+  .dept-section { display: none; }
+  .dept-section.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .dept-hero { background: linear-gradient(135deg, var(--blue), var(--navy)); border-radius: 20px; padding: 28px 24px; color: white; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(33,150,243,0.25); position: relative; overflow: hidden; }
+  .dept-hero::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.1); }
+  .dept-hero.orange { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 20px rgba(217,119,6,0.25); }
+  .dept-hero.green { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 4px 20px rgba(5,150,105,0.25); }
+  .dept-hero.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 4px 20px rgba(109,40,217,0.25); }
+  .dept-hero.pink { background: linear-gradient(135deg, #ec4899, #be185d); box-shadow: 0 4px 20px rgba(190,24,93,0.25); }
+  .dept-hero-icon { font-size: 52px; margin-bottom: 12px; position: relative; z-index: 1; }
+  .dept-hero-name { font-size: 22px; font-weight: 900; margin-bottom: 4px; position: relative; z-index: 1; }
+  .dept-hero-sub { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.5; position: relative; z-index: 1; }
+  .dept-hero-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; position: relative; z-index: 1; }
+  .dept-hero-tag { background: rgba(255,255,255,0.2); color: white; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; backdrop-filter: blur(4px); }
+
+  /* 정보 섹션 */
+  .info-section { background: white; border-radius: 16px; padding: 20px 22px; margin-bottom: 14px; box-shadow: 0 2px 12px rgba(33,150,243,0.06); }
+  .info-title { font-size: 14px; font-weight: 800; color: var(--navy); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid var(--bg); display: flex; align-items: center; gap: 8px; }
+  .info-title .emoji { font-size: 18px; }
+  .info-list { display: flex; flex-direction: column; gap: 10px; }
+  .info-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+  .info-item-num { width: 22px; height: 22px; border-radius: 50%; background: #e3f2fd; color: var(--blue); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .info-item-text { font-size: 13px; color: var(--text); line-height: 1.6; flex: 1; }
+  .info-item-text strong { color: var(--navy); }
+
+  /* 취업 분야 */
+  .job-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .job-chip { background: var(--bg); padding: 12px 14px; border-radius: 10px; font-size: 12px; color: var(--text); font-weight: 500; border: 1.5px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .job-chip .job-icon { font-size: 16px; }
+
+  /* 특징 박스 */
+  .feature-box { background: linear-gradient(135deg, #fffbf0, #fef3c7); border-radius: 12px; padding: 14px 16px; border: 1.5px solid rgba(232,160,32,0.3); margin-top: 12px; }
+  .feature-box-title { font-size: 12px; font-weight: 800; color: #92400e; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .feature-box-text { font-size: 12px; color: #78350f; line-height: 1.6; }
+
+  /* CTA 버튼 */
+  .cta-card { background: linear-gradient(135deg, #059669, #047857); border-radius: 16px; padding: 20px; margin-top: 16px; color: white; text-align: center; box-shadow: 0 4px 20px rgba(5,150,105,0.3); }
+  .cta-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+  .cta-sub { font-size: 12px; color: rgba(255,255,255,0.85); margin-bottom: 14px; line-height: 1.5; }
+  .cta-btn { display: inline-block; background: white; color: #047857; font-size: 14px; font-weight: 800; padding: 12px 28px; border-radius: 12px; text-decoration: none; transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif; border: none; cursor: pointer; }
+  .cta-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+
+  /* 하단 안내 */
+  .bottom-notice { background: white; border-radius: 12px; padding: 14px 16px; border-left: 4px solid var(--blue); font-size: 12px; color: var(--text2); line-height: 1.7; margin-top: 20px; box-shadow: 0 2px 8px rgba(33,150,243,0.06); }
+  .bottom-notice strong { color: var(--blue); }
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+  <div class="header-top">
+    <a href="index.html" class="back-btn">←</a>
+    <span class="header-badge">학과 소개</span>
+  </div>
+  <h1>🏫 AU 일학습병행<br>학과 안내</h1>
+  <p class="header-sub">어떤 학과가 있는지 살펴보세요<br>관심 있는 학과를 선택해서 자세히 확인할 수 있어요</p>
+</div>
+
+<div class="container">
+
+  <!-- 인트로 카드 -->
+  <div class="intro-card">
+    <div class="intro-title">💡 일학습병행이란?</div>
+    <div class="intro-text">
+      <span class="intro-highlight">기업에 취업</span>해서 <span class="intro-highlight">월급을 받으면서</span>, 동시에 대학에서 학위까지 받을 수 있는 과정이에요.<br>
+      기업에서 일하며 배운 실무 경험 + 학교 수업이 결합된 실전형 교육입니다.
+    </div>
+  </div>
+
+  <!-- 과정 안내 카드 -->
+  <div class="course-info-card">
+    <div class="course-info-title">📖 과정 안내</div>
+    <div class="course-info-grid">
+      <div class="course-info-item ptech">
+        <div class="course-info-label">🎓 P-TECH</div>
+        <div class="course-info-value">2년 과정</div>
+        <div class="course-info-desc">고등학생 대상</div>
+      </div>
+      <div class="course-info-item college">
+        <div class="course-info-label">📚 전문대 학과</div>
+        <div class="course-info-value">1년 과정</div>
+        <div class="course-info-desc">전문대 재학생 대상</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 학과 탭 -->
+  <div class="dept-tabs">
+    <button class="dept-tab active" onclick="showDept('ptech-hotel', this)">🎓 P-TECH 글로벌호텔관광</button>
+    <button class="dept-tab" onclick="showDept('ptech-cooking', this)">🎓 P-TECH 호텔조리</button>
+    <button class="dept-tab" onclick="showDept('marketing', this)">📊 마케팅경영</button>
+    <button class="dept-tab" onclick="showDept('cooking', this)">🍳 호텔조리</button>
+    <button class="dept-tab" onclick="showDept('accounting', this)">💰 회계세무</button>
+    <button class="dept-tab" onclick="showDept('hotel', this)">🏨 호텔경영</button>
+  </div>
+
+  <!-- ============ P-TECH 글로벌호텔관광학과 ============ -->
+  <div class="dept-section active" id="dept-ptech-hotel">
+    <div class="dept-hero">
+      <div class="dept-hero-icon">🎓</div>
+      <div class="dept-hero-name">P-TECH<br>글로벌호텔관광학과</div>
+      <div class="dept-hero-sub">호텔식음료서비스 · Level 3</div>
+      <div class="dept-hero-tags">
+        <span class="dept-hero-tag">2년 과정</span>
+        <span class="dept-hero-tag">고등학생 대상</span>
+        <span class="dept-hero-tag">국가자격</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">📚</span>주요 학습 내용</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">1</div><div class="info-item-text"><strong>식음료 영업 준비 및 운영</strong><br>레스토랑/호텔 업장 관리 실무</div></div>
+        <div class="info-item"><div class="info-item-num">2</div><div class="info-item-text"><strong>음료 · 음식 서비스</strong><br>테이블 서비스, 메뉴 지식, 고객 응대</div></div>
+        <div class="info-item"><div class="info-item-num">3</div><div class="info-item-text"><strong>연회 · 웨딩 행사 진행</strong><br>기획부터 운영, 정산까지 전 과정</div></div>
+        <div class="info-item"><div class="info-item-num">4</div><div class="info-item-text"><strong>위생 안전 관리</strong><br>HACCP, 식품위생, 안전 수칙</div></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">💼</span>주요 취업 분야</div>
+      <div class="job-grid">
+        <div class="job-chip"><span class="job-icon">🏨</span>특급 호텔</div>
+        <div class="job-chip"><span class="job-icon">🍽️</span>레스토랑</div>
+        <div class="job-chip"><span class="job-icon">🎉</span>연회장 · 웨딩홀</div>
+        <div class="job-chip"><span class="job-icon">🏢</span>리조트</div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">✨</span>이런 분께 추천해요</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">사람 만나는 걸 좋아하고, 서비스업에 관심 있는 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">학업과 실무 경험을 동시에 쌓고 싶은 고등학생</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">호텔·외식 업계에서 전문가로 성장하고 싶은 분</div></div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-box-title">🌟 P-TECH 글로벌호텔관광학과의 장점</div>
+        <div class="feature-box-text">고등학교 졸업 후 바로 기업 취업 + 전문대 학위를 동시에 받을 수 있어요. 학비 부담 없이 월급 받으며 공부합니다. 글로벌 호텔 서비스 전문가로 성장할 수 있는 2년 집중 과정입니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ P-TECH 호텔조리학과 ============ -->
+  <div class="dept-section" id="dept-ptech-cooking">
+    <div class="dept-hero green">
+      <div class="dept-hero-icon">🎓</div>
+      <div class="dept-hero-name">P-TECH<br>호텔조리학과</div>
+      <div class="dept-hero-sub">양식조리 · Level 4</div>
+      <div class="dept-hero-tags">
+        <span class="dept-hero-tag">2년 과정</span>
+        <span class="dept-hero-tag">고등학생 대상</span>
+        <span class="dept-hero-tag">신규 개설</span>
+        <span class="dept-hero-tag">조리기능사</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">📚</span>주요 학습 내용</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">1</div><div class="info-item-text"><strong>양식 기초 조리</strong><br>소스, 스톡, 기본 요리 이론 및 실습</div></div>
+        <div class="info-item"><div class="info-item-num">2</div><div class="info-item-text"><strong>양식 육류 · 생선 조리</strong><br>스테이크, 그릴, 소테 등 전문 조리법</div></div>
+        <div class="info-item"><div class="info-item-num">3</div><div class="info-item-text"><strong>양식 메뉴 관리</strong><br>메뉴 기획, 원가 관리, 레시피 개발</div></div>
+        <div class="info-item"><div class="info-item-num">4</div><div class="info-item-text"><strong>주방 위생 안전 관리</strong><br>HACCP, 식재료 관리, 주방 기물 운영</div></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">💼</span>주요 취업 분야</div>
+      <div class="job-grid">
+        <div class="job-chip"><span class="job-icon">🏨</span>특급 호텔 주방</div>
+        <div class="job-chip"><span class="job-icon">🍽️</span>양식 레스토랑</div>
+        <div class="job-chip"><span class="job-icon">🍷</span>파인 다이닝</div>
+        <div class="job-chip"><span class="job-icon">👨‍🍳</span>전문 셰프</div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">✨</span>이런 분께 추천해요</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">요리하는 것을 좋아하고 창의적인 고등학생</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">어린 나이부터 호텔 주방 경험을 쌓고 싶은 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">전문 셰프로 조기 진출하고 싶은 분</div></div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-box-title">🌟 P-TECH 호텔조리학과의 장점</div>
+        <div class="feature-box-text">고등학교 졸업 후 바로 특급 호텔 주방에서 실무를 경험하면서 학위까지 받을 수 있어요. Level 4 고급 과정으로 양식조리 전문성을 인정받습니다. 2년 만에 경력과 학력을 동시에 쌓는 최단 루트!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 마케팅경영학과 ============ -->
+  <div class="dept-section" id="dept-marketing">
+    <div class="dept-hero orange">
+      <div class="dept-hero-icon">📊</div>
+      <div class="dept-hero-name">마케팅경영학과</div>
+      <div class="dept-hero-sub">총무인사 · Level 3</div>
+      <div class="dept-hero-tags">
+        <span class="dept-hero-tag">1년 과정</span>
+        <span class="dept-hero-tag">전문대 재학생</span>
+        <span class="dept-hero-tag">기업 실무</span>
+        <span class="dept-hero-tag">사무직</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">📚</span>주요 학습 내용</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">1</div><div class="info-item-text"><strong>총무 · 보안 관리</strong><br>사무실 운영, 문서 관리, 보안 시스템</div></div>
+        <div class="info-item"><div class="info-item-num">2</div><div class="info-item-text"><strong>복리후생 지원 업무</strong><br>직원 복지, 경조사, 복리후생 제도 운영</div></div>
+        <div class="info-item"><div class="info-item-num">3</div><div class="info-item-text"><strong>퇴직업무 지원</strong><br>퇴직금 처리, 퇴직 절차 관리</div></div>
+        <div class="info-item"><div class="info-item-num">4</div><div class="info-item-text"><strong>마케팅 · 경영 기초</strong><br>시장 분석, 고객 관리, 경영 전략</div></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">💼</span>주요 취업 분야</div>
+      <div class="job-grid">
+        <div class="job-chip"><span class="job-icon">🏢</span>일반 기업 총무팀</div>
+        <div class="job-chip"><span class="job-icon">👥</span>인사팀 · HR</div>
+        <div class="job-chip"><span class="job-icon">📈</span>마케팅팀</div>
+        <div class="job-chip"><span class="job-icon">🏛️</span>공공기관</div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">✨</span>이런 분께 추천해요</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">꼼꼼하고 체계적인 업무를 선호하는 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">사람 관리와 조직 운영에 관심 있는 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">안정적인 사무직을 원하는 분</div></div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-box-title">🌟 마케팅경영학과의 장점</div>
+        <div class="feature-box-text">총무 · 인사 등 기업에서 꼭 필요한 실무 역량을 체계적으로 배워요. 사무직 커리어의 탄탄한 기반이 됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 호텔조리학과 ============ -->
+  <div class="dept-section" id="dept-cooking">
+    <div class="dept-hero green">
+      <div class="dept-hero-icon">🍳</div>
+      <div class="dept-hero-name">호텔조리학과</div>
+      <div class="dept-hero-sub">양식조리 · Level 4</div>
+      <div class="dept-hero-tags">
+        <span class="dept-hero-tag">1년 과정</span>
+        <span class="dept-hero-tag">전문대 재학생</span>
+        <span class="dept-hero-tag">실습 중심</span>
+        <span class="dept-hero-tag">조리기능사</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">📚</span>주요 학습 내용</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">1</div><div class="info-item-text"><strong>양식 기초 조리</strong><br>소스, 스톡, 기본 요리 이론 및 실습</div></div>
+        <div class="info-item"><div class="info-item-num">2</div><div class="info-item-text"><strong>양식 육류 · 생선 조리</strong><br>스테이크, 그릴, 소테 등 전문 조리법</div></div>
+        <div class="info-item"><div class="info-item-num">3</div><div class="info-item-text"><strong>양식 메뉴 관리</strong><br>메뉴 기획, 원가 관리, 레시피 개발</div></div>
+        <div class="info-item"><div class="info-item-num">4</div><div class="info-item-text"><strong>주방 위생 안전 관리</strong><br>HACCP, 식재료 관리, 주방 기물 운영</div></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">💼</span>주요 취업 분야</div>
+      <div class="job-grid">
+        <div class="job-chip"><span class="job-icon">🏨</span>특급 호텔 주방</div>
+        <div class="job-chip"><span class="job-icon">🍽️</span>양식 레스토랑</div>
+        <div class="job-chip"><span class="job-icon">🏢</span>단체급식</div>
+        <div class="job-chip"><span class="job-icon">👨‍🍳</span>개인 셰프</div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">✨</span>이런 분께 추천해요</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">요리하는 것을 좋아하고 창의적인 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">손재주가 있고 체력이 좋은 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">전문 셰프로 성장하고 싶은 분</div></div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-box-title">🌟 호텔조리학과의 장점</div>
+        <div class="feature-box-text">Level 4 과정으로 다른 학과보다 한 단계 높은 전문성을 인정받아요. 실습 위주 수업과 현장 OJT로 진짜 셰프가 됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 회계세무학과 ============ -->
+  <div class="dept-section" id="dept-accounting">
+    <div class="dept-hero purple">
+      <div class="dept-hero-icon">💰</div>
+      <div class="dept-hero-name">회계세무학과</div>
+      <div class="dept-hero-sub">세무회계정보관리 · Level 3</div>
+      <div class="dept-hero-tags">
+        <span class="dept-hero-tag">1년 과정</span>
+        <span class="dept-hero-tag">전문대 재학생</span>
+        <span class="dept-hero-tag">자격증 특화</span>
+        <span class="dept-hero-tag">전문직</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">📚</span>주요 학습 내용</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">1</div><div class="info-item-text"><strong>원천징수 업무</strong><br>급여 · 수당 원천세 계산 및 신고</div></div>
+        <div class="info-item"><div class="info-item-num">2</div><div class="info-item-text"><strong>부가가치세 신고</strong><br>매입/매출 세금계산서, VAT 신고 실무</div></div>
+        <div class="info-item"><div class="info-item-num">3</div><div class="info-item-text"><strong>법인세 신고 준비</strong><br>법인 결산, 세무조정, 신고서 작성</div></div>
+        <div class="info-item"><div class="info-item-num">4</div><div class="info-item-text"><strong>회계 프로그램 운영</strong><br>더존, SERP 등 실무 회계 시스템</div></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">💼</span>주요 취업 분야</div>
+      <div class="job-grid">
+        <div class="job-chip"><span class="job-icon">📊</span>세무법인</div>
+        <div class="job-chip"><span class="job-icon">🏢</span>일반 기업 재무팀</div>
+        <div class="job-chip"><span class="job-icon">💼</span>회계법인</div>
+        <div class="job-chip"><span class="job-icon">🏦</span>금융기관</div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">✨</span>이런 분께 추천해요</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">숫자에 밝고 정확한 업무를 선호하는 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">자격증을 활용한 전문직을 원하는 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">장기적으로 안정적인 커리어를 추구하는 분</div></div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-box-title">🌟 회계세무학과의 장점</div>
+        <div class="feature-box-text">전산세무 · 전산회계 등 자격증 취득에 특화된 커리큘럼. 어떤 회사든 꼭 필요한 핵심 역량을 갖추게 됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 호텔경영학과 ============ -->
+  <div class="dept-section" id="dept-hotel">
+    <div class="dept-hero pink">
+      <div class="dept-hero-icon">🏨</div>
+      <div class="dept-hero-name">호텔경영학과</div>
+      <div class="dept-hero-sub">식음료서비스 · Level 3</div>
+      <div class="dept-hero-tags">
+        <span class="dept-hero-tag">1년 과정</span>
+        <span class="dept-hero-tag">전문대 재학생</span>
+        <span class="dept-hero-tag">서비스업</span>
+        <span class="dept-hero-tag">글로벌</span>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">📚</span>주요 학습 내용</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">1</div><div class="info-item-text"><strong>식음료 영업 준비</strong><br>업장 세팅, 테이블 매너, 메뉴 숙지</div></div>
+        <div class="info-item"><div class="info-item-num">2</div><div class="info-item-text"><strong>환영 · 환송 서비스</strong><br>고객 응대 프로토콜, 예약 관리</div></div>
+        <div class="info-item"><div class="info-item-num">3</div><div class="info-item-text"><strong>음료 · 음식 서비스</strong><br>와인 · 칵테일 · 요리 서빙 실무</div></div>
+        <div class="info-item"><div class="info-item-num">4</div><div class="info-item-text"><strong>식음료 영업장 위생안전관리</strong><br>HACCP, 알레르기 관리, 안전 기준</div></div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">💼</span>주요 취업 분야</div>
+      <div class="job-grid">
+        <div class="job-chip"><span class="job-icon">🏨</span>5성급 호텔</div>
+        <div class="job-chip"><span class="job-icon">🍷</span>파인 다이닝</div>
+        <div class="job-chip"><span class="job-icon">🏖️</span>리조트</div>
+        <div class="job-chip"><span class="job-icon">✈️</span>크루즈 · 항공</div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-title"><span class="emoji">✨</span>이런 분께 추천해요</div>
+      <div class="info-list">
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">외국어에 관심 있고 글로벌하게 일하고 싶은 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">예의 바르고 고객 응대를 잘 할 수 있는 분</div></div>
+        <div class="info-item"><div class="info-item-num">✓</div><div class="info-item-text">특급 호텔에서 서비스 전문가로 성장하고 싶은 분</div></div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-box-title">🌟 호텔경영학과의 장점</div>
+        <div class="feature-box-text">국내외 특급 호텔과 협력 체제로 현장 경험을 쌓을 수 있어요. 글로벌 서비스 매너와 언어 능력을 함께 키웁니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA - 상담 신청 유도 -->
+  <div class="cta-card">
+    <div class="cta-title">💬 더 궁금한 점이 있으신가요?</div>
+    <div class="cta-sub">담당자와 1:1 상담으로<br>자세한 안내를 받아보세요</div>
+    <a href="consulting.html" class="cta-btn">📩 1:1 상담 신청하기</a>
+  </div>
+
+  <!-- 하단 안내 -->
+  <div class="bottom-notice">
+    <strong>📌 안내</strong><br>
+    본 페이지의 학과 정보는 일학습병행 공동훈련센터 운영 기준입니다.<br>
+    학과 커리큘럼 및 모집 일정은 변경될 수 있으니, 정확한 정보는 <strong>1:1 상담</strong>을 통해 확인해주세요.
+  </div>
+
+</div>
+
+<script>
+  function showDept(deptId, btn) {
+    // 모든 섹션 숨김
+    document.querySelectorAll('.dept-section').forEach(s => s.classList.remove('active'));
+    // 모든 탭 비활성화
+    document.querySelectorAll('.dept-tab').forEach(t => t.classList.remove('active'));
+    // 선택한 섹션 표시
+    document.getElementById('dept-' + deptId).classList.add('active');
+    // 선택한 탭 활성화
+    btn.classList.add('active');
+    // 상단으로 스크롤
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
