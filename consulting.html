@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1:1 상담신청 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) { await OneSignal.init({ appId: "6bed6730-b167-48a8-a98d-83cdcb1cbc10", notifyButton: { enable: false }, allowLocalhostAsSecureOrigin: true }); });
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  const firebaseConfig = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._firebaseDb = db; window._firebaseAddDoc = addDoc; window._firebaseCollection = collection; window._firebaseServerTimestamp = serverTimestamp; window._firebaseReady = true;
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+  :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; --success: #2ecc71; --danger: #e74c3c; --border: #e2e8f0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; padding-bottom: 40px; }
+  .header { background: var(--blue); padding: 20px 20px 24px; position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+  .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .back-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  .header-badge { background: var(--accent); color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .header h1 { color: white; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .header-sub { color: rgba(255,255,255,0.75); font-size: 13px; line-height: 1.5; }
+
+  .container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+
+  .category-badge-top { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 14px; }
+  .badge-student { background: #e3f2fd; color: var(--blue); }
+  .badge-graduate { background: #fef3c7; color: #92400e; }
+  .badge-prospect { background: #d1fae5; color: #065f46; }
+
+  .info-card { background: var(--blue); border-radius: 16px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(33,150,243,0.25); }
+  .info-card.graduate-info { background: #d97706; box-shadow: 0 4px 16px rgba(217,119,6,0.25); }
+  .info-card.prospect-info { background: #059669; box-shadow: 0 4px 16px rgba(5,150,105,0.25); }
+  .info-icon { font-size: 32px; flex-shrink: 0; }
+  .info-text { color: white; }
+  .info-text strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .info-text span { font-size: 12px; color: rgba(255,255,255,0.85); line-height: 1.6; }
+
+  .form-card { background: white; border-radius: 20px; padding: 28px 24px; box-shadow: 0 2px 12px rgba(33,150,243,0.08); }
+  .form-group { margin-bottom: 20px; }
+  .form-label { display: block; font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .form-label .required { color: var(--danger); margin-left: 2px; }
+  .form-input, .form-select, .form-textarea { width: 100%; background: var(--light); border: 2px solid var(--border); border-radius: 12px; padding: 14px 16px; font-family: 'Noto Sans KR', sans-serif; font-size: 15px; color: #1a2a3a; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--blue); background: white; }
+  .form-input[readonly] { background: #f8fafc; color: var(--gray); cursor: not-allowed; }
+  .form-select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238a9ab5' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+  .form-textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+  .char-count { text-align: right; font-size: 11px; color: var(--gray); margin-top: 6px; }
+  .char-count.warn { color: var(--danger); }
+  .form-hint { font-size: 11px; color: var(--gray); margin-top: 4px; }
+
+  .submit-btn { width: 100%; background: var(--blue); color: white; border: none; border-radius: 14px; padding: 18px; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 8px; box-shadow: 0 4px 16px rgba(33,150,243,0.3); }
+  .submit-btn:hover:not(:disabled) { background: var(--navy); transform: translateY(-1px); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .submit-btn.graduate { background: #d97706; box-shadow: 0 4px 16px rgba(217,119,6,0.3); }
+  .submit-btn.graduate:hover:not(:disabled) { background: #b45309; }
+  .submit-btn.prospect { background: #059669; box-shadow: 0 4px 16px rgba(5,150,105,0.3); }
+  .submit-btn.prospect:hover:not(:disabled) { background: #047857; }
+
+  /* 미가입자용 카테고리 선택 */
+  .category-select-box { background: white; border-radius: 20px; padding: 28px 24px; box-shadow: 0 2px 12px rgba(33,150,243,0.08); }
+  .category-select-title { font-size: 18px; font-weight: 800; color: var(--navy); margin-bottom: 6px; text-align: center; }
+  .category-select-sub { font-size: 13px; color: var(--gray); margin-bottom: 24px; text-align: center; line-height: 1.6; }
+  .category-options { display: flex; flex-direction: column; gap: 10px; }
+  .category-option { padding: 18px; background: var(--light); border: 2px solid var(--border); border-radius: 14px; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 14px; font-family: 'Noto Sans KR', sans-serif; }
+  .category-option:hover { border-color: var(--blue); background: #e3f2fd; }
+  .category-option .opt-icon { font-size: 28px; flex-shrink: 0; }
+  .category-option .opt-name { font-size: 15px; font-weight: 800; color: #1a2a3a; margin-bottom: 2px; }
+  .category-option .opt-desc { font-size: 11px; color: var(--gray); }
+  .category-option .opt-arrow { margin-left: auto; font-size: 20px; color: var(--gray); }
+
+  .result-overlay { display: none; position: fixed; inset: 0; background: rgba(15,39,68,0.75); z-index: 100; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(4px); }
+  .result-overlay.show { display: flex; }
+  .result-box { background: white; border-radius: 24px; padding: 40px 32px; text-align: center; max-width: 340px; width: 100%; animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .result-icon { font-size: 56px; margin-bottom: 16px; }
+  .result-title { font-size: 20px; font-weight: 800; color: #1a2a3a; margin-bottom: 10px; }
+  .result-msg { font-size: 14px; color: var(--gray); line-height: 1.6; margin-bottom: 28px; }
+  .result-close { background: var(--blue); color: white; border: none; border-radius: 12px; padding: 14px 32px; font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top"><a href="index.html" class="back-btn">←</a><span class="header-badge">1:1 상담</span></div>
+  <h1>상담 신청</h1>
+  <p class="header-sub">궁금한 점이나 어려운 점을 알려주세요<br>담당자가 확인 후 연락드릴게요</p>
+</div>
+
+<div class="container">
+
+  <!-- ============ 미가입자용 카테고리 선택 ============ -->
+  <div class="category-select-box" id="categorySelectBox" style="display:none;">
+    <div class="category-select-title">어떤 분류로 상담을 신청하시나요?</div>
+    <div class="category-select-sub">해당되는 분류를 선택해주세요</div>
+    <div class="category-options">
+      <button class="category-option" onclick="chooseGuestCategory('student')">
+        <div class="opt-icon">🎓</div>
+        <div>
+          <div class="opt-name">재학생</div>
+          <div class="opt-desc">현재 AU 일학습병행 재학 중</div>
+        </div>
+        <div class="opt-arrow">›</div>
+      </button>
+      <button class="category-option" onclick="chooseGuestCategory('graduate')">
+        <div class="opt-icon">🎉</div>
+        <div>
+          <div class="opt-name">졸업생</div>
+          <div class="opt-desc">AU 일학습병행 졸업</div>
+        </div>
+        <div class="opt-arrow">›</div>
+      </button>
+      <button class="category-option" onclick="chooseGuestCategory('prospect')">
+        <div class="opt-icon">🌱</div>
+        <div>
+          <div class="opt-name">예비 신입생</div>
+          <div class="opt-desc">입학 희망 · 궁금한 점 문의</div>
+        </div>
+        <div class="opt-arrow">›</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ 재학생 폼 ============ -->
+  <div id="formStudent" style="display:none;">
+    <div style="text-align:center;"><span class="category-badge-top badge-student">🎓 재학생 상담</span></div>
+    <div class="info-card">
+      <div class="info-icon">💬</div>
+      <div class="info-text"><strong>상담 신청 안내</strong><span>신청 내용은 담당자에게 즉시 전달돼요.<br>확인 후 개별 연락 또는 대면 상담으로 진행합니다.</span></div>
+    </div>
+    <div class="form-card">
+      <div class="form-group"><label class="form-label">이름 <span class="required">*</span></label><input type="text" class="form-input" id="studentName" placeholder="이름을 입력해주세요" maxlength="20"></div>
+      <div class="form-group">
+        <label class="form-label">학과 <span class="required">*</span></label>
+        <select class="form-select" id="studentDept">
+          <option value="">학과를 선택해주세요</option>
+          <option value="P-TECH 1학년">P-TECH 1학년</option>
+          <option value="P-TECH 2학년">P-TECH 2학년</option>
+          <option value="마케팅경영학과">마케팅경영학과</option>
+          <option value="호텔조리학과">호텔조리학과</option>
+          <option value="회계세무학과">회계세무학과</option>
+          <option value="호텔경영학과">호텔경영학과</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">상담 내용 <span class="required">*</span></label><textarea class="form-textarea" id="studentContent" placeholder="상담 받고 싶은 내용을 간략하게 작성해주세요" maxlength="300" oninput="updateCharCount('studentContent','studentCount')"></textarea><div class="char-count" id="studentCount">0 / 300</div></div>
+      <button class="submit-btn" id="studentSubmit" onclick="submitStudent()">📩 상담 신청하기</button>
+    </div>
+  </div>
+
+  <!-- ============ 졸업생 폼 ============ -->
+  <div id="formGraduate" style="display:none;">
+    <div style="text-align:center;"><span class="category-badge-top badge-graduate">🎉 졸업생 상담</span></div>
+    <div class="info-card graduate-info">
+      <div class="info-icon">🎓</div>
+      <div class="info-text"><strong>졸업생 상담 신청</strong><span>외부평가, 취업 관련, 기타 문의 등<br>담당자가 확인 후 연락드립니다.</span></div>
+    </div>
+    <div class="form-card">
+      <div class="form-group"><label class="form-label">이름 <span class="required">*</span></label><input type="text" class="form-input" id="graduateName" placeholder="이름을 입력해주세요" maxlength="20"></div>
+      <div class="form-group">
+        <label class="form-label">졸업 학과 <span class="required">*</span></label>
+        <select class="form-select" id="graduateDept">
+          <option value="">학과를 선택해주세요</option>
+          <option value="P-TECH">P-TECH</option>
+          <option value="마케팅경영학과">마케팅경영학과</option>
+          <option value="호텔조리학과">호텔조리학과</option>
+          <option value="회계세무학과">회계세무학과</option>
+          <option value="호텔경영학과">호텔경영학과</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">졸업 년도 <span class="required">*</span></label><input type="number" class="form-input" id="graduateYear" placeholder="예: 2024" min="2000" max="2030"></div>
+      <div class="form-group"><label class="form-label">현재 일하는 곳 <span class="required">*</span></label><input type="text" class="form-input" id="graduateWork" placeholder="회사/기관명" maxlength="30"></div>
+      <div class="form-group"><label class="form-label">상담 내용 <span class="required">*</span></label><textarea class="form-textarea" id="graduateContent" placeholder="문의하고 싶은 내용을 작성해주세요" maxlength="300" oninput="updateCharCount('graduateContent','graduateCount')"></textarea><div class="char-count" id="graduateCount">0 / 300</div></div>
+      <button class="submit-btn graduate" id="graduateSubmit" onclick="submitGraduate()">📩 상담 신청하기</button>
+    </div>
+  </div>
+
+  <!-- ============ 예비 신입생 폼 ============ -->
+  <div id="formProspect" style="display:none;">
+    <div style="text-align:center;"><span class="category-badge-top badge-prospect">🌱 예비 신입생 상담</span></div>
+    <div class="info-card prospect-info">
+      <div class="info-icon">🌱</div>
+      <div class="info-text"><strong>예비 신입생 상담 안내</strong><span>AU 일학습병행에 관심 있어 주셔서 감사합니다.<br>담당자가 확인 후 개별 연락드릴게요.</span></div>
+    </div>
+    <div class="form-card">
+      <div class="form-group"><label class="form-label">이름 <span class="required">*</span></label><input type="text" class="form-input" id="prospectName" placeholder="이름을 입력해주세요" maxlength="20"></div>
+      <div class="form-group"><label class="form-label">연락처 <span class="required">*</span></label><input type="tel" class="form-input" id="prospectPhone" placeholder="010-0000-0000" maxlength="13"><div class="form-hint">담당자가 연락드릴 번호예요</div></div>
+      <div class="form-group"><label class="form-label">현재 학교 이름 <span class="required">*</span></label><input type="text" class="form-input" id="prospectSchool" placeholder="재학 중인 학교명" maxlength="30"></div>
+      <div class="form-group">
+        <label class="form-label">관심 학과 <span class="required">*</span></label>
+        <select class="form-select" id="prospectInterest">
+          <option value="">관심 학과를 선택해주세요</option>
+          <option value="P-TECH">P-TECH</option>
+          <option value="마케팅경영학과">마케팅경영학과</option>
+          <option value="호텔조리학과">호텔조리학과</option>
+          <option value="회계세무학과">회계세무학과</option>
+          <option value="호텔경영학과">호텔경영학과</option>
+          <option value="아직 고민 중">아직 고민 중</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">상담 내용 <span class="required">*</span></label><textarea class="form-textarea" id="prospectContent" placeholder="궁금한 점이나 문의사항을 작성해주세요" maxlength="300" oninput="updateCharCount('prospectContent','prospectCount')"></textarea><div class="char-count" id="prospectCount">0 / 300</div></div>
+      <button class="submit-btn prospect" id="prospectSubmit" onclick="submitProspect()">📩 상담 신청하기</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-box"><div class="result-icon">✅</div><div class="result-title">신청 완료!</div><div class="result-msg" id="resultMsg"></div><button class="result-close" onclick="closeResult()">확인</button></div>
+</div>
+
+<script>
+  const WORKER_URL = 'https://damp-leaf-0c5c.dks3275.workers.dev';
+  let currentCategory = null;
+
+  // ============ 초기화: 카테고리 자동 감지 ============
+  window.addEventListener('load', () => {
+    const saved = localStorage.getItem('userInfo');
+    if (saved) {
+      try {
+        const info = JSON.parse(saved);
+        // category 없는 구버전 처리
+        if (!info.category && info.grade) info.category = 'student';
+
+        if (info.category === 'student') showStudentForm(info);
+        else if (info.category === 'graduate') showGraduateForm(info);
+        else if (info.category === 'prospect') showProspectForm(info);
+        else showCategorySelect();
+      } catch(e) { showCategorySelect(); }
+    } else {
+      showCategorySelect();
+    }
+  });
+
+  function showCategorySelect() {
+    document.getElementById('categorySelectBox').style.display = 'block';
+  }
+
+  function chooseGuestCategory(cat) {
+    document.getElementById('categorySelectBox').style.display = 'none';
+    if (cat === 'student') showStudentForm(null);
+    else if (cat === 'graduate') showGraduateForm(null);
+    else if (cat === 'prospect') showProspectForm(null);
+  }
+
+  // ============ 폼 표시 + 자동 채움 ============
+  function showStudentForm(info) {
+    currentCategory = 'student';
+    document.getElementById('formStudent').style.display = 'block';
+    if (info) {
+      document.getElementById('studentName').value = info.name || '';
+      document.getElementById('studentDept').value = info.grade || '';
+    }
+  }
+
+  function showGraduateForm(info) {
+    currentCategory = 'graduate';
+    document.getElementById('formGraduate').style.display = 'block';
+    if (info) {
+      document.getElementById('graduateName').value = info.name || '';
+      document.getElementById('graduateDept').value = info.dept || '';
+      document.getElementById('graduateYear').value = info.graduateYear || '';
+      document.getElementById('graduateWork').value = info.workplace || '';
+    }
+  }
+
+  function showProspectForm(info) {
+    currentCategory = 'prospect';
+    document.getElementById('formProspect').style.display = 'block';
+    if (info) {
+      document.getElementById('prospectName').value = info.name || '';
+      document.getElementById('prospectPhone').value = info.phone || '';
+      document.getElementById('prospectSchool').value = info.school || '';
+      document.getElementById('prospectInterest').value = info.interest || '';
+    }
+  }
+
+  function updateCharCount(inputId, countId) {
+    const content = document.getElementById(inputId).value;
+    const el = document.getElementById(countId);
+    el.textContent = content.length + ' / 300';
+    el.classList.toggle('warn', content.length >= 280);
+  }
+
+  // ============ 공통 전송 함수 ============
+  async function sendToFirebase(data) {
+    try {
+      if (window._firebaseReady) {
+        await window._firebaseAddDoc(
+          window._firebaseCollection(window._firebaseDb, 'consulting'),
+          { ...data, status: '대기중', createdAt: window._firebaseServerTimestamp() }
+        );
+        return true;
+      }
+    } catch(e) { console.warn('Firebase 저장 실패:', e); return false; }
+    return false;
+  }
+
+  async function sendPushNotification(heading, message) {
+    try {
+      await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
+          filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }],
+          contents: { ko: message, en: message },
+          headings: { ko: heading, en: heading }
+        })
+      });
+    } catch(e) { console.warn('알림 발송 실패:', e); }
+  }
+
+  function getTimeStr() {
+    const now = new Date();
+    return now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  // ============ 재학생 제출 ============
+  async function submitStudent() {
+    const name = document.getElementById('studentName').value.trim();
+    const dept = document.getElementById('studentDept').value;
+    const content = document.getElementById('studentContent').value.trim();
+    if (!name) return alert('이름을 입력해주세요.');
+    if (!dept) return alert('학과를 선택해주세요.');
+    if (!content) return alert('상담 내용을 입력해주세요.');
+    if (content.length < 5) return alert('상담 내용을 조금 더 자세히 작성해주세요.');
+
+    const btn = document.getElementById('studentSubmit');
+    btn.textContent = '전송 중...'; btn.disabled = true;
+
+    const data = {
+      category: 'student',
+      categoryLabel: '재학생',
+      name, dept, content, time: getTimeStr()
+    };
+    await sendToFirebase(data);
+    await sendPushNotification(
+      '💬 [재학생] 1:1 상담 신청',
+      `${name} (${dept})\n${content.substring(0, 80)}${content.length > 80 ? '...' : ''}`
+    );
+
+    showResult(name);
+    btn.textContent = '📩 상담 신청하기'; btn.disabled = false;
+    document.getElementById('studentContent').value = '';
+    updateCharCount('studentContent', 'studentCount');
+  }
+
+  // ============ 졸업생 제출 ============
+  async function submitGraduate() {
+    const name = document.getElementById('graduateName').value.trim();
+    const dept = document.getElementById('graduateDept').value;
+    const year = document.getElementById('graduateYear').value.trim();
+    const work = document.getElementById('graduateWork').value.trim();
+    const content = document.getElementById('graduateContent').value.trim();
+    if (!name) return alert('이름을 입력해주세요.');
+    if (!dept) return alert('졸업 학과를 선택해주세요.');
+    if (!year) return alert('졸업 년도를 입력해주세요.');
+    if (!work) return alert('현재 일하는 곳을 입력해주세요.');
+    if (!content) return alert('상담 내용을 입력해주세요.');
+    if (content.length < 5) return alert('상담 내용을 조금 더 자세히 작성해주세요.');
+
+    const btn = document.getElementById('graduateSubmit');
+    btn.textContent = '전송 중...'; btn.disabled = true;
+
+    const data = {
+      category: 'graduate',
+      categoryLabel: '졸업생',
+      name,
+      dept: `${dept} (${year}년 졸업)`,
+      graduateYear: year,
+      workplace: work,
+      content,
+      time: getTimeStr()
+    };
+    await sendToFirebase(data);
+    await sendPushNotification(
+      '🎉 [졸업생] 1:1 상담 신청',
+      `${name} (${dept} ${year}년 졸업 · ${work})\n${content.substring(0, 80)}${content.length > 80 ? '...' : ''}`
+    );
+
+    showResult(name);
+    btn.textContent = '📩 상담 신청하기'; btn.disabled = false;
+    document.getElementById('graduateContent').value = '';
+    updateCharCount('graduateContent', 'graduateCount');
+  }
+
+  // ============ 예비 신입생 제출 ============
+  async function submitProspect() {
+    const name = document.getElementById('prospectName').value.trim();
+    const phone = document.getElementById('prospectPhone').value.trim();
+    const school = document.getElementById('prospectSchool').value.trim();
+    const interest = document.getElementById('prospectInterest').value;
+    const content = document.getElementById('prospectContent').value.trim();
+    if (!name) return alert('이름을 입력해주세요.');
+    if (!phone) return alert('연락처를 입력해주세요.');
+    if (!school) return alert('현재 학교 이름을 입력해주세요.');
+    if (!interest) return alert('관심 학과를 선택해주세요.');
+    if (!content) return alert('상담 내용을 입력해주세요.');
+    if (content.length < 5) return alert('상담 내용을 조금 더 자세히 작성해주세요.');
+
+    const btn = document.getElementById('prospectSubmit');
+    btn.textContent = '전송 중...'; btn.disabled = true;
+
+    const data = {
+      category: 'prospect',
+      categoryLabel: '예비 신입생',
+      name,
+      dept: `${school} · 관심: ${interest}`,
+      phone,
+      school,
+      interest,
+      content,
+      time: getTimeStr()
+    };
+    await sendToFirebase(data);
+    await sendPushNotification(
+      '🌱 [예비신입] 1:1 상담 신청',
+      `${name} (${school})\n📞 ${phone} · 관심: ${interest}\n${content.substring(0, 60)}${content.length > 60 ? '...' : ''}`
+    );
+
+    showResult(name);
+    btn.textContent = '📩 상담 신청하기'; btn.disabled = false;
+    document.getElementById('prospectContent').value = '';
+    updateCharCount('prospectContent', 'prospectCount');
+  }
+
+  function showResult(name) {
+    document.getElementById('resultMsg').innerHTML = `<strong>${name}</strong>님의 상담 신청이 접수됐어요.<br>담당자가 확인 후 연락드릴게요.`;
+    document.getElementById('resultOverlay').classList.add('show');
+  }
+  function closeResult() { document.getElementById('resultOverlay').classList.remove('show'); }
+</script>
+</body>
+</html>
