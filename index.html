@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AU 일학습병행 출결알림</title>
+  <meta name="description" content="AU 일학습병행 공동훈련센터 출결 알림 앱" />
+  <meta name="theme-color" content="#2196f3" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="AU출결알림" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "6bed6730-b167-48a8-a98d-83cdcb1cbc10",
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "OneSignalSDKWorker.js",
+        notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+      });
+    });
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+    :root {
+      --navy: #1976d2; --blue: #2196f3; --accent: #e8a020;
+      --bg: #f4f6fb; --white: #ffffff; --text: #1a2a3a;
+      --text2: #5a7090; --border: #e4eaf4; --success: #2ecc71;
+      --danger: #e74c3c; --card-shadow: 0 2px 12px rgba(33,150,243,0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .top-header { background: var(--blue); padding: 52px 24px 28px; position: relative; overflow: hidden; }
+    .top-header::before { content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+    .top-header::after { content: ''; position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+    .top-header-inner { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; }
+    .logo-badge { display: inline-block; background: var(--accent); color: white; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; }
+    .top-header h1 { color: white; font-size: 22px; font-weight: 900; line-height: 1.3; margin-bottom: 6px; }
+    .top-header h1 span { color: #ffe082; }
+    .top-header p { color: rgba(255,255,255,0.7); font-size: 12px; }
+    .user-float { max-width: 480px; margin: 0 auto; padding: 0 16px; }
+    .user-info-card { background: white; border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 20px rgba(33,150,243,0.15); }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--blue); color: white; font-weight: 900; font-size: 17px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .user-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .user-grade { font-size: 11px; color: var(--blue); margin-top: 2px; font-weight: 500; }
+    .user-category-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; margin-right: 4px; vertical-align: middle; }
+    .badge-student { background: #e3f2fd; color: var(--blue); }
+    .badge-graduate { background: #fef3c7; color: #92400e; }
+    .badge-prospect { background: #d1fae5; color: #065f46; }
+    .edit-btn { margin-left: auto; background: var(--bg); border: 1.5px solid var(--border); color: var(--text2); font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; font-weight: 500; }
+    .container { max-width: 480px; margin: 0 auto; padding: 20px 16px 50px; }
+    .status-card { background: white; border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--card-shadow); display: flex; align-items: center; gap: 14px; }
+    .status-dot-wrap { width: 44px; height: 44px; border-radius: 50%; background: #e3f2fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .status-dot { width: 14px; height: 14px; border-radius: 50%; background: #b0c4d8; }
+    .status-dot.active { background: var(--success); box-shadow: 0 0 0 4px rgba(46,204,113,0.2); }
+    .status-info { flex: 1; }
+    .status-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; color: var(--text2); text-transform: uppercase; margin-bottom: 4px; }
+    .status-text { font-size: 15px; font-weight: 700; color: var(--text); }
+    .status-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .section-title { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin: 20px 0 10px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .info-card { background: white; border: 1.5px solid var(--border); border-radius: 16px; padding: 18px 14px; text-align: center; cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit; display: block; box-shadow: var(--card-shadow); }
+    .info-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(33,150,243,0.15); border-color: var(--blue); }
+    .info-card .icon { font-size: 28px; margin-bottom: 8px; }
+    .info-card .label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+    .info-card .value { font-size: 13px; font-weight: 700; color: var(--blue); }
+    .info-card.full { grid-column: 1 / -1; }
+    .info-card.survey-card { border-color: rgba(232,160,32,0.4); background: #fffbf0; }
+    .info-card.survey-card .value { color: var(--accent); }
+    .info-card.consulting-card { border-color: rgba(46,204,113,0.35); background: #f0fff6; }
+    .info-card.consulting-card .value { color: #27ae60; }
+    .info-card.calendar-card { border-color: rgba(33,150,243,0.35); background: #e3f2fd; }
+    .info-card.calendar-card .value { color: var(--blue); }
+    .info-card.exam-card { border-color: rgba(156,39,176,0.35); background: #f3e5f5; }
+    .info-card.exam-card .value { color: #7b1fa2; }
+    .info-card.dept-card { border-color: rgba(232,160,32,0.4); background: #fffbf0; }
+    .info-card.dept-card .value { color: var(--accent); }
+    .btn-main { width: 100%; padding: 18px; border: none; border-radius: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.25s ease; margin: 6px 0; }
+    .btn-subscribe { background: var(--blue); color: white; box-shadow: 0 4px 16px rgba(33,150,243,0.3); }
+    .btn-subscribe:hover { background: var(--navy); transform: translateY(-1px); }
+    .btn-unsubscribe { background: white; color: var(--danger); border: 1.5px solid #fca5a5; }
+    .notice { background: white; border: 1.5px solid var(--border); border-left: 4px solid var(--blue); border-radius: 12px; padding: 14px 16px; margin: 14px 0; font-size: 13px; line-height: 1.7; color: var(--text2); box-shadow: var(--card-shadow); }
+    .notice strong { color: var(--blue); display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; }
+    .steps { margin: 14px 0; }
+    .step-item { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .step-item:last-child { border-bottom: none; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-text { font-size: 13px; line-height: 1.6; color: var(--text2); padding-top: 4px; }
+    .step-text strong { color: var(--text); }
+    .footer { padding-top: 24px; text-align: center; font-size: 11px; color: #b0bec5; }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: white; padding: 13px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 999; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #27ae60; }
+    .toast.error { background: var(--danger); }
+    .toast.info { background: var(--blue); }
+
+    /* ============ 가입 모달 ============ */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.7); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: white; border-radius: 24px; padding: 32px 24px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+    .modal-logo { display: inline-block; background: var(--blue); color: white; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 20px; margin-bottom: 14px; }
+    .modal h2 { font-size: 22px; font-weight: 900; margin-bottom: 6px; color: var(--text); }
+    .modal h2 span { color: var(--blue); }
+    .modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
+    .modal-label { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .modal-input { width: 100%; padding: 13px 16px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 15px; margin-bottom: 20px; outline: none; transition: border-color 0.2s; }
+    .modal-input:focus { border-color: var(--blue); background: white; }
+    .modal-input::placeholder { color: #b0bec5; }
+    .modal-select { width: 100%; padding: 13px 16px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 15px; margin-bottom: 20px; outline: none; cursor: pointer; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238a9ab5' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+    .modal-select:focus { border-color: var(--blue); background-color: white; }
+    .grade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
+    .grade-btn { padding: 14px 8px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text2); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .grade-btn .g-icon { font-size: 20px; display: block; margin-bottom: 5px; }
+    .grade-btn:hover { border-color: var(--blue); color: var(--blue); background: #e3f2fd; }
+    .grade-btn.selected { background: var(--blue); border-color: var(--blue); color: white; font-weight: 700; }
+    .modal-submit { width: 100%; padding: 16px; background: var(--blue); color: white; border: none; border-radius: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 16px rgba(33,150,243,0.3); }
+    .modal-submit:hover { background: var(--navy); transform: translateY(-1px); }
+    .modal-back { width: 100%; padding: 12px; background: transparent; color: var(--text2); border: none; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; cursor: pointer; margin-top: 8px; }
+    .modal-back:hover { color: var(--blue); }
+
+    /* 카테고리 선택 (Step 1) */
+    .category-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }
+    .category-btn { padding: 20px 18px; background: var(--bg); border: 2px solid var(--border); border-radius: 16px; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 14px; font-family: 'Noto Sans KR', sans-serif; }
+    .category-btn:hover { border-color: var(--blue); background: #e3f2fd; }
+    .category-btn .cat-icon { font-size: 32px; flex-shrink: 0; }
+    .category-btn .cat-info { flex: 1; }
+    .category-btn .cat-name { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+    .category-btn .cat-desc { font-size: 11px; color: var(--text2); line-height: 1.4; }
+    .category-btn .cat-arrow { font-size: 20px; color: var(--text2); }
+
+    /* ============ 홈화면 추가 팝업 ============ */
+    .install-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.75); backdrop-filter: blur(4px); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .install-overlay.show { display: flex; }
+    .install-box { background: white; border-radius: 24px; padding: 32px 24px 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .install-icon { width: 72px; height: 72px; border-radius: 20px; background: var(--blue); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 38px; box-shadow: 0 8px 24px rgba(33,150,243,0.35); }
+    .install-title { text-align: center; font-size: 20px; font-weight: 900; color: var(--text); margin-bottom: 8px; }
+    .install-sub { text-align: center; font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
+    .install-steps { background: var(--bg); border-radius: 14px; padding: 16px 18px; margin-bottom: 20px; }
+    .install-step { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+    .install-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .install-step-text { font-size: 13px; line-height: 1.6; color: var(--text); padding-top: 1px; }
+    .install-step-text .hl { color: var(--blue); font-weight: 700; }
+    .install-icon-inline { display: inline-block; background: white; border: 1.5px solid var(--border); padding: 2px 6px; border-radius: 5px; margin: 0 2px; font-size: 12px; font-weight: 700; }
+    .install-btns { display: flex; flex-direction: column; gap: 8px; }
+    .install-btn-main { background: var(--blue); color: white; border: none; border-radius: 12px; padding: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .install-btn-main:hover { background: var(--navy); }
+    .install-btn-skip { background: transparent; color: var(--text2); border: none; padding: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; cursor: pointer; }
+    .install-btn-skip:hover { color: var(--blue); }
+    .install-tip { background: #fffbf0; border: 1px solid rgba(232,160,32,0.3); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #92400e; line-height: 1.5; margin-bottom: 16px; }
+    .install-tip strong { color: #78350f; }
+  </style>
+</head>
+<body>
+
+<!-- ============ 가입 모달 (Step 1: 카테고리 선택) ============ -->
+<div class="modal-overlay" id="modalOverlay" style="display:none;">
+  <!-- Step 1: 카테고리 선택 -->
+  <div class="modal" id="modalStep1">
+    <div class="modal-logo">AU 일학습병행</div>
+    <h2>어떻게 <span>가입</span>하시겠어요?</h2>
+    <p class="modal-sub">해당되는 분류를 선택해주세요</p>
+    <div class="category-grid">
+      <button class="category-btn" onclick="selectCategory('student')">
+        <div class="cat-icon">🎓</div>
+        <div class="cat-info">
+          <div class="cat-name">재학생</div>
+          <div class="cat-desc">현재 AU 일학습병행 프로그램에 재학 중</div>
+        </div>
+        <div class="cat-arrow">›</div>
+      </button>
+      <button class="category-btn" onclick="selectCategory('graduate')">
+        <div class="cat-icon">🎉</div>
+        <div class="cat-info">
+          <div class="cat-name">졸업생</div>
+          <div class="cat-desc">외부평가 문제 풀이용</div>
+        </div>
+        <div class="cat-arrow">›</div>
+      </button>
+      <button class="category-btn" onclick="selectCategory('prospect')">
+        <div class="cat-icon">🌱</div>
+        <div class="cat-info">
+          <div class="cat-name">예비 신입생</div>
+          <div class="cat-desc">입학 희망 · 1:1 상담 가능</div>
+        </div>
+        <div class="cat-arrow">›</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 2-A: 재학생 -->
+  <div class="modal" id="modalStep2Student" style="display:none;">
+    <div class="modal-logo">재학생 가입</div>
+    <h2>정보를 <span>입력</span>해주세요</h2>
+    <p class="modal-sub">알림 수신을 위해 이름과 학과를 선택해주세요</p>
+    <div class="modal-label">이름</div>
+    <input class="modal-input" type="text" id="studentName" placeholder="이름을 입력해주세요" maxlength="10" />
+    <div class="modal-label">학과 선택</div>
+    <div class="grade-grid">
+      <button class="grade-btn" onclick="selectGrade('P-TECH 1학년', this)"><span class="g-icon">🎓</span>P-TECH 1학년</button>
+      <button class="grade-btn" onclick="selectGrade('P-TECH 2학년', this)"><span class="g-icon">🎓</span>P-TECH 2학년</button>
+      <button class="grade-btn" onclick="selectGrade('전문대 마케팅경영학과', this)"><span class="g-icon">📚</span>마케팅경영학과</button>
+      <button class="grade-btn" onclick="selectGrade('전문대 호텔조리학과', this)"><span class="g-icon">🍳</span>호텔조리학과</button>
+      <button class="grade-btn" onclick="selectGrade('전문대 회계세무학과', this)"><span class="g-icon">📊</span>회계세무학과</button>
+      <button class="grade-btn" onclick="selectGrade('전문대 호텔경영학과', this)"><span class="g-icon">🏨</span>호텔경영학과</button>
+    </div>
+    <button class="modal-submit" onclick="submitStudent()">✅ 등록하기</button>
+    <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
+  </div>
+
+  <!-- Step 2-B: 졸업생 -->
+  <div class="modal" id="modalStep2Graduate" style="display:none;">
+    <div class="modal-logo">🎉 졸업생 가입</div>
+    <h2>정보를 <span>입력</span>해주세요</h2>
+    <p class="modal-sub">외부평가 문제 풀이를 위한 가입이에요</p>
+    <div class="modal-label">이름</div>
+    <input class="modal-input" type="text" id="graduateName" placeholder="이름을 입력해주세요" maxlength="10" />
+    <div class="modal-label">졸업 학과</div>
+    <select class="modal-select" id="graduateDept">
+      <option value="">학과를 선택해주세요</option>
+      <option value="P-TECH">P-TECH</option>
+      <option value="마케팅경영학과">마케팅경영학과</option>
+      <option value="호텔조리학과">호텔조리학과</option>
+      <option value="회계세무학과">회계세무학과</option>
+      <option value="호텔경영학과">호텔경영학과</option>
+    </select>
+    <div class="modal-label">졸업 년도</div>
+    <input class="modal-input" type="number" id="graduateYear" placeholder="예: 2024" min="2000" max="2030" />
+    <div class="modal-label">현재 일하는 곳</div>
+    <input class="modal-input" type="text" id="graduateWork" placeholder="회사/기관명을 입력해주세요" maxlength="30" />
+    <button class="modal-submit" onclick="submitGraduate()">✅ 등록하기</button>
+    <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
+  </div>
+
+  <!-- Step 2-C: 예비 신입생 -->
+  <div class="modal" id="modalStep2Prospect" style="display:none;">
+    <div class="modal-logo">🌱 예비 신입생 가입</div>
+    <h2>정보를 <span>입력</span>해주세요</h2>
+    <p class="modal-sub">AU 일학습병행에 관심 있어 주셔서 감사해요!</p>
+    <div class="modal-label">이름</div>
+    <input class="modal-input" type="text" id="prospectName" placeholder="이름을 입력해주세요" maxlength="10" />
+    <div class="modal-label">연락처</div>
+    <input class="modal-input" type="tel" id="prospectPhone" placeholder="010-0000-0000" maxlength="13" />
+    <div class="modal-label">현재 학교 이름</div>
+    <input class="modal-input" type="text" id="prospectSchool" placeholder="재학 중인 학교명" maxlength="30" />
+    <div class="modal-label">관심 학과</div>
+    <select class="modal-select" id="prospectInterest">
+      <option value="">관심 학과를 선택해주세요</option>
+      <option value="P-TECH">P-TECH</option>
+      <option value="마케팅경영학과">마케팅경영학과</option>
+      <option value="호텔조리학과">호텔조리학과</option>
+      <option value="회계세무학과">회계세무학과</option>
+      <option value="호텔경영학과">호텔경영학과</option>
+    </select>
+    <button class="modal-submit" onclick="submitProspect()">✅ 등록하기</button>
+    <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
+  </div>
+</div>
+
+<!-- ============ 홈화면 추가 팝업 ============ -->
+<div class="install-overlay" id="installOverlay">
+  <div class="install-box">
+    <div class="install-icon">📱</div>
+    <div class="install-title">앱으로 설치하세요!</div>
+    <div class="install-sub" id="installSub">홈화면에 아이콘을 추가하면<br>알림 수신과 앱 사용이 편해져요</div>
+
+    <!-- iOS 안내 -->
+    <div class="install-steps" id="installStepsIOS" style="display:none;">
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        <div class="install-step-text">하단 <span class="install-icon-inline">⬆️ 공유</span> 버튼을 눌러주세요</div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        <div class="install-step-text"><span class="hl">'홈 화면에 추가'</span>를 선택해주세요</div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">3</div>
+        <div class="install-step-text">오른쪽 위 <span class="hl">'추가'</span> 버튼을 눌러주세요</div>
+      </div>
+    </div>
+
+    <!-- Android 안내 -->
+    <div class="install-steps" id="installStepsAndroid" style="display:none;">
+      <div class="install-step">
+        <div class="install-step-num">1</div>
+        <div class="install-step-text">오른쪽 위 <span class="install-icon-inline">⋮</span> 메뉴를 눌러주세요</div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">2</div>
+        <div class="install-step-text"><span class="hl">'홈 화면에 추가'</span> 또는 <span class="hl">'앱 설치'</span>를 선택해주세요</div>
+      </div>
+      <div class="install-step">
+        <div class="install-step-num">3</div>
+        <div class="install-step-text"><span class="hl">'추가'</span> 또는 <span class="hl">'설치'</span> 버튼을 눌러주세요</div>
+      </div>
+    </div>
+
+    <div class="install-tip" id="installTipIOS" style="display:none;">
+      <strong>⚠️ 사파리(Safari)로 접속해야 해요!</strong><br>
+      다른 브라우저에서는 홈화면 추가가 제대로 작동하지 않아요
+    </div>
+
+    <div class="install-btns">
+      <button class="install-btn-main" onclick="closeInstallGuide()">알겠어요!</button>
+      <button class="install-btn-skip" onclick="dismissInstallGuide()">다시 보지 않기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 메인 UI ============ -->
+<div class="top-header">
+  <div class="top-header-inner">
+    <div class="logo-badge">AU 일학습병행</div>
+    <h1>안산대학교<br><span>일학습병행 공동훈련센터</span></h1>
+    <p>안산대학교 일학습병행 공동훈련센터 어플입니다.</p>
+  </div>
+</div>
+
+<div class="user-float">
+  <div class="user-info-card" id="userInfoCard" style="display:none;">
+    <div class="user-avatar" id="userAvatar">?</div>
+    <div>
+      <div class="user-name" id="userNameDisplay"></div>
+      <div class="user-grade" id="userGradeDisplay"></div>
+    </div>
+    <button class="edit-btn" onclick="showModal()">✏️ 수정</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="status-card" style="margin-top:14px;">
+    <div class="status-dot-wrap"><div class="status-dot" id="statusDot"></div></div>
+    <div class="status-info">
+      <div class="status-label">알림 수신 상태</div>
+      <div class="status-text" id="statusText">확인 중...</div>
+      <div class="status-sub" id="statusSub">잠시만 기다려주세요</div>
+    </div>
+  </div>
+
+  <div class="section-title">메뉴</div>
+
+  <!-- 재학생 메뉴 -->
+  <div class="info-grid" id="menuStudent" style="display:none;">
+    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
+    <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
+    <a class="info-card full calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학교일정 · 시험 · 보강 일정 확인</div><div class="value">캘린더 바로가기</div></a>
+    <a class="info-card full" href="exam.html"><div class="icon">📝</div><div class="label">모의시험 풀기</div><div class="value">외부평가</div></a>
+    <a class="info-card full survey-card" href="survey.html"><div class="icon">📋</div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></a>
+    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
+  </div>
+
+  <!-- 졸업생 메뉴 -->
+  <div class="info-grid" id="menuGraduate" style="display:none;">
+    <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">외부평가 문제 풀이 · 복습하기</div><div class="value">외부평가 시작하기</div></a>
+  </div>
+
+  <!-- 예비 신입생 메뉴 -->
+  <div class="info-grid" id="menuProspect" style="display:none;">
+    <a class="info-card full dept-card" href="departments.html"><div class="icon">🏫</div><div class="label">어떤 학과가 있는지 알아보세요</div><div class="value">학과 소개 보기</div></a>
+    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이 있으시면 편하게 문의해주세요</div><div class="value">1:1 상담 신청하기</div></a>
+  </div>
+
+  <button class="btn-main btn-subscribe" id="subscribeBtn" onclick="subscribeNotification()">🔔 알림 받기 시작</button>
+  <button class="btn-main btn-unsubscribe" id="unsubscribeBtn" onclick="unsubscribeNotification()" style="display:none;">🔕 알림 끄기</button>
+
+  <div class="notice"><strong>📌 안내</strong>알림을 허용하면 학교 공지사항 및 안내 사항 알림을 보내드립니다. 앱을 닫아도 알림은 정상적으로 수신됩니다.</div>
+
+  <div class="section-title" style="margin-top:20px;">사용 방법</div>
+  <div class="steps">
+    <div class="step-item"><div class="step-num">1</div><div class="step-text"><strong>알림 받기 시작</strong> 버튼을 누르고 알림을 허용해주세요</div></div>
+    <div class="step-item"><div class="step-num">2</div><div class="step-text">학교 공지사항 및 안내사항이 <strong>핸드폰 알림창</strong>에 알림이 옵니다</div></div>
+    <div class="step-item"><div class="step-num">3</div><div class="step-text">문의사항은 <strong>센터 담당자</strong>에게 연락주세요</div></div>
+  </div>
+  <div class="footer">AU 일학습병행 공동훈련센터 · Powered by OneSignal</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let selectedGrade = null;
+
+  // ============ 카테고리 선택 ============
+  function selectCategory(category) {
+    document.getElementById('modalStep1').style.display = 'none';
+    if (category === 'student') document.getElementById('modalStep2Student').style.display = 'block';
+    else if (category === 'graduate') document.getElementById('modalStep2Graduate').style.display = 'block';
+    else if (category === 'prospect') document.getElementById('modalStep2Prospect').style.display = 'block';
+  }
+  function goBackToStep1() {
+    document.getElementById('modalStep2Student').style.display = 'none';
+    document.getElementById('modalStep2Graduate').style.display = 'none';
+    document.getElementById('modalStep2Prospect').style.display = 'none';
+    document.getElementById('modalStep1').style.display = 'block';
+  }
+  function selectGrade(grade, btn) {
+    document.querySelectorAll('#modalStep2Student .grade-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedGrade = grade;
+  }
+
+  // ============ 모달 표시/수정 ============
+  function showModal() {
+    selectedGrade = null;
+    document.getElementById('modalOverlay').style.display = 'flex';
+    document.getElementById('modalStep1').style.display = 'block';
+    document.getElementById('modalStep2Student').style.display = 'none';
+    document.getElementById('modalStep2Graduate').style.display = 'none';
+    document.getElementById('modalStep2Prospect').style.display = 'none';
+
+    // 기존 사용자인 경우 해당 카테고리 폼을 바로 표시
+    const saved = localStorage.getItem('userInfo');
+    if (saved) {
+      const info = JSON.parse(saved);
+      if (info.category === 'student') {
+        document.getElementById('modalStep1').style.display = 'none';
+        document.getElementById('modalStep2Student').style.display = 'block';
+        document.getElementById('studentName').value = info.name || '';
+        selectedGrade = info.grade || null;
+        document.querySelectorAll('#modalStep2Student .grade-btn').forEach(b => {
+          b.classList.remove('selected');
+          if (b.textContent.trim().includes(selectedGrade)) b.classList.add('selected');
+        });
+      } else if (info.category === 'graduate') {
+        document.getElementById('modalStep1').style.display = 'none';
+        document.getElementById('modalStep2Graduate').style.display = 'block';
+        document.getElementById('graduateName').value = info.name || '';
+        document.getElementById('graduateDept').value = info.dept || '';
+        document.getElementById('graduateYear').value = info.graduateYear || '';
+        document.getElementById('graduateWork').value = info.workplace || '';
+      } else if (info.category === 'prospect') {
+        document.getElementById('modalStep1').style.display = 'none';
+        document.getElementById('modalStep2Prospect').style.display = 'block';
+        document.getElementById('prospectName').value = info.name || '';
+        document.getElementById('prospectPhone').value = info.phone || '';
+        document.getElementById('prospectSchool').value = info.school || '';
+        document.getElementById('prospectInterest').value = info.interest || '';
+      }
+    }
+  }
+
+  // ============ 등록 처리 ============
+  async function submitStudent() {
+    const name = document.getElementById('studentName').value.trim();
+    if (!name) { showToast('이름을 입력해주세요!', 'error'); return; }
+    if (!selectedGrade) { showToast('학과를 선택해주세요!', 'error'); return; }
+    const userInfo = { category: 'student', name, grade: selectedGrade };
+    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+    finalizeRegistration(userInfo);
+  }
+
+  async function submitGraduate() {
+    const name = document.getElementById('graduateName').value.trim();
+    const dept = document.getElementById('graduateDept').value;
+    const year = document.getElementById('graduateYear').value.trim();
+    const work = document.getElementById('graduateWork').value.trim();
+    if (!name) { showToast('이름을 입력해주세요!', 'error'); return; }
+    if (!dept) { showToast('졸업 학과를 선택해주세요!', 'error'); return; }
+    if (!year) { showToast('졸업 년도를 입력해주세요!', 'error'); return; }
+    if (!work) { showToast('현재 일하는 곳을 입력해주세요!', 'error'); return; }
+    const userInfo = { category: 'graduate', name, dept, grade: dept, graduateYear: year, workplace: work };
+    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+    finalizeRegistration(userInfo);
+  }
+
+  async function submitProspect() {
+    const name = document.getElementById('prospectName').value.trim();
+    const phone = document.getElementById('prospectPhone').value.trim();
+    const school = document.getElementById('prospectSchool').value.trim();
+    const interest = document.getElementById('prospectInterest').value;
+    if (!name) { showToast('이름을 입력해주세요!', 'error'); return; }
+    if (!phone) { showToast('연락처를 입력해주세요!', 'error'); return; }
+    if (!school) { showToast('현재 학교 이름을 입력해주세요!', 'error'); return; }
+    if (!interest) { showToast('관심 학과를 선택해주세요!', 'error'); return; }
+    const userInfo = { category: 'prospect', name, phone, school, interest, grade: '예비 신입생' };
+    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+    finalizeRegistration(userInfo);
+  }
+
+  function finalizeRegistration(userInfo) {
+    document.getElementById('modalOverlay').style.display = 'none';
+    updateUserCard(userInfo);
+    applyMenuByCategory(userInfo.category);
+    try {
+      OneSignalDeferred.push(async function(OneSignal) {
+        const tags = { 이름: userInfo.name, 카테고리: userInfo.category };
+        if (userInfo.grade) tags['학년'] = userInfo.grade;
+        if (userInfo.category === 'graduate') {
+          tags['졸업년도'] = userInfo.graduateYear;
+          tags['직장'] = userInfo.workplace;
+        }
+        if (userInfo.category === 'prospect') {
+          tags['연락처'] = userInfo.phone;
+          tags['학교'] = userInfo.school;
+          tags['관심학과'] = userInfo.interest;
+        }
+        await OneSignal.User.addTags(tags);
+      });
+    } catch(e) {}
+    showToast(`${userInfo.name}님 등록 완료! 🎉`, 'success');
+
+    // 신규 가입자에게 홈화면 추가 안내 표시
+    setTimeout(() => { checkAndShowInstallGuide(true); }, 2000);
+  }
+
+  // ============ 사용자 카드 표시 ============
+  function updateUserCard(userInfo) {
+    document.getElementById('userInfoCard').style.display = 'flex';
+    document.getElementById('userAvatar').textContent = userInfo.name.charAt(0);
+    document.getElementById('userNameDisplay').textContent = userInfo.name;
+
+    let gradeText = '';
+    let badgeHtml = '';
+    if (userInfo.category === 'student') {
+      badgeHtml = '<span class="user-category-badge badge-student">재학생</span>';
+      gradeText = userInfo.grade;
+    } else if (userInfo.category === 'graduate') {
+      badgeHtml = '<span class="user-category-badge badge-graduate">졸업생</span>';
+      gradeText = `${userInfo.dept} · ${userInfo.graduateYear}년 졸업`;
+    } else if (userInfo.category === 'prospect') {
+      badgeHtml = '<span class="user-category-badge badge-prospect">예비 신입생</span>';
+      gradeText = `${userInfo.school} · 관심: ${userInfo.interest}`;
+    }
+    document.getElementById('userGradeDisplay').innerHTML = badgeHtml + gradeText;
+  }
+
+  // ============ 카테고리별 메뉴 표시 ============
+  function applyMenuByCategory(category) {
+    document.getElementById('menuStudent').style.display = 'none';
+    document.getElementById('menuGraduate').style.display = 'none';
+    document.getElementById('menuProspect').style.display = 'none';
+    if (category === 'student') document.getElementById('menuStudent').style.display = 'grid';
+    else if (category === 'graduate') document.getElementById('menuGraduate').style.display = 'grid';
+    else if (category === 'prospect') document.getElementById('menuProspect').style.display = 'grid';
+  }
+
+  function showToast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ============ 알림 상태 ============
+  function updateStatus(subscribed) {
+    const dot = document.getElementById('statusDot'), text = document.getElementById('statusText'), sub = document.getElementById('statusSub');
+    const subBtn = document.getElementById('subscribeBtn'), unsubBtn = document.getElementById('unsubscribeBtn');
+    if (subscribed) { dot.classList.add('active'); text.textContent = '알림 수신 중 ✅'; sub.textContent = '공지사항 알림을 받을 준비가 되었습니다'; subBtn.style.display = 'none'; unsubBtn.style.display = 'block'; }
+    else { dot.classList.remove('active'); text.textContent = '알림 꺼짐'; sub.textContent = '아래 버튼을 눌러 알림을 활성화하세요'; subBtn.style.display = 'block'; unsubBtn.style.display = 'none'; }
+  }
+
+  async function subscribeNotification() {
+    try {
+      showToast('알림 설정 중...', 'info');
+      await OneSignal.Notifications.requestPermission();
+      setTimeout(async () => {
+        try {
+          const isSubscribed = OneSignal.User.PushSubscription.optedIn;
+          if (isSubscribed) {
+            updateStatus(true);
+            showToast('알림이 활성화되었습니다! 🔔', 'success');
+            const saved = localStorage.getItem('userInfo');
+            if (saved) {
+              const info = JSON.parse(saved);
+              OneSignalDeferred.push(async function(OneSignal) {
+                const tags = { 이름: info.name };
+                if (info.grade) tags['학년'] = info.grade;
+                if (info.category) tags['카테고리'] = info.category;
+                await OneSignal.User.addTags(tags);
+              });
+            }
+          } else { showToast('알림 허용을 눌러주세요', 'info'); }
+        } catch(e) { showToast('알림 허용을 눌러주세요', 'info'); }
+      }, 1500);
+    } catch(e) { showToast('브라우저에서 알림을 허용해주세요', 'error'); }
+  }
+
+  async function unsubscribeNotification() {
+    try { await OneSignal.User.PushSubscription.optOut(); updateStatus(false); showToast('알림이 꺼졌습니다', 'info'); }
+    catch(e) { showToast('오류가 발생했습니다', 'error'); }
+  }
+
+  // ============ 홈화면 추가 팝업 ============
+  function detectDevice() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'ios';
+    if (/android/i.test(ua)) return 'android';
+    return 'other';
+  }
+
+  function isStandalone() {
+    // iOS: navigator.standalone, Android: display-mode
+    return (window.navigator.standalone === true) ||
+           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  }
+
+  function checkAndShowInstallGuide(forceShow = false) {
+    // 이미 홈화면에서 실행 중이면 표시 안 함
+    if (isStandalone()) return;
+    // 다시 보지 않기를 눌렀으면 표시 안 함 (forceShow일 때만 무시)
+    if (!forceShow && localStorage.getItem('installGuideDismissed') === 'true') return;
+
+    const device = detectDevice();
+    const overlay = document.getElementById('installOverlay');
+    const stepsIOS = document.getElementById('installStepsIOS');
+    const stepsAndroid = document.getElementById('installStepsAndroid');
+    const tipIOS = document.getElementById('installTipIOS');
+    const subText = document.getElementById('installSub');
+
+    stepsIOS.style.display = 'none';
+    stepsAndroid.style.display = 'none';
+    tipIOS.style.display = 'none';
+
+    if (device === 'ios') {
+      stepsIOS.style.display = 'block';
+      tipIOS.style.display = 'block';
+      subText.innerHTML = '홈화면에 아이콘을 추가하면<br><strong style="color:#1976d2">알림 수신</strong>과 앱 사용이 편해져요';
+    } else if (device === 'android') {
+      stepsAndroid.style.display = 'block';
+      subText.innerHTML = '홈화면에 아이콘을 추가하면<br>앱처럼 편리하게 사용할 수 있어요';
+    } else {
+      // 데스크탑 등은 표시 안 함
+      return;
+    }
+    overlay.classList.add('show');
+  }
+
+  function closeInstallGuide() {
+    document.getElementById('installOverlay').classList.remove('show');
+  }
+
+  function dismissInstallGuide() {
+    localStorage.setItem('installGuideDismissed', 'true');
+    document.getElementById('installOverlay').classList.remove('show');
+  }
+
+  // ============ 초기화 ============
+  window.addEventListener('load', () => {
+    const saved = localStorage.getItem('userInfo');
+    if (saved) {
+      const info = JSON.parse(saved);
+      if (info.name && info.category) {
+        updateUserCard(info);
+        applyMenuByCategory(info.category);
+        document.getElementById('modalOverlay').style.display = 'none';
+
+        // 기존 사용자도 홈화면 추가 안 한 상태면 안내 (한 번만)
+        setTimeout(() => { checkAndShowInstallGuide(false); }, 1500);
+        return;
+      }
+      // 구버전 유저(category 없음) - 재학생으로 마이그레이션
+      if (info.name && info.grade) {
+        info.category = 'student';
+        localStorage.setItem('userInfo', JSON.stringify(info));
+        updateUserCard(info);
+        applyMenuByCategory('student');
+        document.getElementById('modalOverlay').style.display = 'none';
+        setTimeout(() => { checkAndShowInstallGuide(false); }, 1500);
+        return;
+      }
+    }
+    document.getElementById('modalOverlay').style.display = 'flex';
+  });
+
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      const isSubscribed = OneSignal.User.PushSubscription.optedIn;
+      updateStatus(!!isSubscribed);
+      OneSignal.User.PushSubscription.addEventListener('change', (e) => { updateStatus(e.current.optedIn); });
+    } catch(e) { updateStatus(false); }
+  });
+</script>
+</body>
+</html>
