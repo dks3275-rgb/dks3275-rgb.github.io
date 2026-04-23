@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AU 자료실</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; --purple: #7c3aed; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; }
+  .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .header h1 { color: white; font-size: 18px; font-weight: 700; }
+  .container { max-width: 700px; margin: 0 auto; padding: 24px 16px; }
+  .back-btn { display: none; align-items: center; gap: 8px; background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 16px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--blue); margin-bottom: 20px; transition: all 0.2s; }
+  .back-btn:hover { border-color: var(--blue); }
+  .back-btn.visible { display: flex; }
+  .section-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+  .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .category-card { background: white; border-radius: 16px; padding: 24px 20px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; text-align: center; }
+  .category-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(33,150,243,0.15); }
+  .category-icon { font-size: 36px; margin-bottom: 12px; }
+  .category-name { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .category-count { font-size: 12px; color: var(--gray); }
+  .file-list { display: flex; flex-direction: column; gap: 12px; }
+  .resource-card { background: white; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); display: flex; align-items: center; gap: 16px; border: 2px solid transparent; transition: all 0.2s; }
+  .resource-card:hover { border-color: var(--blue); box-shadow: 0 4px 16px rgba(33,150,243,0.15); }
+  .file-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; background: #fff0f0; }
+  .file-icon.image { background: #e3f2fd; }
+  .file-icon.doc { background: #fffbf0; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-title { font-size: 15px; font-weight: 700; color: #1a202c; margin-bottom: 4px; }
+  .card-desc { font-size: 13px; color: var(--gray); margin-bottom: 6px; }
+  .card-meta { font-size: 11px; color: #cbd5e0; }
+  .card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .btn-download { background: var(--blue); color: white; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; text-align: center; white-space: nowrap; display: block; }
+  .btn-download:hover { background: var(--navy); }
+  .btn-view { background: #f0f4f8; color: var(--blue); border: 1.5px solid #90caf9; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; text-align: center; white-space: nowrap; display: block; }
+  .btn-view:hover { background: #e3f2fd; }
+  .empty { text-align: center; padding: 60px 20px; color: var(--gray); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .loading { text-align: center; padding: 40px; color: var(--gray); }
+  .target-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; margin-left: 4px; }
+  .target-badge.company { background: #ede9fe; color: #5b21b6; }
+  .target-badge.student { background: #e3f2fd; color: #1565c0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-badge">자료실</div>
+  <h1 id="pageTitle">AU 일학습병행 자료실</h1>
+</div>
+<div class="container">
+  <button class="back-btn" id="backBtn" onclick="showCategories()">← 카테고리로 돌아가기</button>
+  <div class="section-title" id="sectionTitle">카테고리 선택</div>
+  <div class="category-grid" id="categoryGrid"></div>
+  <div class="file-list" id="fileList" style="display:none;"></div>
+</div>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
+  const app = initializeApp(FB_CFG);
+  const db = getFirestore(app);
+
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+  const userCategory = userInfo.category || 'student';
+
+  // 카테고리 정의
+  const STUDENT_CATEGORIES = [
+    { name: 'P-TECH 1학년', icon: '🎓' }, { name: 'P-TECH 2학년', icon: '🎓' },
+    { name: '전문대 마케팅경영학과', icon: '📚' }, { name: '전문대 호텔조리학과', icon: '🍳' },
+    { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
+    { name: '공통', icon: '📢' },
+  ];
+  const COMPANY_CATEGORIES = [
+    { name: '훈련 운영 서식', icon: '📋' },
+    { name: '가이드 · 매뉴얼', icon: '📘' },
+    { name: '공지 · 안내', icon: '📢' },
+  ];
+  const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES : STUDENT_CATEGORIES;
+
+  let allResources = [];
+
+  // 전담인력이면 헤더 변경
+  if (userCategory === 'company') {
+    document.getElementById('pageTitle').textContent = '전담인력 자료실';
+    document.querySelector('.header').style.background = 'linear-gradient(135deg, #7c3aed, #5b21b6)';
+  }
+
+  async function loadResources() {
+    try {
+      const q = query(collection(db, 'library'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // 카테고리에 맞는 자료만 필터링
+      if (userCategory === 'company') {
+        allResources = all.filter(r => r.target === 'company' || r.target === 'all');
+      } else {
+        allResources = all.filter(r => r.target !== 'company');
+      }
+      showCategories();
+    } catch(e) {
+      document.getElementById('categoryGrid').innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>자료를 불러올 수 없어요</div></div>';
+    }
+  }
+
+  window.showCategories = function() {
+    document.getElementById('backBtn').classList.remove('visible');
+    document.getElementById('sectionTitle').textContent = '카테고리 선택';
+    document.getElementById('fileList').style.display = 'none';
+    document.getElementById('categoryGrid').style.display = 'grid';
+    document.getElementById('categoryGrid').innerHTML = CATEGORIES.map(cat => {
+      const count = allResources.filter(r => r.category === cat.name).length;
+      return `<div class="category-card" onclick="showFiles('${cat.name}')">
+        <div class="category-icon">${cat.icon}</div>
+        <div class="category-name">${cat.name}</div>
+        <div class="category-count">자료 ${count}개</div>
+      </div>`;
+    }).join('');
+  }
+
+  window.showFiles = function(categoryName) {
+    document.getElementById('backBtn').classList.add('visible');
+    document.getElementById('sectionTitle').textContent = categoryName;
+    document.getElementById('categoryGrid').style.display = 'none';
+    document.getElementById('fileList').style.display = 'flex';
+
+    const filtered = allResources.filter(r => r.category === categoryName);
+    const list = document.getElementById('fileList');
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div>등록된 자료가 없어요</div></div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(r => {
+      const isImage = r.fileType?.startsWith('image/');
+      const isPdf = r.fileType?.includes('pdf') || r.fileName?.toLowerCase().endsWith('.pdf');
+      const iconClass = isImage ? 'image' : isPdf ? '' : 'doc';
+      const icon = isImage ? '🖼️' : isPdf ? '📄' : '📁';
+      const sizeMB = r.fileSize ? (r.fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';
+      const date = r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('ko-KR') : '-';
+      const targetBadge = r.target === 'company'
+        ? '<span class="target-badge company">전담인력</span>'
+        : r.target === 'student' ? '<span class="target-badge student">재학생</span>' : '';
+
+      return `<div class="resource-card">
+        <div class="file-icon ${iconClass}">${icon}</div>
+        <div class="card-info">
+          <div class="card-title">${r.title}${targetBadge}</div>
+          ${r.desc ? `<div class="card-desc">${r.desc}</div>` : ''}
+          <div class="card-meta">${date}${sizeMB ? ' · ' + sizeMB : ''}</div>
+        </div>
+        <div class="card-actions">
+          ${(function(){
+            const isPdf = r.fileType?.includes('pdf') || r.fileName?.toLowerCase().endsWith('.pdf');
+            const isImage = r.fileType?.startsWith('image/');
+            const downloadUrl = r.resourceType === 'raw'
+              ? r.fileUrl.replace('/upload/', '/upload/fl_attachment/')
+              : r.fileUrl;
+            const viewerUrl = isPdf
+              ? 'https://drive.google.com/viewerng/viewer?embedded=true&url=' + encodeURIComponent(r.fileUrl)
+              : r.fileUrl;
+            if (isPdf) {
+              return '<a href="' + viewerUrl + '" target="_blank" class="btn-view">👁️ 보기</a>' +
+                     '<a href="' + downloadUrl + '" target="_blank" class="btn-download">⬇️ 저장</a>';
+            } else if (isImage) {
+              return '<a href="' + r.fileUrl + '" target="_blank" class="btn-view">👁️ 보기</a>';
+            } else {
+              return '<a href="' + downloadUrl + '" target="_blank" class="btn-download">⬇️ 다운로드</a>';
+            }
+          })()}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  loadResources();
+</script>
+</body>
+</html>
