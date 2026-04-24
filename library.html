@@ -117,11 +117,13 @@
       const snap = await getDocs(q);
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // 카테고리에 맞는 자료만 필터링 (target 일치 + 레거시 'all' 호환)
+      // 카테고리에 맞는 자료만 필터링
+      // - 재학생/전담인력: 레거시 'all' 자료(과거 "전체" 옵션으로 등록된 것)도 함께 표시
+      // - 예비신입생: 신설 카테고리이므로 'prospect'로 명시된 자료만 표시 (레거시 'all' 제외)
       if (userCategory === 'company') {
         allResources = all.filter(r => r.target === 'company' || r.target === 'all');
       } else if (userCategory === 'prospect') {
-        allResources = all.filter(r => r.target === 'prospect' || r.target === 'all');
+        allResources = all.filter(r => r.target === 'prospect');
       } else {
         // student (졸업생이 이 파일 도달 못하게 위에서 차단됨)
         allResources = all.filter(r => r.target === 'student' || r.target === 'all');
