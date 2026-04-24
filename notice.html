@@ -11,8 +11,13 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; }
   .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  .back-btn { background: rgba(255,255,255,0.2); color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; transition: background 0.2s; }
+  .back-btn:hover { background: rgba(255,255,255,0.3); }
+  .back-btn:active { background: rgba(255,255,255,0.15); }
   .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
   .header h1 { color: white; font-size: 18px; font-weight: 700; }
+  .retry-btn { margin-top: 16px; background: var(--blue); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .retry-btn:hover { background: var(--navy); }
   .container { max-width: 700px; margin: 0 auto; padding: 24px 16px; }
   .notice-list { display: flex; flex-direction: column; gap: 12px; }
   .notice-card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
@@ -36,6 +41,7 @@
 </head>
 <body>
 <div class="header">
+  <a href="index.html" class="back-btn" aria-label="홈으로">←</a>
   <div class="header-badge">공지사항</div>
   <h1>AU 일학습병행 공지사항</h1>
 </div>
@@ -86,7 +92,10 @@
         card.onclick = () => { document.getElementById('detail-' + d.id).classList.toggle('open'); };
         list.appendChild(card);
       });
-    } catch(e) { list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>공지사항을 불러올 수 없어요</div></div>'; }
+    } catch(e) {
+      console.error('공지 로드 실패:', e);
+      list.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>공지사항을 불러올 수 없어요</div><button class="retry-btn" onclick="location.reload()">🔄 다시 시도</button></div>';
+    }
   }
   loadNotices();
 </script>

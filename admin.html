@@ -109,9 +109,49 @@
     .edit-cat-btn { flex:1; padding: 10px 6px; border: 2px solid var(--border); border-radius: 10px; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; color: #718096; transition: all 0.2s; }
     .edit-cat-btn.selected { border-color: var(--blue); background: var(--blue); color: white; }
     .edit-cat-btn:hover:not(.selected) { border-color: var(--blue); color: var(--blue); }
+    /* ── 커스텀 확인 모달 ── */
+    .cc-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.7); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .cc-overlay.show { display: flex; }
+    .cc-box { background: white; border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: ccPop 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes ccPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .cc-title { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+    .cc-message { font-size: 14px; color: #4a5568; line-height: 1.6; margin-bottom: 22px; word-break: keep-all; }
+    .cc-btns { display: flex; gap: 10px; }
+    .cc-btn-cancel, .cc-btn-confirm { flex: 1; padding: 12px; border: none; border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .cc-btn-cancel { background: var(--light); color: #4a5568; }
+    .cc-btn-cancel:hover { background: var(--border); }
+    .cc-btn-confirm { background: var(--blue); color: white; }
+    .cc-btn-confirm:hover { background: var(--navy); }
+    .cc-btn-confirm.cc-danger { background: #e74c3c; }
+    .cc-btn-confirm.cc-danger:hover { background: #c0392b; }
+    /* ── 가입자 검색/정렬 UI ── */
+    .member-search { width: 100%; padding: 10px 14px; background: white; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--navy); outline: none; margin-bottom: 10px; box-sizing: border-box; }
+    .member-search:focus { border-color: var(--blue); }
+    .csv-btn { background: #f0fff4; border: 1.5px solid #68d391; color: #276749; padding: 8px 14px; border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; cursor: pointer; font-weight: 700; }
+    .csv-btn:hover { background: #276749; color: white; }
+    /* ── 알림 템플릿 ── */
+    .tpl-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tpl-chip { display: inline-flex; align-items: center; gap: 4px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 20px; padding: 4px 4px 4px 12px; }
+    .tpl-chip-name { font-size: 12px; color: #1565c0; font-weight: 600; cursor: pointer; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tpl-chip-del { background: none; border: none; padding: 2px 6px; font-size: 13px; color: #c62828; cursor: pointer; line-height: 1; }
+    .tpl-chip-del:hover { color: #7b1616; }
+    .tpl-empty { font-size: 12px; color: #8a9ab5; padding: 4px 0; }
+    .tpl-save-btn { background: #fffbf0; border: 1.5px solid #f6c453; color: #7c5c00; padding: 6px 12px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .tpl-save-btn:hover { background: #f6c453; color: white; }
   </style>
 </head>
 <body>
+<!-- 커스텀 확인 모달 (confirm 대체) -->
+<div class="cc-overlay" id="customConfirmOverlay">
+  <div class="cc-box">
+    <div class="cc-title" id="customConfirmTitle">확인</div>
+    <div class="cc-message" id="customConfirmMessage"></div>
+    <div class="cc-btns">
+      <button class="cc-btn-cancel" id="customCancelBtn">취소</button>
+      <button class="cc-btn-confirm" id="customConfirmBtn">확인</button>
+    </div>
+  </div>
+</div>
 <!-- 가입자 편집 모달 -->
 <div class="member-modal-overlay" id="memberEditModal" style="display:none;">
   <div class="member-modal">
@@ -232,6 +272,13 @@
         <button class="group-btn" style="background:#ede9fe;border-color:#7c3aed;color:#5b21b6;" onclick="selectGroup('company', this)"><span class="icon">🏢</span>전담<br>인력</button>
       </div>
       <div class="selected-group-display" id="selectedDisplay">대상을 선택해주세요</div>
+    </div>
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+        <label class="form-label" style="margin:0;">📋 알림 템플릿</label>
+        <button type="button" class="tpl-save-btn" onclick="saveCurrentAsTemplate()">💾 현재 내용 저장</button>
+      </div>
+      <div class="tpl-row" id="templateChips"></div>
     </div>
     <div class="form-group"><label class="form-label">알림 제목</label><input type="text" class="form-input" id="title" placeholder="예: AU 일학습병행 공지" /></div>
     <div class="form-group"><label class="form-label">알림 내용</label><textarea class="form-input" id="message" placeholder="예: 오늘 오후 3시 비콘 출결 잊지 마세요!"></textarea></div>
@@ -490,6 +537,7 @@
         👥 가입자 현황
         <button class="refresh-btn" onclick="loadMembers()">🔄 새로고침</button>
       </div>
+      <input type="search" class="member-search" id="memberSearchInput" placeholder="🔍 이름으로 검색..." oninput="renderMembers()" />
       <div class="consulting-toolbar">
         <div class="count-badge" id="memberCountBadge">불러오는 중...</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -500,6 +548,13 @@
             <option value="prospect">🌱 예비 신입생</option>
           <option value="company">🏢 전담인력</option>
           </select>
+          <select class="filter-select" id="memberSortBy" onchange="renderMembers()">
+            <option value="updatedDesc">최근 가입순</option>
+            <option value="updatedAsc">오래된순</option>
+            <option value="nameAsc">이름순 (ㄱ→ㅎ)</option>
+            <option value="nameDesc">이름순 (ㅎ→ㄱ)</option>
+          </select>
+          <button class="csv-btn" onclick="downloadMembersCSV()">📥 CSV 다운로드</button>
         </div>
       </div>
       <div id="memberList"><div class="c-loading">👥 가입자 목록을 불러오는 중...</div></div>
@@ -636,7 +691,7 @@
   }
 
   async function deleteNotice(id) {
-    if (!confirm('이 공지사항을 삭제할까요?')) return;
+    if (!await customConfirm({ title: '공지사항 삭제', message: '이 공지사항을 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return;
     try {
       await window._noticeDeleteDoc(window._noticeDoc(window._noticeDb, 'notices', id));
       loadNotices();
@@ -718,7 +773,7 @@
     document.getElementById('consultingList').innerHTML = items.map(item => `<div class="consulting-card ${item.status === '완료' ? 'done' : 'waiting'}"><div class="c-top"><div class="c-person"><div class="c-avatar">${(item.name || '?').charAt(0)}</div><div><div class="c-name">${item.name || '-'}</div><div class="c-dept">${item.dept || '-'}</div></div></div><button class="status-toggle ${item.status === '완료' ? 'status-done' : 'status-waiting'}" onclick="toggleConsultingStatus('${item.id}', '${item.status}')">${item.status === '완료' ? '✅ 완료' : '⏳ 대기중'}</button></div><div class="c-content">${item.content || '-'}</div><div class="c-bottom"><span class="c-time">📅 ${item.time || '-'}</span><button class="c-delete" onclick="deleteConsulting('${item.id}')">🗑️ 삭제</button></div></div>`).join('');
   }
   async function toggleConsultingStatus(id, currentStatus) { const newStatus = currentStatus === '완료' ? '대기중' : '완료'; try { await window._cUpdateDoc(window._cDoc(window._cDb, 'consulting', id), { status: newStatus }); const idx = consultingItems.findIndex(i => i.id === id); if (idx !== -1) consultingItems[idx].status = newStatus; renderConsulting(); } catch(e) { alert('상태 변경 실패: ' + e.message); } }
-  async function deleteConsulting(id) { if (!confirm('이 상담 신청을 삭제할까요?')) return; try { await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', id)); consultingItems = consultingItems.filter(i => i.id !== id); renderConsulting(); } catch(e) { alert('삭제 실패: ' + e.message); } }
+  async function deleteConsulting(id) { if (!await customConfirm({ title: '상담 신청 삭제', message: '이 상담 신청을 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return; try { await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', id)); consultingItems = consultingItems.filter(i => i.id !== id); renderConsulting(); } catch(e) { alert('삭제 실패: ' + e.message); } }
 
   // ── 만족도 조사 ──
   const SURVEY_LIST = [ {id:'initial', name:'초기 만족도 조사', desc:'훈련 시작 1~2달'}, {id:'round1', name:'1차 만족도 조사', desc:'1학년 1학기 종료'}, {id:'round2', name:'2차 만족도 조사', desc:'1학년 2학기 종료'}, {id:'round3', name:'3차 만족도 조사', desc:'2학년 1학기 (P-TECH 전용)'}, {id:'round4', name:'4차 만족도 조사', desc:'2학년 2학기 (P-TECH 전용)'} ];
@@ -859,7 +914,7 @@
   }
 
   async function deleteCalEvent(id) {
-    if (!confirm('이 일정을 삭제할까요?')) return;
+    if (!await customConfirm({ title: '일정 삭제', message: '이 일정을 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return;
     try {
       const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await deleteDoc(doc(calDb, 'calendar_events', id));
@@ -973,7 +1028,7 @@
   }
 
   async function deleteLibItem(id) {
-    if (!confirm('이 자료를 삭제할까요?')) return;
+    if (!await customConfirm({ title: '자료 삭제', message: '이 자료를 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return;
     try {
       await window._libDeleteDoc(window._libDoc(window._libDb, 'library', id));
       loadLibrary();
@@ -1128,7 +1183,7 @@
   }
 
   async function deleteMember(deviceId) {
-    if (!confirm('이 가입자를 삭제할까요?\n삭제 후 복구할 수 없어요.')) return;
+    if (!await customConfirm({ title: '가입자 삭제', message: '이 가입자를 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return;
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -1160,18 +1215,33 @@
     }
   }
 
+  function getFilteredSortedMembers() {
+    const filter = document.getElementById('memberCategoryFilter')?.value || 'all';
+    const searchTerm = (document.getElementById('memberSearchInput')?.value || '').trim().toLowerCase();
+    const sortBy = document.getElementById('memberSortBy')?.value || 'updatedDesc';
+    let list = filter === 'all' ? allMembers : allMembers.filter(m => m.category === filter);
+    if (searchTerm) list = list.filter(m => (m.name || '').toLowerCase().includes(searchTerm));
+    list = [...list].sort((a, b) => {
+      if (sortBy === 'nameAsc')  return (a.name || '').localeCompare(b.name || '', 'ko');
+      if (sortBy === 'nameDesc') return (b.name || '').localeCompare(a.name || '', 'ko');
+      if (sortBy === 'updatedAsc')  return new Date(a.updatedAt || 0) - new Date(b.updatedAt || 0);
+      return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+    });
+    return list;
+  }
+
   function renderMembers() {
-    const filter = document.getElementById('memberCategoryFilter').value;
-    const filtered = filter === 'all' ? allMembers : allMembers.filter(m => m.category === filter);
+    const filtered = getFilteredSortedMembers();
 
     // 카운트 배지
     const counts = { student: 0, graduate: 0, prospect: 0, company: 0 };
     allMembers.forEach(m => { if (counts[m.category] !== undefined) counts[m.category]++; });
-    document.getElementById('memberCountBadge').textContent =
-      `전체 ${allMembers.length}명 · 🎓${counts.student} 🎉${counts.graduate} 🌱${counts.prospect} 🏢${counts.company}`;
+    const badgeEl = document.getElementById('memberCountBadge');
+    if (badgeEl) badgeEl.textContent =
+      `전체 ${allMembers.length}명 · 🎓${counts.student} 🎉${counts.graduate} 🌱${counts.prospect} 🏢${counts.company} · 표시 ${filtered.length}명`;
 
     if (filtered.length === 0) {
-      document.getElementById('memberList').innerHTML = '<div class="c-loading">해당 카테고리 가입자가 없어요</div>';
+      document.getElementById('memberList').innerHTML = '<div class="c-loading">검색 결과가 없거나, 해당 카테고리 가입자가 없어요</div>';
       return;
     }
 
@@ -1220,6 +1290,134 @@
     }).join('');
 
     document.getElementById('memberList').innerHTML = html;
+  }
+
+  // ── 가입자 CSV 다운로드 ──
+  function downloadMembersCSV() {
+    const rows = getFilteredSortedMembers();
+    if (rows.length === 0) { alert('다운로드할 가입자가 없습니다.'); return; }
+    const headers = ['카테고리', '이름', '연락처', '학과/직책', '상세', '가입/수정일시'];
+    const catLabel = c => c === 'student' ? '재학생' : c === 'graduate' ? '졸업생' : c === 'company' ? '전담인력' : c === 'prospect' ? '예비 신입생' : (c || '');
+    const esc = v => {
+      const s = String(v == null ? '' : v).replace(/"/g, '""');
+      return /[,"\n\r]/.test(s) ? `"${s}"` : s;
+    };
+    const lines = [headers.join(',')];
+    rows.forEach(m => {
+      let deptRole = '', details = '';
+      if (m.category === 'student') { deptRole = m.grade || ''; }
+      else if (m.category === 'graduate') { deptRole = m.dept || ''; details = `${m.graduateYear || ''}년 졸업 / ${m.workplace || ''}`; }
+      else if (m.category === 'prospect') { deptRole = m.interest || ''; details = m.school || ''; }
+      else if (m.category === 'company') { deptRole = m.role || ''; details = `${m.firm || ''} / 담당학생: ${m.student || ''}`; }
+      const updatedAt = m.updatedAt ? new Date(m.updatedAt).toLocaleString('ko-KR') : '';
+      lines.push([catLabel(m.category), m.name, m.phone, deptRole, details, updatedAt].map(esc).join(','));
+    });
+    const csv = '\uFEFF' + lines.join('\r\n'); // UTF-8 BOM (엑셀 한글 호환)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `au_가입자_${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ── 커스텀 확인 모달 (confirm 대체) ──
+  function customConfirm(opts) {
+    return new Promise((resolve) => {
+      if (typeof opts === 'string') opts = { message: opts };
+      opts = opts || {};
+      const title = opts.title || '확인';
+      const message = opts.message || '';
+      const confirmText = opts.confirmText || '확인';
+      const cancelText = opts.cancelText || '취소';
+      const danger = !!opts.danger;
+      const overlay = document.getElementById('customConfirmOverlay');
+      const titleEl = document.getElementById('customConfirmTitle');
+      const msgEl = document.getElementById('customConfirmMessage');
+      const btnConfirm = document.getElementById('customConfirmBtn');
+      const btnCancel = document.getElementById('customCancelBtn');
+      if (!overlay || !btnConfirm || !btnCancel) { resolve(confirm(message)); return; }
+      titleEl.textContent = title;
+      msgEl.innerHTML = message;
+      btnConfirm.textContent = confirmText;
+      btnConfirm.className = 'cc-btn-confirm' + (danger ? ' cc-danger' : '');
+      btnCancel.textContent = cancelText;
+      function cleanup(result) {
+        overlay.classList.remove('show');
+        btnConfirm.onclick = null;
+        btnCancel.onclick = null;
+        overlay.onclick = null;
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') cleanup(false);
+        else if (e.key === 'Enter') cleanup(true);
+      }
+      btnConfirm.onclick = () => cleanup(true);
+      btnCancel.onclick = () => cleanup(false);
+      overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+      document.addEventListener('keydown', onKey);
+      overlay.classList.add('show');
+    });
+  }
+
+  // ── 알림 템플릿 (localStorage) ──
+  let notifyTemplates = JSON.parse(localStorage.getItem('notifyTemplates') || '[]');
+
+  function renderTemplates() {
+    const container = document.getElementById('templateChips');
+    if (!container) return;
+    if (!notifyTemplates.length) {
+      container.innerHTML = '<div class="tpl-empty">저장된 템플릿이 없어요. 자주 쓰는 알림 내용을 저장하면 클릭 한 번으로 불러올 수 있어요.</div>';
+      return;
+    }
+    container.innerHTML = notifyTemplates.map((t, i) => {
+      const safeName = String(t.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `<div class="tpl-chip"><span class="tpl-chip-name" onclick="applyTemplate(${i})" title="${safeName}">${safeName}</span><button class="tpl-chip-del" onclick="deleteTemplate(${i})" aria-label="템플릿 삭제">×</button></div>`;
+    }).join('');
+  }
+
+  function saveCurrentAsTemplate() {
+    const title = (document.getElementById('title')?.value || '').trim();
+    const message = (document.getElementById('message')?.value || '').trim();
+    if (!title && !message) { alert('제목 또는 내용을 먼저 입력해주세요.'); return; }
+    const suggestion = (title || message.slice(0, 20)).slice(0, 30);
+    const name = prompt('템플릿 이름을 입력해주세요 (예: 출결 알림)', suggestion);
+    if (!name || !name.trim()) return;
+    notifyTemplates.push({ name: name.trim(), title, message });
+    localStorage.setItem('notifyTemplates', JSON.stringify(notifyTemplates));
+    renderTemplates();
+  }
+
+  function applyTemplate(idx) {
+    const t = notifyTemplates[idx];
+    if (!t) return;
+    const titleEl = document.getElementById('title');
+    const msgEl = document.getElementById('message');
+    if (titleEl) titleEl.value = t.title || '';
+    if (msgEl) msgEl.value = t.message || '';
+  }
+
+  async function deleteTemplate(idx) {
+    const t = notifyTemplates[idx];
+    if (!t) return;
+    const ok = await customConfirm({ title: '템플릿 삭제', message: `"${t.name}" 템플릿을 삭제할까요?`, confirmText: '삭제', danger: true });
+    if (!ok) return;
+    notifyTemplates.splice(idx, 1);
+    localStorage.setItem('notifyTemplates', JSON.stringify(notifyTemplates));
+    renderTemplates();
+  }
+
+  // 페이지 로드 시 템플릿 표시
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderTemplates);
+  } else {
+    renderTemplates();
   }
 
 </script>
