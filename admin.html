@@ -94,6 +94,7 @@
     .notice-target-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; margin-right:4px; }
     .notice-target-badge.all { background:#e3f2fd; color:#1565c0; }
     .notice-target-badge.student { background:#e3f2fd; color:#1565c0; }
+    .notice-target-badge.prospect { background:#d1fae5; color:#065f46; }
     .notice-target-badge.company { background:#ede9fe; color:#5b21b6; }
     /* 가입자 편집 모달 */
     .member-modal-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.7); backdrop-filter: blur(4px); z-index: 500; display: none !important; align-items: center; justify-content: center; padding: 20px; pointer-events: none; }
@@ -461,12 +462,12 @@
       </div>
       <div class="form-group">
         <label class="form-label">대상</label>
-        <div style="display:flex;gap:8px;">
-          <button class="notice-target-btn selected" id="libBtn-all" onclick="selectLibTarget('all',this)">📣 전체</button>
-          <button class="notice-target-btn" id="libBtn-student" onclick="selectLibTarget('student',this)">🎓 재학생</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="notice-target-btn selected" id="libBtn-student" onclick="selectLibTarget('student',this)">🎓 재학생</button>
+          <button class="notice-target-btn" id="libBtn-prospect" onclick="selectLibTarget('prospect',this)">🌱 예비신입생</button>
           <button class="notice-target-btn" id="libBtn-company" onclick="selectLibTarget('company',this)">🏢 전담인력</button>
         </div>
-        <input type="hidden" id="libTarget" value="all" />
+        <input type="hidden" id="libTarget" value="student" />
       </div>
       <div class="form-group">
         <label class="form-label">카테고리</label>
@@ -484,6 +485,10 @@
           <option value="가이드 · 매뉴얼">가이드 · 매뉴얼</option>
           <option value="공지 · 안내">공지 · 안내</option>
         </select>
+        <div id="libCategoryProspect" style="display:none;background:#f0fff4;border:1.5px solid #68d391;border-radius:10px;padding:12px 14px;font-size:13px;color:#276749;line-height:1.6;">
+          🌱 예비신입생 자료실은 하위 카테고리 없이 <strong>단일 목록</strong>으로 제공됩니다.<br>
+          <span style="color:#48bb78;font-size:12px;">카테고리는 자동으로 "자료"로 저장됩니다.</span>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">자료 제목</label>
@@ -492,6 +497,11 @@
       <div class="form-group">
         <label class="form-label">설명 (선택)</label>
         <input type="text" class="form-input" id="libDesc" placeholder="간단한 설명을 입력해주세요" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">파일 선택 <span style="font-weight:400;color:#718096;font-size:12px;">(파일명·종류 자동 입력)</span></label>
+        <input type="file" id="libFilePicker" class="form-input" style="padding:10px 12px;cursor:pointer;" onchange="autofillLibFields(this)" accept=".pdf,.hwp,.hwpx,.xls,.xlsx,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.zip" />
+        <div style="font-size:12px;color:#718096;margin-top:6px;">💡 GitHub에 올린 그 파일을 여기서도 선택하면 아래 <strong>파일명·파일 종류가 자동으로 채워집니다</strong>. (업로드는 안 되며 입력 편의용입니다.)</div>
       </div>
       <div class="form-group">
         <label class="form-label">파일 URL (GitHub Raw URL)</label>
@@ -525,6 +535,7 @@
           <select class="filter-select" id="libListFilter" onchange="loadLibrary()">
             <option value="all">전체 보기</option>
             <option value="student">🎓 재학생</option>
+            <option value="prospect">🌱 예비신입생</option>
             <option value="company">🏢 전담인력</option>
           </select>
           <button class="refresh-btn" onclick="loadLibrary()">🔄 새로고침</button>
@@ -983,22 +994,48 @@
     document.querySelectorAll('.notice-target-btn[id^="libBtn"]').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     document.getElementById('libTarget').value = target;
-    if (target === 'company') {
-      document.getElementById('libCategoryStudent').style.display = 'none';
-      document.getElementById('libCategoryCompany').style.display = 'block';
-    } else {
-      document.getElementById('libCategoryStudent').style.display = 'block';
-      document.getElementById('libCategoryCompany').style.display = 'none';
-    }
+    const studentCat = document.getElementById('libCategoryStudent');
+    const companyCat = document.getElementById('libCategoryCompany');
+    const prospectCat = document.getElementById('libCategoryProspect');
+    studentCat.style.display = 'none';
+    companyCat.style.display = 'none';
+    if (prospectCat) prospectCat.style.display = 'none';
+    if (target === 'company') companyCat.style.display = 'block';
+    else if (target === 'prospect' && prospectCat) prospectCat.style.display = 'block';
+    else studentCat.style.display = 'block';
+  }
+
+  // ── 파일 선택 시 파일명/파일종류 자동 입력 (업로드는 안 함) ──
+  function autofillLibFields(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const fileNameEl = document.getElementById('libFileName');
+    const fileTypeEl = document.getElementById('libFileType');
+    if (fileNameEl) fileNameEl.value = file.name;
+    if (!fileTypeEl) return;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const extMap = {
+      pdf: 'application/pdf',
+      hwp: 'application/hwp', hwpx: 'application/hwp',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      png: 'image/png'
+    };
+    const guessed = extMap[ext] || file.type || 'other';
+    const options = Array.from(fileTypeEl.options).map(o => o.value);
+    fileTypeEl.value = options.includes(guessed) ? guessed : 'other';
   }
 
   async function submitLibrary() {
     const title = document.getElementById('libTitle').value.trim();
     const desc = document.getElementById('libDesc').value.trim();
     const target = document.getElementById('libTarget').value;
-    const category = target === 'company'
-      ? document.getElementById('libCategoryCompany').value
-      : document.getElementById('libCategoryStudent').value;
+    const category = target === 'company' ? document.getElementById('libCategoryCompany').value
+                   : target === 'prospect' ? '자료'
+                   : document.getElementById('libCategoryStudent').value;
     const fileUrl = document.getElementById('libFileUrl').value.trim();
     const fileName = document.getElementById('libFileName').value.trim();
     const fileType = document.getElementById('libFileType').value;
@@ -1026,6 +1063,8 @@
       document.getElementById('libDesc').value = '';
       document.getElementById('libFileUrl').value = '';
       document.getElementById('libFileName').value = '';
+      const picker = document.getElementById('libFilePicker');
+      if (picker) picker.value = '';
       loadLibrary();
     } catch(e) { showLibResult('❌ 오류: ' + e.message, 'error'); }
     btn.disabled = false; btn.textContent = '📚 자료 등록';
@@ -1056,8 +1095,8 @@
       if (items.length === 0) { listEl.innerHTML = '<div class="empty-history">등록된 자료가 없어요</div>'; return; }
 
       listEl.innerHTML = items.map(item => {
-        const targetLabel = item.target === 'company' ? '🏢 전담인력' : item.target === 'student' ? '🎓 재학생' : '📣 전체';
-        const targetClass = item.target === 'company' ? 'company' : item.target === 'student' ? 'student' : 'all';
+        const targetLabel = item.target === 'company' ? '🏢 전담인력' : item.target === 'student' ? '🎓 재학생' : item.target === 'prospect' ? '🌱 예비신입생' : '📣 전체';
+        const targetClass = item.target === 'company' ? 'company' : item.target === 'student' ? 'student' : item.target === 'prospect' ? 'prospect' : 'all';
         const fileIcon = item.fileType?.includes('pdf') ? '📄' : item.fileType?.startsWith('image') ? '🖼️' : '📁';
         const sizeMB = item.fileSize ? (item.fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';
         const date = item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('ko-KR') : '-';
