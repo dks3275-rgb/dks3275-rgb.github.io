@@ -28,6 +28,7 @@
       });
     });
   </script>
+  <script src="device-check.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
     :root {
@@ -796,6 +797,11 @@
 
   // ============ 초기화 ============
   window.addEventListener('load', () => {
+    // iOS Safari(비 standalone) 진입자 가입 차단
+    if (window.DeviceCheck && window.DeviceCheck.shouldBlockSignup()) {
+      window.DeviceCheck.renderIOSInstallBlock();
+      return;
+    }
     updateInstallBanner();
     const saved = localStorage.getItem('userInfo');
     if (saved) {
