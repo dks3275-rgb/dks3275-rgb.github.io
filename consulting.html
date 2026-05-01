@@ -12,11 +12,12 @@
 </script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   const firebaseConfig = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   window._firebaseDb = db; window._firebaseAddDoc = addDoc; window._firebaseCollection = collection; window._firebaseServerTimestamp = serverTimestamp; window._firebaseReady = true;
+  window._fbGetDocs = getDocs; window._fbQuery = query; window._fbWhere = where; window._fbOrderBy = orderBy; window._fbDoc = doc; window._fbUpdateDoc = updateDoc; window._fbArrayUnion = arrayUnion;
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
@@ -86,6 +87,52 @@
   .result-close { color: white; border: none; border-radius: 12px; padding: 14px 32px; font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; }
   .result-close.student { background: var(--blue); }
   .result-close.company { background: var(--purple); }
+
+  /* 내 상담 내역 */
+  .my-section-title { font-size: 16px; font-weight: 800; color: var(--navy); margin: 32px 0 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .my-section-title.company { color: var(--purple-dark); }
+  .my-section-empty { background: white; border-radius: 14px; padding: 24px 18px; text-align: center; color: var(--gray); font-size: 13px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  .my-list { display: flex; flex-direction: column; gap: 10px; }
+  .my-item { background: white; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 4px solid var(--gray); cursor: pointer; transition: transform 0.15s; }
+  .my-item:active { transform: scale(0.99); }
+  .my-item.waiting { border-left-color: var(--accent); }
+  .my-item.done { border-left-color: var(--success); }
+  .my-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
+  .my-item-status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 14px; flex-shrink: 0; }
+  .my-item-status.waiting { background: #fef3c7; color: #92400e; }
+  .my-item-status.done { background: #d1fae5; color: #065f46; }
+  .my-item-content { font-size: 14px; color: #2d3748; line-height: 1.55; margin-bottom: 6px; word-break: break-all; }
+  .my-item-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .my-item-time { font-size: 11px; color: var(--gray); }
+  .my-item-cmt { font-size: 12px; color: var(--blue); font-weight: 700; }
+  .my-item-cmt.has-new { color: var(--danger); }
+
+  /* 채팅 모달 */
+  .chat-overlay { display: none; position: fixed; inset: 0; background: rgba(15,30,60,0.7); z-index: 200; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
+  .chat-overlay.show { display: flex; }
+  .chat-box { background: var(--light); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; max-height: 88vh; display: flex; flex-direction: column; animation: slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .chat-header { background: white; border-radius: 20px 20px 0 0; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .chat-header h3 { font-size: 15px; font-weight: 800; color: var(--navy); }
+  .chat-header .chat-close { background: var(--light); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; color: var(--gray); display: flex; align-items: center; justify-content: center; }
+  .chat-original { background: white; padding: 14px 20px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--gray); line-height: 1.55; }
+  .chat-original strong { color: var(--navy); }
+  .chat-body { flex: 1; overflow-y: auto; padding: 16px 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .bubble-row { display: flex; gap: 8px; align-items: flex-end; }
+  .bubble-row.me { justify-content: flex-end; }
+  .bubble { max-width: 75%; padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
+  .bubble.other { background: white; color: #2d3748; border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .bubble.me { background: var(--blue); color: white; border-bottom-right-radius: 4px; }
+  .bubble.me.company { background: var(--purple); }
+  .bubble-meta { font-size: 10px; color: var(--gray); }
+  .bubble-row.me .bubble-meta { order: -1; }
+  .chat-empty { text-align: center; color: var(--gray); font-size: 13px; padding: 30px 20px; }
+  .chat-input-wrap { background: white; padding: 12px 14px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-end; }
+  .chat-input { flex: 1; padding: 10px 14px; background: var(--light); border: 1.5px solid var(--border); border-radius: 18px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; color: #2d3748; outline: none; resize: none; min-height: 38px; max-height: 100px; line-height: 1.4; }
+  .chat-input:focus { border-color: var(--blue); background: white; }
+  .chat-send { padding: 10px 16px; background: var(--blue); color: white; border: none; border-radius: 18px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .chat-send.company { background: var(--purple); }
+  .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -133,6 +180,12 @@
     </div>
   </div>
 
+  <!-- ── 내 상담 내역 (재학생/졸업생/예비신입생) ── -->
+  <div id="myConsultingsSection" style="display:none;">
+    <div class="my-section-title">📋 내 상담 내역</div>
+    <div class="my-list" id="myConsultingsList"><div class="my-section-empty">불러오는 중...</div></div>
+  </div>
+
   <!-- ── 전담인력 폼 ── -->
   <div id="companyForm" style="display:none;">
     <div class="info-card company">
@@ -164,8 +217,30 @@
       <div class="form-group"><label class="form-label">연락처 <span style="font-weight:400;color:var(--gray);font-size:11px">(빠른 답변이 필요할 경우)</span></label><input type="tel" class="form-input company-focus" id="cInputPhone" placeholder="010-0000-0000" maxlength="13"></div>
       <button class="submit-btn company" id="cSubmitBtn" onclick="submitCompanyInquiry()">📨 문의 접수하기</button>
     </div>
+
+    <!-- ── 내 문의 내역 (전담인력) ── -->
+    <div id="myCompanyConsultingsSection" style="display:none;">
+      <div class="my-section-title company">📋 내 문의 내역</div>
+      <div class="my-list" id="myCompanyConsultingsList"><div class="my-section-empty">불러오는 중...</div></div>
+    </div>
   </div>
 
+</div>
+
+<!-- 채팅 모달 -->
+<div class="chat-overlay" id="chatOverlay">
+  <div class="chat-box">
+    <div class="chat-header">
+      <h3 id="chatTitle">💬 상담 대화</h3>
+      <button class="chat-close" onclick="closeChat()" aria-label="닫기">×</button>
+    </div>
+    <div class="chat-original" id="chatOriginal"></div>
+    <div class="chat-body" id="chatBody"></div>
+    <div class="chat-input-wrap">
+      <textarea class="chat-input" id="chatInput" placeholder="메시지를 입력하세요" rows="1"></textarea>
+      <button class="chat-send" id="chatSendBtn" onclick="sendUserMessage()">전송</button>
+    </div>
+  </div>
 </div>
 
 <div class="result-overlay" id="resultOverlay">
@@ -227,9 +302,11 @@
     const btn = document.getElementById('submitBtn'); btn.textContent = '전송 중...'; btn.disabled = true;
     const now = new Date();
     const timeStr = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+    const myDeviceId = getDeviceId();
+    const oneSignalId = await getOneSignalId();
     try {
       if (window._firebaseReady) {
-        await window._firebaseAddDoc(window._firebaseCollection(window._firebaseDb, 'consulting'), { name, dept, content, time: timeStr, status: '대기중', category: userCategory, createdAt: window._firebaseServerTimestamp() });
+        await window._firebaseAddDoc(window._firebaseCollection(window._firebaseDb, 'consulting'), { name, dept, content, time: timeStr, status: '대기중', category: userCategory, deviceId: myDeviceId, oneSignalId, comments: [], createdAt: window._firebaseServerTimestamp() });
       }
     } catch(e) { console.warn('Firebase 저장 실패:', e); }
     const pushMsg = `${name} (${dept})\n${content.substring(0, 80)}${content.length > 80 ? '...' : ''}`;
@@ -240,6 +317,7 @@
     document.getElementById('resultOverlay').classList.add('show');
     document.getElementById('inputName').value = ''; document.getElementById('inputDept').value = ''; document.getElementById('inputContent').value = ''; updateCharCount();
     btn.textContent = '📩 상담 신청하기'; btn.disabled = false;
+    setTimeout(() => loadMyConsultings(), 800);
   }
 
   // 전담인력 문의 제출
@@ -258,9 +336,11 @@
     const btn = document.getElementById('cSubmitBtn'); btn.textContent = '접수 중...'; btn.disabled = true;
     const now = new Date();
     const timeStr = now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+    const myDeviceId = getDeviceId();
+    const oneSignalId = await getOneSignalId();
     try {
       if (window._firebaseReady) {
-        await window._firebaseAddDoc(window._firebaseCollection(window._firebaseDb, 'consulting'), { name, dept: firm, content: `[${type}] ${content}`, time: timeStr, status: '대기중', category: 'company', firm, role, inquiryType: type, phone, createdAt: window._firebaseServerTimestamp() });
+        await window._firebaseAddDoc(window._firebaseCollection(window._firebaseDb, 'consulting'), { name, dept: firm, content: `[${type}] ${content}`, time: timeStr, status: '대기중', category: 'company', firm, role, inquiryType: type, phone, deviceId: myDeviceId, oneSignalId, comments: [], createdAt: window._firebaseServerTimestamp() });
       }
     } catch(e) { console.warn('Firebase 저장 실패:', e); }
     const pushMsg = `🏢 ${name} (${firm} · ${role})\n[${type}] ${content.substring(0, 60)}${content.length > 60 ? '...' : ''}`;
@@ -274,9 +354,218 @@
     document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
     updateCompanyCharCount();
     btn.textContent = '📨 문의 접수하기'; btn.disabled = false;
+    setTimeout(() => loadMyConsultings(), 800);
   }
 
   function closeResult() { document.getElementById('resultOverlay').classList.remove('show'); }
+
+  // ── deviceId 헬퍼 ──
+  function getDeviceId() {
+    let id = localStorage.getItem('deviceId');
+    if (!id) {
+      id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+      localStorage.setItem('deviceId', id);
+    }
+    return id;
+  }
+
+  // ── OneSignal ID 헬퍼 (있으면 가져오고, 없으면 빈 문자열) ──
+  async function getOneSignalId() {
+    for (let i = 0; i < 8; i++) {
+      try {
+        if (typeof OneSignal !== 'undefined' && OneSignal.User && OneSignal.User.onesignalId) {
+          return OneSignal.User.onesignalId;
+        }
+      } catch(e) {}
+      await new Promise(r => setTimeout(r, 150));
+    }
+    return '';
+  }
+
+  // ── 내 상담 내역 불러오기 ──
+  let myConsultings = [];
+  let activeChatId = null;
+
+  async function loadMyConsultings() {
+    if (!window._firebaseReady) return;
+    const myDeviceId = localStorage.getItem('deviceId');
+    if (!myDeviceId) {
+      // 가입 전이라 deviceId 없음 → 내역 표시 안 함
+      return;
+    }
+    try {
+      const q = window._fbQuery(
+        window._firebaseCollection(window._firebaseDb, 'consulting'),
+        window._fbWhere('deviceId', '==', myDeviceId)
+      );
+      const snap = await window._fbGetDocs(q);
+      myConsultings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 최신순 정렬
+      myConsultings.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      renderMyConsultings();
+    } catch(e) {
+      console.warn('내 상담 내역 로드 실패:', e);
+    }
+  }
+
+  function renderMyConsultings() {
+    const isCompany = userCategory === 'company';
+    const sectionId = isCompany ? 'myCompanyConsultingsSection' : 'myConsultingsSection';
+    const listId = isCompany ? 'myCompanyConsultingsList' : 'myConsultingsList';
+    const otherSectionId = isCompany ? 'myConsultingsSection' : 'myCompanyConsultingsSection';
+    const sec = document.getElementById(sectionId);
+    const list = document.getElementById(listId);
+    const other = document.getElementById(otherSectionId);
+    if (other) other.style.display = 'none';
+    if (!sec || !list) return;
+    if (myConsultings.length === 0) {
+      sec.style.display = 'block';
+      list.innerHTML = '<div class="my-section-empty">아직 신청한 상담이 없어요</div>';
+      return;
+    }
+    sec.style.display = 'block';
+    list.innerHTML = myConsultings.map(c => {
+      const statusClass = c.status === '완료' ? 'done' : 'waiting';
+      const statusLabel = c.status === '완료' ? '✅ 완료' : '⏳ 대기중';
+      const cmtCount = (c.comments || []).length;
+      const lastComment = (c.comments || [])[cmtCount - 1];
+      const hasNewFromAdmin = lastComment && lastComment.author === 'admin';
+      const cmtClass = hasNewFromAdmin ? 'my-item-cmt has-new' : 'my-item-cmt';
+      const cmtLabel = cmtCount > 0
+        ? (hasNewFromAdmin ? `💬 답변 ${cmtCount}개 · 새 답변` : `💬 ${cmtCount}개`)
+        : '💬 댓글 없음';
+      const safeContent = (c.content || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return `<div class="my-item ${statusClass}" onclick="openChat('${c.id}')">
+        <div class="my-item-top">
+          <span class="my-item-time">📅 ${c.time || '-'}</span>
+          <span class="my-item-status ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="my-item-content">${safeContent.length > 80 ? safeContent.substring(0,80)+'...' : safeContent}</div>
+        <div class="my-item-bottom">
+          <span class="my-item-time">💡 탭하면 대화창 열림</span>
+          <span class="${cmtClass}">${cmtLabel}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── 채팅 모달 열기/닫기 ──
+  function openChat(id) {
+    const c = myConsultings.find(x => x.id === id);
+    if (!c) return;
+    activeChatId = id;
+    const isCompany = userCategory === 'company';
+    document.getElementById('chatTitle').textContent = isCompany ? '💬 문의 대화' : '💬 상담 대화';
+    const safeContent = (c.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    document.getElementById('chatOriginal').innerHTML = `<strong>${c.name || '-'}</strong> · ${c.dept || '-'} · ${c.time || '-'}<br><br>${safeContent}`;
+    renderChatBody(c);
+    const sendBtn = document.getElementById('chatSendBtn');
+    sendBtn.classList.toggle('company', isCompany);
+    document.getElementById('chatOverlay').classList.add('show');
+    setTimeout(() => {
+      const body = document.getElementById('chatBody');
+      body.scrollTop = body.scrollHeight;
+    }, 50);
+  }
+
+  function closeChat() {
+    document.getElementById('chatOverlay').classList.remove('show');
+    activeChatId = null;
+    document.getElementById('chatInput').value = '';
+  }
+
+  function renderChatBody(c) {
+    const body = document.getElementById('chatBody');
+    const comments = c.comments || [];
+    if (comments.length === 0) {
+      body.innerHTML = '<div class="chat-empty">아직 대화가 없어요.<br>관리자가 확인 후 답변을 드립니다.</div>';
+      return;
+    }
+    const isCompany = userCategory === 'company';
+    body.innerHTML = comments.map(cm => {
+      const safeText = (cm.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const time = cm.createdAt ? new Date(cm.createdAt).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
+      if (cm.author === 'user') {
+        return `<div class="bubble-row me"><span class="bubble-meta">${time}</span><div class="bubble me${isCompany?' company':''}">${safeText}</div></div>`;
+      } else {
+        return `<div class="bubble-row"><div class="bubble other">${safeText}</div><span class="bubble-meta">${time}</span></div>`;
+      }
+    }).join('');
+  }
+
+  // ── 사용자 메시지 전송 ──
+  async function sendUserMessage() {
+    if (!activeChatId) return;
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const sendBtn = document.getElementById('chatSendBtn');
+    sendBtn.disabled = true;
+    const c = myConsultings.find(x => x.id === activeChatId);
+    if (!c) { sendBtn.disabled = false; return; }
+    const comment = {
+      id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      author: 'user',
+      authorName: c.name || '신청자',
+      text,
+      createdAt: new Date().toISOString()
+    };
+    try {
+      await window._fbUpdateDoc(
+        window._fbDoc(window._firebaseDb, 'consulting', activeChatId),
+        { comments: window._fbArrayUnion(comment) }
+      );
+      // 로컬 상태 업데이트
+      c.comments = (c.comments || []).concat([comment]);
+      renderChatBody(c);
+      renderMyConsultings();
+      input.value = '';
+      setTimeout(() => {
+        const body = document.getElementById('chatBody');
+        body.scrollTop = body.scrollHeight;
+      }, 50);
+      // 관리자에게 알림 발송 (조용히)
+      const isCompany = userCategory === 'company';
+      const pushMsg = `${c.name || '?'} (${c.dept || '-'})\n${text.substring(0, 80)}${text.length > 80 ? '...' : ''}`;
+      try {
+        await fetch(WORKER_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
+            filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }],
+            contents: { ko: pushMsg, en: pushMsg },
+            headings: { ko: isCompany ? '🏢 새 문의 메시지' : '💬 새 상담 메시지', en: 'New Message' },
+            url: 'https://dks3275-rgb.github.io/admin.html'
+          })
+        });
+      } catch(e) { console.warn('알림 발송 실패:', e); }
+    } catch(e) {
+      alert('전송 실패: ' + e.message);
+    }
+    sendBtn.disabled = false;
+  }
+
+  // 페이지 진입 시 내 상담 내역 자동 로드 (deviceId 있을 때만)
+  window.addEventListener('load', () => {
+    setTimeout(loadMyConsultings, 300);
+  });
+
+  // 입력창 자동 줄바꿈 (Enter는 전송, Shift+Enter는 줄바꿈)
+  document.addEventListener('DOMContentLoaded', () => {
+    const ci = document.getElementById('chatInput');
+    if (ci) {
+      ci.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          sendUserMessage();
+        }
+      });
+    }
+    const co = document.getElementById('chatOverlay');
+    if (co) {
+      co.addEventListener('click', (e) => { if (e.target === co) closeChat(); });
+    }
+  });
 </script>
 </body>
 </html>
