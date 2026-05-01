@@ -90,28 +90,21 @@
 
   let allResources = [];
 
-  // 졸업생 접근 차단
-  if (userCategory === 'graduate') {
-    document.getElementById('categoryGrid').innerHTML =
-      '<div class="empty" style="padding:80px 20px;"><div class="empty-icon">🎓</div>' +
-      '<div style="font-size:16px;font-weight:700;color:#4a5568;margin-bottom:8px;">자료실은 재학생·전담인력 전용이에요</div>' +
-      '<div style="font-size:13px;color:#8a9ab5;line-height:1.6;">졸업생은 외부평가 메뉴를 이용해주세요</div>' +
-      '<a href="index.html" style="display:inline-block;margin-top:20px;background:#2196f3;color:white;padding:10px 20px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">← 홈으로</a></div>';
-  }
-
-  // 전담인력이면 헤더 변경
+  // 카테고리별 헤더 색상 변경
   if (userCategory === 'company') {
     document.getElementById('pageTitle').textContent = '전담인력 자료실';
     document.querySelector('.header').style.background = 'linear-gradient(135deg, #7c3aed, #5b21b6)';
   }
-  // 예비신입생이면 헤더 변경
   if (userCategory === 'prospect') {
     document.getElementById('pageTitle').textContent = '예비신입생 자료실';
     document.querySelector('.header').style.background = 'linear-gradient(135deg, #10b981, #047857)';
   }
+  if (userCategory === 'graduate') {
+    document.getElementById('pageTitle').textContent = '졸업생 자료실';
+    document.querySelector('.header').style.background = 'linear-gradient(135deg, #f59e0b, #92400e)';
+  }
 
   async function loadResources() {
-    if (userCategory === 'graduate') return; // 졸업생은 차단된 상태라 로드 스킵
     try {
       const q = query(collection(db, 'library'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
@@ -119,19 +112,21 @@
 
       // 카테고리에 맞는 자료만 필터링
       // - 재학생/전담인력: 레거시 'all' 자료(과거 "전체" 옵션으로 등록된 것)도 함께 표시
-      // - 예비신입생: 신설 카테고리이므로 'prospect'로 명시된 자료만 표시 (레거시 'all' 제외)
+      // - 졸업생/예비신입생: 신설 카테고리이므로 본인 target으로 명시된 자료만 표시 (레거시 'all' 제외)
       if (userCategory === 'company') {
         allResources = all.filter(r => r.target === 'company' || r.target === 'all');
       } else if (userCategory === 'prospect') {
         allResources = all.filter(r => r.target === 'prospect');
+      } else if (userCategory === 'graduate') {
+        allResources = all.filter(r => r.target === 'graduate');
       } else {
-        // student (졸업생이 이 파일 도달 못하게 위에서 차단됨)
+        // student
         allResources = all.filter(r => r.target === 'student' || r.target === 'all');
       }
 
-      // 예비신입생은 카테고리 생략하고 바로 파일 목록 표시
-      if (userCategory === 'prospect') {
-        showProspectFlatList();
+      // 졸업생/예비신입생은 카테고리 생략하고 바로 파일 목록 표시
+      if (userCategory === 'prospect' || userCategory === 'graduate') {
+        showFlatList();
       } else {
         showCategories();
       }
@@ -141,8 +136,8 @@
     }
   }
 
-  // 예비신입생 전용: 카테고리 없이 모든 자료 평면 목록
-  function showProspectFlatList() {
+  // 졸업생/예비신입생 전용: 카테고리 없이 모든 자료 평면 목록
+  function showFlatList() {
     document.getElementById('sectionTitle').textContent = '📚 자료 목록';
     document.getElementById('categoryGrid').style.display = 'none';
     const list = document.getElementById('fileList');
