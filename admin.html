@@ -242,6 +242,66 @@
   </div>
 </div>
 
+<!-- 공지사항 수정 모달 -->
+<div class="member-modal-overlay" id="noticeEditModal">
+  <div class="member-modal">
+    <h3>✏️ 공지사항 수정</h3>
+    <input type="hidden" id="editNoticeId" />
+    <div class="member-modal-label">대상</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="editNoticeTargetBtns">
+      <button type="button" class="notice-target-btn" data-edit-target="all" onclick="setNoticeEditTarget('all',this)">📣 전체</button>
+      <button type="button" class="notice-target-btn" data-edit-target="student" onclick="setNoticeEditTarget('student',this)">🎓 재학생</button>
+      <button type="button" class="notice-target-btn" data-edit-target="graduate" onclick="setNoticeEditTarget('graduate',this)">🎉 졸업생</button>
+      <button type="button" class="notice-target-btn" data-edit-target="prospect" onclick="setNoticeEditTarget('prospect',this)">🌱 예비신입생</button>
+      <button type="button" class="notice-target-btn" data-edit-target="company" onclick="setNoticeEditTarget('company',this)">🏢 전담인력</button>
+    </div>
+    <input type="hidden" id="editNoticeTarget" value="all" />
+    <div class="member-modal-label">제목</div>
+    <input class="member-modal-input" type="text" id="editNoticeTitle" maxlength="100" />
+    <div class="member-modal-label">내용</div>
+    <textarea class="member-modal-input" id="editNoticeContent" style="min-height:160px;resize:vertical;"></textarea>
+    <div class="member-modal-btns">
+      <button class="member-modal-cancel" onclick="closeNoticeEdit()">취소</button>
+      <button class="member-modal-save" onclick="saveNoticeEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 캘린더 일정 수정 모달 -->
+<div class="member-modal-overlay" id="calEditModal">
+  <div class="member-modal">
+    <h3>✏️ 일정 수정</h3>
+    <input type="hidden" id="editCalId" />
+    <div class="member-modal-label">카테고리</div>
+    <select class="member-modal-select" id="editCalCategory">
+      <option value="학교일정">📅 학교일정</option>
+      <option value="시험/평가">📝 시험/평가</option>
+      <option value="보강">🔧 보강</option>
+      <option value="휴강/공휴일">🏖️ 휴강/공휴일</option>
+      <option value="과제/제출">📋 과제/제출</option>
+      <option value="현장훈련">🏢 현장훈련</option>
+      <option value="외부평가">🎓 외부평가</option>
+      <option value="공지/안내">📢 공지/안내</option>
+      <option value="긴급공지">⚡ 긴급공지</option>
+      <option value="행사/이벤트">🎉 행사/이벤트</option>
+    </select>
+    <div class="member-modal-label">시작 날짜</div>
+    <input class="member-modal-input" type="date" id="editCalStart" />
+    <div class="member-modal-label">종료 날짜</div>
+    <input class="member-modal-input" type="date" id="editCalEnd" />
+    <div class="member-modal-label">시간 (단일 일정만)</div>
+    <input class="member-modal-input" type="time" id="editCalTime" />
+    <div class="member-modal-label">제목</div>
+    <input class="member-modal-input" type="text" id="editCalTitle" maxlength="100" />
+    <div class="member-modal-label">상세 내용</div>
+    <textarea class="member-modal-input" id="editCalDesc" style="min-height:100px;resize:vertical;"></textarea>
+    <div class="member-modal-btns">
+      <button class="member-modal-cancel" onclick="closeCalEdit()">취소</button>
+      <button class="member-modal-save" onclick="saveCalEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="header">
   <div class="header-badge">관리자</div>
   <h1>AU 일학습병행 관리자</h1>
@@ -752,7 +812,10 @@
           </div>
           <div class="notice-item-meta">
             <span>${n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('ko-KR') : '-'}</span>
-            <button class="delete-btn" onclick="deleteNotice('${n.id}')">삭제</button>
+            <span style="display:flex;gap:6px;">
+              <button class="member-edit-btn" onclick="openNoticeEdit('${n.id}')">✏️ 수정</button>
+              <button class="delete-btn" onclick="deleteNotice('${n.id}')">삭제</button>
+            </span>
           </div>
         </div>`;
       }).join('');
@@ -1002,7 +1065,10 @@
             <div class="cal-event-meta">${dateTxt} · 댓글 ${e.commentCount||0}</div>
             ${e.description ? `<div class="cal-event-desc">${e.description.substring(0,60)}${e.description.length>60?'...':''}</div>` : ''}
           </div>
-          <button onclick="deleteCalEvent('${e.id}')" class="delete-btn">삭제</button>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <button onclick="openCalEdit('${e.id}')" class="member-edit-btn">✏️ 수정</button>
+            <button onclick="deleteCalEvent('${e.id}')" class="delete-btn">삭제</button>
+          </div>
         </div>`;
       }).join('');
     } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
@@ -1545,6 +1611,95 @@
     document.addEventListener('DOMContentLoaded', renderTemplates);
   } else {
     renderTemplates();
+  }
+
+  // ── 공지사항 수정 ──
+  async function openNoticeEdit(id) {
+    try {
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(window._noticeDb, 'notices', id));
+      if (!snap.exists()) { alert('공지를 찾을 수 없어요'); return; }
+      const data = snap.data();
+      document.getElementById('editNoticeId').value = id;
+      document.getElementById('editNoticeTitle').value = data.title || '';
+      document.getElementById('editNoticeContent').value = data.content || '';
+      const target = data.target || 'all';
+      document.getElementById('editNoticeTarget').value = target;
+      document.querySelectorAll('#editNoticeTargetBtns .notice-target-btn').forEach(b => {
+        if (b.dataset.editTarget === target) b.classList.add('selected');
+        else b.classList.remove('selected');
+      });
+      document.getElementById('noticeEditModal').classList.add('show');
+    } catch(e) { alert('불러오기 실패: ' + e.message); }
+  }
+  function setNoticeEditTarget(target, btn) {
+    document.querySelectorAll('#editNoticeTargetBtns .notice-target-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('editNoticeTarget').value = target;
+  }
+  function closeNoticeEdit() {
+    document.getElementById('noticeEditModal').classList.remove('show');
+  }
+  async function saveNoticeEdit() {
+    const id = document.getElementById('editNoticeId').value;
+    const title = document.getElementById('editNoticeTitle').value.trim();
+    const content = document.getElementById('editNoticeContent').value.trim();
+    const target = document.getElementById('editNoticeTarget').value || 'all';
+    if (!title) { alert('제목을 입력해주세요'); return; }
+    if (!content) { alert('내용을 입력해주세요'); return; }
+    try {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(window._noticeDb, 'notices', id), { title, content, target });
+      closeNoticeEdit();
+      loadNotices();
+    } catch(e) { alert('저장 실패: ' + e.message); }
+  }
+
+  // ── 캘린더 일정 수정 ──
+  async function openCalEdit(id) {
+    try {
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(calDb, 'calendar_events', id));
+      if (!snap.exists()) { alert('일정을 찾을 수 없어요'); return; }
+      const data = snap.data();
+      document.getElementById('editCalId').value = id;
+      document.getElementById('editCalCategory').value = data.category || '학교일정';
+      document.getElementById('editCalStart').value = data.startDate || data.date || '';
+      document.getElementById('editCalEnd').value = data.endDate || data.startDate || data.date || '';
+      document.getElementById('editCalTime').value = data.time || '';
+      document.getElementById('editCalTitle').value = data.title || '';
+      document.getElementById('editCalDesc').value = data.description || '';
+      document.getElementById('calEditModal').classList.add('show');
+    } catch(e) { alert('불러오기 실패: ' + e.message); }
+  }
+  function closeCalEdit() {
+    document.getElementById('calEditModal').classList.remove('show');
+  }
+  async function saveCalEdit() {
+    const id = document.getElementById('editCalId').value;
+    const category = document.getElementById('editCalCategory').value;
+    const startDate = document.getElementById('editCalStart').value;
+    const endDate = document.getElementById('editCalEnd').value || startDate;
+    const time = document.getElementById('editCalTime').value;
+    const title = document.getElementById('editCalTitle').value.trim();
+    const description = document.getElementById('editCalDesc').value.trim();
+    if (!startDate) { alert('시작 날짜를 선택해주세요'); return; }
+    if (!title) { alert('제목을 입력해주세요'); return; }
+    if (endDate < startDate) { alert('종료 날짜는 시작 날짜 이후여야 해요'); return; }
+    try {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(calDb, 'calendar_events', id), {
+        category,
+        date: startDate,    // 하위 호환
+        startDate,
+        endDate,
+        time: startDate === endDate ? time : '', // 기간 일정은 시간 없음
+        title,
+        description
+      });
+      closeCalEdit();
+      loadCalendarEvents();
+    } catch(e) { alert('저장 실패: ' + e.message); }
   }
 
 </script>
