@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.dks3275rgb.aupwa",
+        "sha256_cert_fingerprints": ["13:BE:CE:74:0B:77:91:C4:C2:35:7F:93:E8:BB:52:67:EC:79:3F:4A:72:80:A7:F3:83:BC:C7:49:9D:22:E1:58"]
+      }
+    }]
