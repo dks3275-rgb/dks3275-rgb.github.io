@@ -1050,7 +1050,7 @@
       item.comments = (item.comments || []).concat([comment]);
       renderConsultingChat(item);
       input.value = '';
-      // 신청자에게 푸시 알림 (oneSignalId 있으면 직접 발송)
+      // 신청자에게 푸시 알림 (OneSignal v16: include_aliases.onesignal_id 사용)
       try {
         const headings = '💬 ' + (item.category === 'company' ? '문의' : '상담') + ' 답변이 도착했어요';
         const pushBody = {
@@ -1060,14 +1060,11 @@
           url: 'https://dks3275-rgb.github.io/consulting.html'
         };
         if (item.oneSignalId) {
-          pushBody.include_player_ids = [item.oneSignalId];
-        } else if (item.category) {
-          // 폴백: 같은 카테고리 전체에게 발송하지 않고, oneSignalId 없으면 푸시 생략
-          // (개인 식별 불가로 다른 사용자 방해 방지)
-        }
-        if (pushBody.include_player_ids) {
+          pushBody.include_aliases = { onesignal_id: [item.oneSignalId] };
+          pushBody.target_channel = 'push';
           await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pushBody) });
         }
+        // oneSignalId 없으면 푸시 생략 (개인 식별 불가로 다른 사용자 방해 방지)
       } catch(e) { console.warn('알림 발송 실패:', e); }
     } catch(e) {
       alert('전송 실패: ' + e.message);
