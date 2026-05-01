@@ -67,17 +67,14 @@
       const snapshot = await getDocs(q);
       if (snapshot.empty) { list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>등록된 공지사항이 없어요</div></div>'; return; }
 
-      // 카테고리에 맞는 공지만 필터링
+      // 카테고리에 맞는 공지만 필터링 (각 그룹 엄격 분리)
       // - target이 없거나 'all'이면 모두에게 표시
-      // - target이 'student'이면 재학생 + 졸업생에게 표시
-      // - target이 'company'이면 전담인력에게만 표시
+      // - target이 그 외이면 같은 카테고리 사용자에게만 표시
       const allDocs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       const filtered = allDocs.filter(d => {
         const t = d.target || 'all';
         if (t === 'all') return true;
-        if (t === 'student') return ['student', 'graduate'].includes(userCategory);
-        if (t === 'company') return userCategory === 'company';
-        return true;
+        return t === userCategory;
       });
 
       if (filtered.length === 0) { list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>등록된 공지사항이 없어요</div></div>'; return; }
@@ -85,7 +82,9 @@
       filtered.forEach(d => {
         const date = d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : '';
         const targetBadge = d.target === 'company' ? '<span style="font-size:10px;background:#ede9fe;color:#5b21b6;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">전담인력</span>'
-          : d.target === 'student' ? '<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">재학생</span>' : '';
+          : d.target === 'student' ? '<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">재학생</span>'
+          : d.target === 'graduate' ? '<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">졸업생</span>'
+          : d.target === 'prospect' ? '<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">예비신입생</span>' : '';
         const card = document.createElement('div');
         card.className = 'notice-card';
         card.innerHTML = `<div class="notice-top"><span class="notice-badge">공지</span>${targetBadge}<span class="notice-date">${date}</span></div><div class="notice-title">${d.title}</div><div class="notice-preview">${d.content}</div><div class="notice-detail" id="detail-${d.id}"><div class="notice-content">${d.content}</div>${d.images && d.images.length > 0 ? `<div class="notice-images">${d.images.map(url => `<img src="${url}" onclick="window.open('${url}')">`).join('')}</div>` : ''}${d.files && d.files.length > 0 ? `<div class="notice-files">${d.files.map(f => `<a class="notice-file" href="${f.url}" target="_blank">📎 ${f.name}</a>`).join('')}</div>` : ''}</div>`;
