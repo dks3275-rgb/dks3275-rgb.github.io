@@ -434,10 +434,24 @@
         <textarea class="form-input" id="cal-desc" style="min-height:80px;" placeholder="일정에 대한 상세 내용을 입력하세요"></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">학생 알림</label>
+        <label class="form-label">알림 발송</label>
         <select class="form-input" id="cal-notify">
-          <option value="none">알림 없음</option>
-          <option value="all">전체 학생에게 알림 발송</option>
+          <option value="none">🔕 알림 없음</option>
+          <option value="all">📣 전체 발송</option>
+          <optgroup label="── 학과별 ──">
+            <option value="학년:P-TECH 1학년">🎓 P-TECH 1학년</option>
+            <option value="학년:P-TECH 2학년">🎓 P-TECH 2학년</option>
+            <option value="학년:전문대 마케팅경영학과">📚 전문대 마케팅경영학과</option>
+            <option value="학년:전문대 호텔조리학과">🍳 전문대 호텔조리학과</option>
+            <option value="학년:전문대 회계세무학과">📊 전문대 회계세무학과</option>
+            <option value="학년:전문대 호텔관광학과">🏨 전문대 호텔관광학과</option>
+          </optgroup>
+          <optgroup label="── 카테고리별 ──">
+            <option value="카테고리:student">🎓 재학생 전체</option>
+            <option value="카테고리:graduate">🎉 졸업생 전체</option>
+            <option value="카테고리:prospect">🌱 예비신입생 전체</option>
+            <option value="카테고리:company">🏢 전담인력 전체</option>
+          </optgroup>
         </select>
       </div>
       <button class="send-btn" onclick="saveCalendarEvent()">📅 일정 등록</button>
@@ -925,21 +939,28 @@
         createdAt: serverTimestamp()
       });
 
-      if (notify === 'all') {
+      if (notify && notify !== 'none') {
         const isRange = startDate !== endDate;
         const dateStr = isRange
           ? `${startDate.slice(5)} ~ ${endDate.slice(5)}`
           : startDate.slice(5) + (time ? ' ' + time : '');
         const notifyMsg = `[${category}] ${title} (${dateStr})`;
+        const notifBody = {
+          app_id: APP_ID,
+          contents: { ko: notifyMsg, en: notifyMsg },
+          headings: { ko: '📅 새 일정이 등록됐어요!', en: 'New Event' },
+          url: "https://dks3275-rgb.github.io/calendar.html"
+        };
+        if (notify === 'all') {
+          notifBody.included_segments = ["Total Subscriptions"];
+        } else if (notify.indexOf('학년:') === 0) {
+          notifBody.filters = [{field:"tag", key:"학년", relation:"=", value: notify.slice('학년:'.length)}];
+        } else if (notify.indexOf('카테고리:') === 0) {
+          notifBody.filters = [{field:"tag", key:"카테고리", relation:"=", value: notify.slice('카테고리:'.length)}];
+        }
         await fetch(WORKER_URL, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            app_id: APP_ID,
-            included_segments: ["Total Subscriptions"],
-            contents: { ko: notifyMsg, en: notifyMsg },
-            headings: { ko: '📅 새 일정이 등록됐어요!', en: 'New Event' },
-            url: "https://dks3275-rgb.github.io/calendar.html"
-          })
+          body: JSON.stringify(notifBody)
         });
       }
 
