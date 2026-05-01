@@ -587,6 +587,13 @@
           if (userInfo.category === 'company' && userInfo.role) tags['직책'] = userInfo.role;
           // role/역할 태그는 건드리지 않음 (관리자 설정 보존)
           await OneSignal.User.addTags(tags);
+          // 카테고리에 무관한 stale 태그 정리 (role/역할은 절대 안 건드림)
+          const tagsToRemove = [];
+          if (userInfo.category !== 'student') tagsToRemove.push('학년');
+          if (userInfo.category !== 'company') tagsToRemove.push('직책');
+          if (tagsToRemove.length > 0) {
+            try { await OneSignal.User.removeTags(tagsToRemove); } catch(e) { console.warn('[가입] stale 태그 제거 실패:', e); }
+          }
         } catch(e) { console.warn('[가입] OneSignal 태그 실패 (Firebase에 저장됨):', e); }
         // ★ Firebase에 확실하게 저장 — 이게 핵심
         await saveUserToFirebase(userInfo, osId);
@@ -644,6 +651,12 @@
                 if (updated.category === 'company' && updated.role) tags['직책'] = updated.role;
                 // role/역할 태그는 건드리지 않음 (관리자 설정 보존)
                 await OneSignal.User.addTags(tags);
+                const tagsToRemove = [];
+                if (updated.category !== 'student') tagsToRemove.push('학년');
+                if (updated.category !== 'company') tagsToRemove.push('직책');
+                if (tagsToRemove.length > 0) {
+                  try { await OneSignal.User.removeTags(tagsToRemove); } catch(e) {}
+                }
               } catch(e) {}
             } catch(e) {}
           });
@@ -664,6 +677,12 @@
           if (info.category === 'company' && info.role) tags['직책'] = info.role;
           // role/역할 태그는 건드리지 않음 (관리자 설정 보존)
           await OneSignal.User.addTags(tags);
+          const tagsToRemove = [];
+          if (info.category !== 'student') tagsToRemove.push('학년');
+          if (info.category !== 'company') tagsToRemove.push('직책');
+          if (tagsToRemove.length > 0) {
+            try { await OneSignal.User.removeTags(tagsToRemove); } catch(e) {}
+          }
         } catch(e) {}
       } catch(e) {}
     });
