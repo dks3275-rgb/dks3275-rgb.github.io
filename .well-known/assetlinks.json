@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "io.github.dks3275rgb.aupwa",
-        "sha256_cert_fingerprints": ["13:BE:CE:74:0B:77:91:C4:C2:35:7F:93:E8:BB:52:67:EC:79:3F:4A:72:80:A7:F3:83:BC:C7:49:9D:22:E1:58"]
+        "package_name": "com.aupwa.app",
+        "sha256_cert_fingerprints": ["7E:A0:ED:02:0B:D6:C3:B5:79:72:B3:2A:1B:27:1B:7B:AC:7B:F6:F7:5C:E8:53:9F:72:9A:A0:3E:FA:45:39:AC"]
       }
     }]
