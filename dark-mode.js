@@ -4,9 +4,20 @@
   const KEY = 'au_dark_mode';
   const FONT_KEY = 'au_font_size';
 
-  // 글자 크기 적용 (FOUC 방지)
+  // 글자 크기 적용 (FOUC 방지) - zoom 사용 (px 기반 페이지에서도 동작)
+  function applyFontSize(pct) {
+    // body가 없으면 html에 적용 (FOUC 방지)
+    const target = document.body || document.documentElement;
+    target.style.zoom = (pct / 100);
+    // 폴백: rem 기반 콘텐츠를 위해 root font-size도 함께 조정
+    document.documentElement.style.fontSize = pct + '%';
+  }
   const savedFont = parseInt(localStorage.getItem(FONT_KEY) || '100');
-  document.documentElement.style.fontSize = savedFont + '%';
+  applyFontSize(savedFont);
+  // body 준비 후 다시 적용 (초기 로드 시 body 없을 수 있음)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => applyFontSize(savedFont));
+  }
 
   // 초기 적용 (FOUC 방지를 위해 즉시)
   function applyMode(mode) {
@@ -128,6 +139,7 @@
       else if (action === 'dec') cur = Math.max(80, cur - 10);
       else if (action === 'reset') cur = 100;
       localStorage.setItem(FONT_KEY, cur);
+      applyFontSize(cur);
       refreshFont();
     });
     fontBtn.onclick = () => {
