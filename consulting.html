@@ -399,7 +399,8 @@
         window._fbWhere('deviceId', '==', myDeviceId)
       );
       const snap = await window._fbGetDocs(q);
-      myConsultings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      myConsultings = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(item => !item.deleted); // 휴지통 항목은 사용자에게 숨김
       // 최신순 정렬
       myConsultings.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       renderMyConsultings();

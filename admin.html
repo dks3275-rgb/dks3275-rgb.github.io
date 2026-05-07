@@ -459,6 +459,7 @@
             <option value="all">전체 보기</option>
             <option value="대기중">대기중만</option>
             <option value="완료">완료만</option>
+            <option value="trash">🗑️ 휴지통</option>
           </select>
         </div>
         <button class="refresh-btn" onclick="loadConsulting()">🔄 새로고침</button>
@@ -934,14 +935,62 @@
       consultingItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       consultingItems.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       renderConsulting();
+      // 30일 지난 휴지통 자동 정리
+      autoCleanTrash();
     } catch(e) { document.getElementById('consultingList').innerHTML = '<div class="empty-history">⚠️ 불러오기 실패: ' + e.message + '</div>'; }
   }
   function renderConsulting() {
     const filter = document.getElementById('consultingFilter').value;
-    const items = filter === 'all' ? consultingItems : consultingItems.filter(i => i.status === filter);
-    const waiting = consultingItems.filter(i => i.status === '대기중').length;
-    document.getElementById('consultingCount').textContent = `총 ${consultingItems.length}건 · 대기 ${waiting}건`;
-    if (items.length === 0) { document.getElementById('consultingList').innerHTML = '<div class="empty-history">📭 상담 신청 내역이 없어요</div>'; return; }
+    // 활성(삭제 안 됨) / 휴지통 분리
+    const activeItems = consultingItems.filter(i => !i.deleted);
+    const trashItems = consultingItems.filter(i => i.deleted);
+    let items;
+    if (filter === 'trash') {
+      items = trashItems;
+    } else if (filter === 'all') {
+      items = activeItems;
+    } else {
+      items = activeItems.filter(i => i.status === filter);
+    }
+    const waiting = activeItems.filter(i => i.status === '대기중').length;
+    document.getElementById('consultingCount').textContent =
+      `총 ${activeItems.length}건 · 대기 ${waiting}건 · 🗑️ ${trashItems.length}건`;
+    if (items.length === 0) {
+      const emptyMsg = filter === 'trash' ? '🗑️ 휴지통이 비어있어요' : '📭 상담 신청 내역이 없어요';
+      document.getElementById('consultingList').innerHTML = `<div class="empty-history">${emptyMsg}</div>`;
+      return;
+    }
+    // 휴지통 모드
+    if (filter === 'trash') {
+      document.getElementById('consultingList').innerHTML =
+        `<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;">
+           ℹ️ 휴지통의 항목은 30일 후 자동 영구 삭제됩니다. 사용자에게는 보이지 않습니다.
+         </div>` +
+        items.map(item => {
+          const safeContent = (item.content || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const deletedDate = item.deletedAt ? new Date(item.deletedAt).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
+          return `<div class="consulting-card" style="border-left-color:#dc3545;opacity:0.85;">
+            <div class="c-top">
+              <div class="c-person">
+                <div class="c-avatar" style="background:#dc3545;">${(item.name || '?').charAt(0)}</div>
+                <div>
+                  <div class="c-name">${item.name || '-'}</div>
+                  <div class="c-dept">${item.dept || '-'}</div>
+                </div>
+              </div>
+              <span style="font-size:12px;color:#dc3545;font-weight:700;">🗑️ ${deletedDate} 삭제됨</span>
+            </div>
+            <div class="c-content">${safeContent}</div>
+            <div class="c-bottom" style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;">
+              <span class="c-time" style="margin-right:auto;">📅 ${item.time || '-'}</span>
+              <button class="c-delete" style="background:#28a745;color:white;" onclick="restoreConsulting('${item.id}')">♻️ 복원</button>
+              <button class="c-delete" onclick="permanentDeleteConsulting('${item.id}')">⛔ 영구 삭제</button>
+            </div>
+          </div>`;
+        }).join('');
+      return;
+    }
+    // 일반 모드
     document.getElementById('consultingList').innerHTML = items.map(item => {
       const cmtCount = (item.comments || []).length;
       const lastComment = (item.comments || [])[cmtCount - 1];
@@ -1072,7 +1121,67 @@
     sendBtn.disabled = false;
   }
   async function toggleConsultingStatus(id, currentStatus) { const newStatus = currentStatus === '완료' ? '대기중' : '완료'; try { await window._cUpdateDoc(window._cDoc(window._cDb, 'consulting', id), { status: newStatus }); const idx = consultingItems.findIndex(i => i.id === id); if (idx !== -1) consultingItems[idx].status = newStatus; renderConsulting(); } catch(e) { alert('상태 변경 실패: ' + e.message); } }
-  async function deleteConsulting(id) { if (!await customConfirm({ title: '상담 신청 삭제', message: '이 상담 신청을 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return; try { await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', id)); consultingItems = consultingItems.filter(i => i.id !== id); renderConsulting(); } catch(e) { alert('삭제 실패: ' + e.message); } }
+  async function deleteConsulting(id) {
+    const item = consultingItems.find(i => i.id === id);
+    const previewName = item ? (item.name || '-') : '-';
+    if (!await customConfirm({
+      title: '상담 신청 삭제',
+      message: `<b>${previewName}</b>님의 상담 신청을 휴지통으로 이동할까요?<br><br>🗑️ 휴지통에서 30일간 보관되며 복원 가능합니다.<br>30일 후에는 영구 삭제됩니다.`,
+      confirmText: '🗑️ 휴지통으로',
+      danger: true
+    })) return;
+    try {
+      await window._cUpdateDoc(window._cDoc(window._cDb, 'consulting', id), { deleted: true, deletedAt: Date.now() });
+      const idx = consultingItems.findIndex(i => i.id === id);
+      if (idx !== -1) { consultingItems[idx].deleted = true; consultingItems[idx].deletedAt = Date.now(); }
+      renderConsulting();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+  async function restoreConsulting(id) {
+    const item = consultingItems.find(i => i.id === id);
+    const previewName = item ? (item.name || '-') : '-';
+    if (!await customConfirm({
+      title: '상담 신청 복원',
+      message: `<b>${previewName}</b>님의 상담 신청을 복원할까요?<br>다시 정상 목록으로 돌아갑니다.`,
+      confirmText: '♻️ 복원',
+      danger: false
+    })) return;
+    try {
+      await window._cUpdateDoc(window._cDoc(window._cDb, 'consulting', id), { deleted: false, deletedAt: null });
+      const idx = consultingItems.findIndex(i => i.id === id);
+      if (idx !== -1) { consultingItems[idx].deleted = false; consultingItems[idx].deletedAt = null; }
+      renderConsulting();
+    } catch(e) { alert('복원 실패: ' + e.message); }
+  }
+  async function permanentDeleteConsulting(id) {
+    const item = consultingItems.find(i => i.id === id);
+    const previewName = item ? (item.name || '-') : '-';
+    if (!await customConfirm({
+      title: '⛔ 영구 삭제',
+      message: `<b>${previewName}</b>님의 상담 신청을 <b>영구 삭제</b>할까요?<br><br>⚠️ 이 작업은 되돌릴 수 없습니다.<br>데이터가 완전히 사라집니다.`,
+      confirmText: '⛔ 영구 삭제',
+      danger: true
+    })) return;
+    try {
+      await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', id));
+      consultingItems = consultingItems.filter(i => i.id !== id);
+      renderConsulting();
+    } catch(e) { alert('영구 삭제 실패: ' + e.message); }
+  }
+  // 30일 지난 휴지통 항목 자동 영구 삭제
+  async function autoCleanTrash() {
+    if (!window._cDb) return;
+    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const expired = consultingItems.filter(i => i.deleted && i.deletedAt && (now - i.deletedAt > THIRTY_DAYS));
+    for (const item of expired) {
+      try {
+        await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', item.id));
+        consultingItems = consultingItems.filter(i => i.id !== item.id);
+      } catch(e) { console.warn('자동 영구 삭제 실패:', item.id, e); }
+    }
+    if (expired.length > 0) renderConsulting();
+  }
 
   // ── 만족도 조사 ──
   const SURVEY_LIST = [ {id:'initial', name:'초기 만족도 조사', desc:'훈련 시작 1~2달'}, {id:'round1', name:'1차 만족도 조사', desc:'1학년 1학기 종료'}, {id:'round2', name:'2차 만족도 조사', desc:'1학년 2학기 종료'}, {id:'round3', name:'3차 만족도 조사', desc:'2학년 1학기 (P-TECH 전용)'}, {id:'round4', name:'4차 만족도 조사', desc:'2학년 2학기 (P-TECH 전용)'} ];
