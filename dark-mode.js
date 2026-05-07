@@ -135,9 +135,18 @@
       const action = e.target.dataset.action;
       if (!action) return;
       let cur = parseInt(localStorage.getItem(FONT_KEY) || '100');
-      if (action === 'inc') cur = Math.min(150, cur + 10);
-      else if (action === 'dec') cur = Math.max(80, cur - 10);
-      else if (action === 'reset') cur = 100;
+      // 5단계 프리셋: 80 → 100 → 130 → 160 → 200
+      const presets = [80, 100, 130, 160, 200];
+      if (action === 'inc') {
+        const next = presets.find(p => p > cur);
+        cur = next || 200;
+      } else if (action === 'dec') {
+        const reversed = [...presets].reverse();
+        const prev = reversed.find(p => p < cur);
+        cur = prev || 80;
+      } else if (action === 'reset') {
+        cur = 100;
+      }
       localStorage.setItem(FONT_KEY, cur);
       applyFontSize(cur);
       refreshFont();
