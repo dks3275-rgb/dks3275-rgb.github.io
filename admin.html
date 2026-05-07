@@ -965,10 +965,22 @@
       document.getElementById('consultingList').innerHTML =
         `<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;">
            ℹ️ 휴지통의 항목은 30일 후 자동 영구 삭제됩니다. 사용자에게는 보이지 않습니다.
+         </div>
+         <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:14px;flex-wrap:wrap;">
+           <button class="c-delete" style="background:#28a745;color:white;" onclick="restoreAllTrash()">♻️ 전체 복원 (${items.length}건)</button>
+           <button class="c-delete" onclick="emptyTrash()">⛔ 휴지통 비우기 (${items.length}건)</button>
          </div>` +
         items.map(item => {
           const safeContent = (item.content || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
           const deletedDate = item.deletedAt ? new Date(item.deletedAt).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
+          // D-day 계산
+          let daysLeft = 30;
+          if (item.deletedAt) {
+            const elapsed = Date.now() - item.deletedAt;
+            daysLeft = Math.max(0, 30 - Math.floor(elapsed / (24 * 60 * 60 * 1000)));
+          }
+          const ddayColor = daysLeft <= 3 ? '#dc3545' : (daysLeft <= 7 ? '#fd7e14' : '#6c757d');
+          const ddayLabel = daysLeft === 0 ? '⏰ 곧 자동 삭제' : `⏳ D-${daysLeft}`;
           return `<div class="consulting-card" style="border-left-color:#dc3545;opacity:0.85;">
             <div class="c-top">
               <div class="c-person">
@@ -978,11 +990,11 @@
                   <div class="c-dept">${item.dept || '-'}</div>
                 </div>
               </div>
-              <span style="font-size:12px;color:#dc3545;font-weight:700;">🗑️ ${deletedDate} 삭제됨</span>
+              <span style="font-size:11px;color:${ddayColor};font-weight:700;background:rgba(0,0,0,0.05);padding:4px 8px;border-radius:6px;">${ddayLabel}</span>
             </div>
             <div class="c-content">${safeContent}</div>
-            <div class="c-bottom" style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;">
-              <span class="c-time" style="margin-right:auto;">📅 ${item.time || '-'}</span>
+            <div class="c-bottom" style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;">
+              <span class="c-time" style="margin-right:auto;font-size:11px;">📅 신청: ${item.time || '-'} · 🗑️ 삭제: ${deletedDate}</span>
               <button class="c-delete" style="background:#28a745;color:white;" onclick="restoreConsulting('${item.id}')">♻️ 복원</button>
               <button class="c-delete" onclick="permanentDeleteConsulting('${item.id}')">⛔ 영구 삭제</button>
             </div>
@@ -1167,6 +1179,49 @@
       consultingItems = consultingItems.filter(i => i.id !== id);
       renderConsulting();
     } catch(e) { alert('영구 삭제 실패: ' + e.message); }
+  }
+  // 휴지통 전체 복원
+  async function restoreAllTrash() {
+    const trashItems = consultingItems.filter(i => i.deleted);
+    if (trashItems.length === 0) return;
+    if (!await customConfirm({
+      title: '♻️ 전체 복원',
+      message: `휴지통의 모든 상담 신청 <b>${trashItems.length}건</b>을 복원할까요?`,
+      confirmText: `♻️ ${trashItems.length}건 복원`,
+      danger: false
+    })) return;
+    let success = 0, fail = 0;
+    for (const item of trashItems) {
+      try {
+        await window._cUpdateDoc(window._cDoc(window._cDb, 'consulting', item.id), { deleted: false, deletedAt: null });
+        const idx = consultingItems.findIndex(i => i.id === item.id);
+        if (idx !== -1) { consultingItems[idx].deleted = false; consultingItems[idx].deletedAt = null; }
+        success++;
+      } catch(e) { console.warn('복원 실패:', item.id, e); fail++; }
+    }
+    renderConsulting();
+    alert(`복원 완료: ✅ ${success}건${fail > 0 ? ` · 실패 ❌ ${fail}건` : ''}`);
+  }
+  // 휴지통 비우기 (전체 영구 삭제)
+  async function emptyTrash() {
+    const trashItems = consultingItems.filter(i => i.deleted);
+    if (trashItems.length === 0) return;
+    if (!await customConfirm({
+      title: '⛔ 휴지통 비우기',
+      message: `휴지통의 모든 상담 신청 <b>${trashItems.length}건</b>을 <b>영구 삭제</b>할까요?<br><br>⚠️ 이 작업은 되돌릴 수 없습니다.`,
+      confirmText: `⛔ ${trashItems.length}건 영구 삭제`,
+      danger: true
+    })) return;
+    let success = 0, fail = 0;
+    for (const item of trashItems) {
+      try {
+        await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', item.id));
+        consultingItems = consultingItems.filter(i => i.id !== item.id);
+        success++;
+      } catch(e) { console.warn('영구 삭제 실패:', item.id, e); fail++; }
+    }
+    renderConsulting();
+    alert(`영구 삭제 완료: ✅ ${success}건${fail > 0 ? ` · 실패 ❌ ${fail}건` : ''}`);
   }
   // 30일 지난 휴지통 항목 자동 영구 삭제
   async function autoCleanTrash() {
