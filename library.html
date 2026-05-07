@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AU 자료실</title>
 <script src="device-check.js" data-auto-block></script>
+<script src="dark-mode.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
   :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; --purple: #7c3aed; }
@@ -61,6 +62,9 @@
 <div class="container">
   <button class="back-btn" id="backBtn" onclick="showCategories()">← 카테고리로 돌아가기</button>
   <div class="section-title" id="sectionTitle">카테고리 선택</div>
+  <input type="text" id="resourceSearch" placeholder="🔍 자료명 검색..."
+    style="display:none;width:100%;padding:10px 14px;border:1.5px solid #e4eaf4;border-radius:10px;font-size:14px;margin-bottom:12px;box-sizing:border-box;background:white;"
+    oninput="filterResources()">
   <div class="category-grid" id="categoryGrid"></div>
   <div class="file-list" id="fileList" style="display:none;"></div>
 </div>
@@ -188,6 +192,9 @@
     document.getElementById('sectionTitle').textContent = '카테고리 선택';
     document.getElementById('fileList').style.display = 'none';
     document.getElementById('categoryGrid').style.display = 'grid';
+    const searchEl = document.getElementById('resourceSearch');
+    if (searchEl) { searchEl.style.display = 'none'; searchEl.value = ''; }
+    window._currentCategory = null;
     document.getElementById('categoryGrid').innerHTML = CATEGORIES.map(cat => {
       const count = allResources.filter(r => r.category === cat.name).length;
       return `<div class="category-card" onclick="showFiles('${cat.name}')">
@@ -198,17 +205,32 @@
     }).join('');
   }
 
+  window.filterResources = function() {
+    if (window._currentCategory) window.showFiles(window._currentCategory);
+  };
+
   window.showFiles = function(categoryName) {
     document.getElementById('backBtn').classList.add('visible');
     document.getElementById('sectionTitle').textContent = categoryName;
     document.getElementById('categoryGrid').style.display = 'none';
     document.getElementById('fileList').style.display = 'flex';
+    const searchEl = document.getElementById('resourceSearch');
+    if (searchEl) searchEl.style.display = 'block';
+    window._currentCategory = categoryName;
+    const searchTerm = (searchEl?.value || '').trim().toLowerCase();
 
-    const filtered = allResources.filter(r => r.category === categoryName);
+    let filtered = allResources.filter(r => r.category === categoryName);
+    if (searchTerm) {
+      filtered = filtered.filter(r => {
+        const hay = `${r.title || ''} ${r.desc || ''} ${r.fileName || ''}`.toLowerCase();
+        return hay.includes(searchTerm);
+      });
+    }
     const list = document.getElementById('fileList');
 
     if (filtered.length === 0) {
-      list.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div>등록된 자료가 없어요</div></div>';
+      const msg = searchTerm ? `🔍 "${searchTerm}" 검색 결과 없음` : '등록된 자료가 없어요';
+      list.innerHTML = `<div class="empty"><div class="empty-icon">📂</div><div>${msg}</div></div>`;
       return;
     }
 

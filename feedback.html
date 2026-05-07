@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>익명 의견함 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<script src="device-check.js" data-auto-block></script>
+<script src="dark-mode.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; }
+  .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  .back-btn { background: rgba(255,255,255,0.2); color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; }
+  .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .header h1 { color: white; font-size: 18px; font-weight: 700; }
+  .container { max-width: 600px; margin: 0 auto; padding: 24px 16px 80px; }
+  .info-box { background: #e3f2fd; border-left: 4px solid var(--blue); padding: 14px 18px; border-radius: 12px; margin-bottom: 18px; font-size: 13px; line-height: 1.6; color: #0d47a1; }
+  .info-box strong { display: block; margin-bottom: 4px; }
+  .form-card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e4eaf4; border-radius: 10px; font-size: 14px; font-family: inherit; box-sizing: border-box; }
+  .form-input:focus { outline: none; border-color: var(--blue); }
+  textarea.form-input { resize: vertical; min-height: 140px; }
+  .category-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cat-btn { padding: 10px; border: 1.5px solid #e4eaf4; border-radius: 10px; background: white; cursor: pointer; font-family: inherit; font-size: 13px; transition: all 0.15s; }
+  .cat-btn.selected { background: var(--blue); color: white; border-color: var(--blue); }
+  .submit-btn { width: 100%; background: var(--blue); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .submit-btn:disabled { background: var(--gray); }
+  .submit-btn:hover:not(:disabled) { background: var(--navy); }
+  .result-msg { margin-top: 14px; padding: 12px; border-radius: 10px; font-size: 13px; text-align: center; display: none; }
+  .result-msg.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; display: block; }
+  .result-msg.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; display: block; }
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="index.html" class="back-btn" aria-label="홈으로">←</a>
+  <div class="header-badge">의견함</div>
+  <h1>익명 의견함</h1>
+</div>
+<div class="container">
+  <div class="info-box">
+    <strong>🔒 완전 익명 보장</strong>
+    이름·학과·연락처 등 어떤 개인정보도 수집하지 않습니다. 솔직한 의견을 남겨주세요.
+    운영진이 검토 후 개선에 반영합니다.
+  </div>
+
+  <div class="form-card">
+    <div class="form-group">
+      <label class="form-label">분류</label>
+      <div class="category-buttons">
+        <button class="cat-btn selected" data-cat="suggestion" type="button">💡 건의/제안</button>
+        <button class="cat-btn" data-cat="complaint" type="button">😐 불편/개선</button>
+        <button class="cat-btn" data-cat="praise" type="button">👏 칭찬/격려</button>
+        <button class="cat-btn" data-cat="other" type="button">📝 기타</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">제목</label>
+      <input type="text" class="form-input" id="title" placeholder="간단한 제목" maxlength="60">
+    </div>
+    <div class="form-group">
+      <label class="form-label">의견 내용</label>
+      <textarea class="form-input" id="content" placeholder="자유롭게 작성해주세요. 익명으로 전달됩니다." maxlength="2000"></textarea>
+    </div>
+    <button class="submit-btn" id="submitBtn">📨 의견 보내기</button>
+    <div class="result-msg" id="resultMsg"></div>
+  </div>
+</div>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  const firebaseConfig = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let selectedCat = 'suggestion';
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.cat-btn').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+      selectedCat = b.dataset.cat;
+    };
+  });
+
+  document.getElementById('submitBtn').onclick = async () => {
+    const title = document.getElementById('title').value.trim();
+    const content = document.getElementById('content').value.trim();
+    const result = document.getElementById('resultMsg');
+    const btn = document.getElementById('submitBtn');
+    if (!content) { result.className = 'result-msg error'; result.textContent = '⚠️ 의견 내용을 입력해주세요.'; return; }
+    btn.disabled = true; btn.textContent = '전송 중...';
+    try {
+      // 절대 사용자 식별 정보를 저장하지 않음 (deviceId, oneSignalId 등 X)
+      await addDoc(collection(db, 'feedback'), {
+        title: title || '(제목 없음)',
+        content,
+        category: selectedCat,
+        status: 'new',
+        createdAt: serverTimestamp()
+      });
+      // 관리자에게 알림 (식별정보 없음)
+      try {
+        const WORKER_URL = 'https://au-onesignal-proxy.dks3275.workers.dev';
+        await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
+            filters: [
+              { field: 'tag', key: 'role', relation: '=', value: 'admin' },
+              { operator: 'OR' },
+              { field: 'tag', key: '역할', relation: '=', value: '관리자' }
+            ],
+            contents: { ko: '새 익명 의견이 도착했어요', en: 'New anonymous feedback' },
+            headings: { ko: '📨 익명 의견함', en: 'Anonymous Feedback' }
+          })
+        });
+      } catch(e) { console.warn('알림 발송 실패:', e); }
+      result.className = 'result-msg success';
+      result.innerHTML = '✅ 의견이 전송됐어요. 소중한 의견 감사합니다!';
+      document.getElementById('title').value = '';
+      document.getElementById('content').value = '';
+    } catch(e) {
+      result.className = 'result-msg error';
+      result.textContent = '❌ 전송 실패: ' + e.message;
+    }
+    btn.disabled = false; btn.textContent = '📨 의견 보내기';
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>취업 정보 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<script src="device-check.js" data-auto-block></script>
+<script src="dark-mode.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; --green: #10b981; --red: #ef4444; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; }
+  .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  .back-btn { background: rgba(255,255,255,0.2); color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; }
+  .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .header h1 { color: white; font-size: 18px; font-weight: 700; }
+  .container { max-width: 700px; margin: 0 auto; padding: 24px 16px 80px; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search-input { flex: 1; min-width: 200px; padding: 10px 14px; border: 1.5px solid #e4eaf4; border-radius: 10px; font-size: 14px; background: white; font-family: inherit; box-sizing: border-box; }
+  .filter-select { padding: 10px 12px; border: 1.5px solid #e4eaf4; border-radius: 10px; font-size: 13px; background: white; font-family: inherit; }
+  .job-card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); margin-bottom: 12px; border-left: 4px solid var(--blue); }
+  .job-card.urgent { border-left-color: var(--red); }
+  .job-card.expired { opacity: 0.6; border-left-color: var(--gray); }
+  .job-top { display: flex; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .job-company { font-size: 13px; color: var(--gray); font-weight: 600; }
+  .job-title { font-size: 16px; font-weight: 700; color: #1a202c; margin-bottom: 8px; }
+  .job-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .job-badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+  .badge-urgent { background: #fee2e2; color: #991b1b; }
+  .badge-fresh { background: #d1fae5; color: #065f46; }
+  .badge-deadline { background: #fef3c7; color: #92400e; }
+  .badge-graduate { background: #fef3c7; color: #92400e; }
+  .job-info { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13px; color: #4a5568; margin-bottom: 8px; }
+  .job-info .label { color: var(--gray); font-weight: 500; }
+  .job-content { font-size: 13px; color: #4a5568; line-height: 1.6; white-space: pre-wrap; }
+  .job-link { display: inline-block; margin-top: 10px; background: var(--blue); color: white; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; text-decoration: none; }
+  .empty { text-align: center; padding: 60px 20px; color: var(--gray); }
+  .info-box { background: #fef3c7; padding: 12px 16px; border-radius: 10px; font-size: 13px; color: #92400e; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="index.html" class="back-btn" aria-label="홈으로">←</a>
+  <div class="header-badge">취업</div>
+  <h1>취업 정보</h1>
+</div>
+<div class="container">
+  <div class="info-box">
+    💼 졸업생을 위한 채용 정보입니다. 마감 날짜 확인 후 지원해주세요.
+  </div>
+  <div class="toolbar">
+    <input type="text" class="search-input" id="search" placeholder="🔍 회사명·직무 검색..." oninput="renderJobs()">
+    <select class="filter-select" id="status" onchange="renderJobs()">
+      <option value="active">📋 진행 중</option>
+      <option value="all">전체</option>
+      <option value="expired">⏱️ 마감</option>
+    </select>
+  </div>
+  <div id="list"><div class="empty">불러오는 중...</div></div>
+</div>
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  const firebaseConfig = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let jobs = [];
+  async function load() {
+    try {
+      let snap;
+      try {
+        snap = await getDocs(query(collection(db, 'jobs'), orderBy('createdAt', 'desc')));
+      } catch { snap = await getDocs(collection(db, 'jobs')); }
+      jobs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderJobs();
+    } catch(e) {
+      document.getElementById('list').innerHTML = '<div class="empty">⚠️ 불러오기 실패: ' + e.message + '</div>';
+    }
+  }
+  window.renderJobs = function() {
+    const search = (document.getElementById('search')?.value || '').trim().toLowerCase();
+    const status = document.getElementById('status')?.value || 'active';
+    const now = Date.now();
+    let items = jobs.slice();
+    if (status === 'active') items = items.filter(j => !j.deadline || new Date(j.deadline).getTime() > now);
+    else if (status === 'expired') items = items.filter(j => j.deadline && new Date(j.deadline).getTime() <= now);
+    if (search) {
+      items = items.filter(j => {
+        const hay = `${j.company || ''} ${j.title || ''} ${j.content || ''} ${j.position || ''}`.toLowerCase();
+        return hay.includes(search);
+      });
+    }
+    if (items.length === 0) {
+      const msg = search ? `🔍 "${search}" 검색 결과 없음` : '📭 등록된 채용 정보가 없어요';
+      document.getElementById('list').innerHTML = `<div class="empty">${msg}</div>`;
+      return;
+    }
+    items.sort((a, b) => {
+      // 마감 임박 우선, 그 다음 최신순
+      const aT = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+      const bT = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+      if (aT !== bT) return aT - bT;
+      return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    });
+    document.getElementById('list').innerHTML = items.map(j => {
+      const deadlineMs = j.deadline ? new Date(j.deadline).getTime() : null;
+      const isExpired = deadlineMs && deadlineMs < now;
+      const daysLeft = deadlineMs ? Math.ceil((deadlineMs - now) / (24 * 60 * 60 * 1000)) : null;
+      const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
+      const cardClass = isExpired ? 'job-card expired' : (isUrgent ? 'job-card urgent' : 'job-card');
+      const badges = [];
+      if (isUrgent && !isExpired) badges.push(`<span class="job-badge badge-urgent">⏰ D-${daysLeft}</span>`);
+      if (isExpired) badges.push(`<span class="job-badge badge-deadline">마감</span>`);
+      if (j.target === 'graduate') badges.push(`<span class="job-badge badge-graduate">졸업생</span>`);
+      const safeContent = (j.content || '').replace(/</g, '&lt;');
+      return `<div class="${cardClass}">
+        <div class="job-top">
+          <div>
+            <div class="job-company">🏢 ${j.company || '-'}</div>
+            <div class="job-title">${j.title || '-'}</div>
+          </div>
+        </div>
+        ${badges.length ? `<div class="job-badges">${badges.join('')}</div>` : ''}
+        <div class="job-info">
+          ${j.position ? `<span class="label">직무</span><span>${j.position}</span>` : ''}
+          ${j.location ? `<span class="label">근무지</span><span>${j.location}</span>` : ''}
+          ${j.salary ? `<span class="label">급여</span><span>${j.salary}</span>` : ''}
+          ${j.deadline ? `<span class="label">마감일</span><span>${new Date(j.deadline).toLocaleDateString('ko-KR')}</span>` : ''}
+        </div>
+        ${safeContent ? `<div class="job-content">${safeContent}</div>` : ''}
+        ${j.applyUrl ? `<a href="${j.applyUrl}" target="_blank" class="job-link">📨 지원하기</a>` : ''}
+      </div>`;
+    }).join('');
+  };
+  load();
+</script>
+</body>
+</html>

@@ -328,17 +328,73 @@
   <h1>AU 일학습병행 관리자</h1>
 </div>
 <div class="tab-nav">
-  <button class="active" onclick="switchTab('push', this)">🔔 알림</button>
+  <button class="active" onclick="switchTab('stats', this)">📊 통계</button>
+  <button onclick="switchTab('push', this)">🔔 알림</button>
   <button onclick="switchTab('notice', this)">📢 공지</button>
+  <button onclick="switchTab('scheduled', this)">⏰ 예약</button>
   <button onclick="switchTab('survey', this)">📋 만족도</button>
   <button onclick="switchTab('consulting', this)">💬 상담</button>
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
   <button onclick="switchTab('library', this)">📚 자료실</button>
+  <button onclick="switchTab('logs', this)">📜 로그</button>
+</div>
+
+<!-- 통계 대시보드 탭 -->
+<div class="tab-content active" id="tab-stats">
+  <div class="container">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="card-title" style="margin:0;">📊 통계 대시보드</div>
+        <button class="refresh-btn" onclick="loadStats()">🔄 새로고침</button>
+      </div>
+      <div id="statsContent"><div class="c-loading">📊 데이터 불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 예약 발송 탭 -->
+<div class="tab-content" id="tab-scheduled">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">⏰ 예약 발송 관리</div>
+      <p style="font-size:13px;color:#718096;margin-bottom:14px;">
+        예약된 공지/알림을 확인하고 관리합니다. 예약 발송은 알림/공지 탭에서 새로 만들 때 설정할 수 있습니다.
+      </p>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+        <button class="refresh-btn" onclick="loadScheduledItems()">🔄 새로고침</button>
+      </div>
+      <div id="scheduledList"><div class="c-loading">⏰ 불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 활동 로그 탭 -->
+<div class="tab-content" id="tab-logs">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">📜 관리자 활동 로그</div>
+      <p style="font-size:13px;color:#718096;margin-bottom:14px;">
+        최근 90일간의 관리자 활동 기록입니다. 삭제/수정/발송 이력을 확인할 수 있어요.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <select class="filter-select" id="logFilter" onchange="renderLogs()">
+          <option value="all">전체</option>
+          <option value="delete">🗑️ 삭제</option>
+          <option value="restore">♻️ 복원</option>
+          <option value="update">✏️ 수정</option>
+          <option value="create">➕ 등록</option>
+          <option value="send">📤 발송</option>
+        </select>
+        <button class="refresh-btn" onclick="loadLogs()">🔄 새로고침</button>
+      </div>
+      <div id="logsList"><div class="c-loading">📜 불러오는 중...</div></div>
+    </div>
+  </div>
 </div>
 
 <!-- 알림 발송 탭 -->
-<div class="tab-content active" id="tab-push">
+<div class="tab-content" id="tab-push">
 <div class="container">
   <div class="card">
     <div class="card-title">📢 알림 발송</div>
@@ -464,6 +520,9 @@
         </div>
         <button class="refresh-btn" onclick="loadConsulting()">🔄 새로고침</button>
       </div>
+      <input type="text" id="consultingSearch" placeholder="🔍 이름·학과·내용 검색..."
+        style="width:100%;padding:10px 14px;border:1.5px solid #e4eaf4;border-radius:10px;font-size:14px;margin-bottom:12px;box-sizing:border-box;"
+        oninput="renderConsulting()">
       <div id="consultingList"><div class="c-loading">📋 불러오는 중...</div></div>
     </div>
   </div>
@@ -706,13 +765,18 @@
     document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + tab).classList.add('active');
     btn.classList.add('active');
+    if (tab === 'stats') loadStats();
     if (tab === 'notice') loadNotices();
+    if (tab === 'scheduled') loadScheduledItems();
     if (tab === 'survey') loadSurveyStatus();
     if (tab === 'consulting') loadConsulting();
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
     if (tab === 'library') loadLibrary();
+    if (tab === 'logs') loadLogs();
   }
+  // 페이지 첫 진입 시 통계 자동 로드
+  setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);
 
   // ── 알림 발송 ──
   function selectGroup(group, btn) {
@@ -742,26 +806,46 @@
     sendBtn.disabled = true;
     sendBtn.textContent = sendAfter ? '예약 중...' : '발송 중...';
 
+    let filters = null;
     let body = { app_id: APP_ID, headings: { en: title, ko: title }, contents: { en: message, ko: message } };
     if (selectedGroup === '전체') { body.included_segments = ["Total Subscriptions"]; }
-    else if (selectedGroup === '재학생 전체') { body.filters = [{field:"tag",key:"카테고리",relation:"=",value:"student"}]; }
-    else if (selectedGroup === '졸업생 전체') { body.filters = [{field:"tag",key:"카테고리",relation:"=",value:"graduate"}]; }
-    else if (selectedGroup === '예비 신입생 전체') { body.filters = [{field:"tag",key:"카테고리",relation:"=",value:"prospect"}]; }
-    else if (selectedGroup === 'company') { body.filters = [{field:"tag",key:"카테고리",relation:"=",value:"company"},{operator:"OR"},{field:"tag",key:"카테고리",relation:"=",value:"회사"}]; }
-    else { body.filters = [{ field: "tag", key: "학년", relation: "=", value: selectedGroup }]; }
-    if (sendAfter) { body.send_after = sendAfter; }
+    else if (selectedGroup === '재학생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"student"}]; body.filters = filters; }
+    else if (selectedGroup === '졸업생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"graduate"}]; body.filters = filters; }
+    else if (selectedGroup === '예비 신입생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"prospect"}]; body.filters = filters; }
+    else if (selectedGroup === 'company') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"company"},{operator:"OR"},{field:"tag",key:"카테고리",relation:"=",value:"회사"}]; body.filters = filters; }
+    else { filters = [{ field: "tag", key: "학년", relation: "=", value: selectedGroup }]; body.filters = filters; }
 
     try {
-      const response = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const data = await response.json();
-      if (data.id) {
-        const timeStr = scheduleVal ? new Date(scheduleVal).toLocaleString('ko-KR') : '즉시';
-        showResult(sendAfter ? `⏰ 예약 완료! (${timeStr} 발송 예정)` : '✅ 발송 완료!', 'success');
+      // 예약 발송: Firestore에 저장 (OneSignal에는 보내지 않음 - 자체 관리)
+      if (sendAfter) {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const { getFirestore, collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const app = getApps().find(a => a.name === 'scheduled') || initializeApp(FB_CFG, 'scheduled');
+        const db = getFirestore(app);
+        const ref = await addDoc(collection(db, 'scheduled_notifications'), {
+          title, message, target: selectedGroup, filters,
+          sendAt: new Date(scheduleVal).getTime(),
+          sent: false, sentAt: null, createdAt: Date.now()
+        });
+        const timeStr = new Date(scheduleVal).toLocaleString('ko-KR');
+        showResult(`⏰ 예약 완료! (${timeStr} 발송 예정 · "예약" 탭에서 관리)`, 'success');
         addHistory(selectedGroup, title, message, scheduleVal);
+        await writeLog('create', 'notification', ref.id, `예약 등록: "${title}" (${selectedGroup}) - ${timeStr}`);
         document.getElementById('title').value = '';
         document.getElementById('message').value = '';
         document.getElementById('scheduleTime').value = '';
-      } else { showResult('❌ 발송 실패: ' + JSON.stringify(data.errors || data), 'error'); }
+      } else {
+        const response = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const data = await response.json();
+        if (data.id) {
+          showResult('✅ 발송 완료!', 'success');
+          addHistory(selectedGroup, title, message, null);
+          await writeLog('send', 'notification', data.id, `즉시 발송: "${title}" (${selectedGroup})`);
+          document.getElementById('title').value = '';
+          document.getElementById('message').value = '';
+          document.getElementById('scheduleTime').value = '';
+        } else { showResult('❌ 발송 실패: ' + JSON.stringify(data.errors || data), 'error'); }
+      }
     } catch(e) { showResult('❌ 오류: ' + e.message, 'error'); }
     sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
   }
@@ -824,17 +908,26 @@
         notices = notices.filter(n => (n.target || 'all') === filter || (n.target || 'all') === 'all');
       }
       if (notices.length === 0) { listEl.innerHTML = '<div class="empty-history">등록된 공지사항이 없어요</div>'; return; }
+      // 핀 우선 정렬
+      notices.sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return 0;
+      });
       listEl.innerHTML = notices.map(n => {
         const target = n.target || 'all';
         const targetLabel = target === 'company' ? '🏢 전담인력' : target === 'student' ? '🎓 재학생' : target === 'graduate' ? '🎉 졸업생' : target === 'prospect' ? '🌱 예비신입생' : '📣 전체';
         const targetClass = target === 'company' ? 'company' : target === 'student' ? 'student' : target === 'graduate' ? 'graduate' : target === 'prospect' ? 'prospect' : 'all';
-        return `<div class="notice-item">
-          <div class="notice-item-title">${n.title || '-'}
+        const pinIcon = n.pinned ? '📌' : '📍';
+        const pinLabel = n.pinned ? '핀 해제' : '핀 고정';
+        return `<div class="notice-item" style="${n.pinned ? 'background:#fef2f2;border-left:4px solid #dc3545;' : ''}">
+          <div class="notice-item-title">${n.pinned ? '📌 ' : ''}${n.title || '-'}
             <span class="notice-target-badge ${targetClass}">${targetLabel}</span>
           </div>
           <div class="notice-item-meta">
             <span>${n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('ko-KR') : '-'}</span>
-            <span style="display:flex;gap:6px;">
+            <span style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="member-edit-btn" onclick="toggleNoticePin('${n.id}', ${n.pinned ? 'true' : 'false'})">${pinIcon} ${pinLabel}</button>
               <button class="member-edit-btn" onclick="openNoticeEdit('${n.id}')">✏️ 수정</button>
               <button class="delete-btn" onclick="deleteNotice('${n.id}')">삭제</button>
             </span>
@@ -848,8 +941,17 @@
     if (!await customConfirm({ title: '공지사항 삭제', message: '이 공지사항을 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return;
     try {
       await window._noticeDeleteDoc(window._noticeDoc(window._noticeDb, 'notices', id));
+      await writeLog('delete', 'notice', id, '공지사항 삭제');
       loadNotices();
     } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+  async function toggleNoticePin(id, isPinned) {
+    try {
+      const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(window._noticeDoc(window._noticeDb, 'notices', id), { pinned: !isPinned });
+      await writeLog('update', 'notice', id, isPinned ? '핀 해제' : '핀 고정');
+      loadNotices();
+    } catch(e) { alert('핀 변경 실패: ' + e.message); }
   }
 
   async function postNotice() {
@@ -941,6 +1043,8 @@
   }
   function renderConsulting() {
     const filter = document.getElementById('consultingFilter').value;
+    const searchEl = document.getElementById('consultingSearch');
+    const searchTerm = searchEl ? searchEl.value.trim().toLowerCase() : '';
     // 활성(삭제 안 됨) / 휴지통 분리
     const activeItems = consultingItems.filter(i => !i.deleted);
     const trashItems = consultingItems.filter(i => i.deleted);
@@ -951,6 +1055,13 @@
       items = activeItems;
     } else {
       items = activeItems.filter(i => i.status === filter);
+    }
+    // 검색어 필터링
+    if (searchTerm) {
+      items = items.filter(i => {
+        const haystack = `${i.name || ''} ${i.dept || ''} ${i.content || ''} ${i.firm || ''} ${i.role || ''} ${i.inquiryType || ''}`.toLowerCase();
+        return haystack.includes(searchTerm);
+      });
     }
     const waiting = activeItems.filter(i => i.status === '대기중').length;
     document.getElementById('consultingCount').textContent =
@@ -1146,6 +1257,7 @@
       await window._cUpdateDoc(window._cDoc(window._cDb, 'consulting', id), { deleted: true, deletedAt: Date.now() });
       const idx = consultingItems.findIndex(i => i.id === id);
       if (idx !== -1) { consultingItems[idx].deleted = true; consultingItems[idx].deletedAt = Date.now(); }
+      await writeLog('delete', 'consulting', id, `상담 휴지통 이동: ${previewName}`);
       renderConsulting();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
@@ -1162,6 +1274,7 @@
       await window._cUpdateDoc(window._cDoc(window._cDb, 'consulting', id), { deleted: false, deletedAt: null });
       const idx = consultingItems.findIndex(i => i.id === id);
       if (idx !== -1) { consultingItems[idx].deleted = false; consultingItems[idx].deletedAt = null; }
+      await writeLog('restore', 'consulting', id, `상담 복원: ${previewName}`);
       renderConsulting();
     } catch(e) { alert('복원 실패: ' + e.message); }
   }
@@ -1177,6 +1290,7 @@
     try {
       await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', id));
       consultingItems = consultingItems.filter(i => i.id !== id);
+      await writeLog('delete', 'consulting', id, `상담 영구 삭제: ${previewName}`);
       renderConsulting();
     } catch(e) { alert('영구 삭제 실패: ' + e.message); }
   }
@@ -1233,9 +1347,324 @@
       try {
         await window._cDeleteDoc(window._cDoc(window._cDb, 'consulting', item.id));
         consultingItems = consultingItems.filter(i => i.id !== item.id);
+        await writeLog('auto_delete', 'consulting', item.id, `30일 경과 자동 영구 삭제: ${item.name || '?'}`);
       } catch(e) { console.warn('자동 영구 삭제 실패:', item.id, e); }
     }
     if (expired.length > 0) renderConsulting();
+  }
+
+  // ═══════════════════════════════════════════
+  // ── 활동 로그 시스템 ──
+  // ═══════════════════════════════════════════
+  let logsItems = [];
+  async function writeLog(action, target, targetId, detail) {
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().find(a => a.name === 'logs') || initializeApp(FB_CFG, 'logs');
+      const db = getFirestore(app);
+      await addDoc(collection(db, 'audit_logs'), {
+        action, // 'delete' | 'restore' | 'update' | 'create' | 'send' | 'auto_delete'
+        target, // 'consulting' | 'notice' | 'calendar' | 'library' | 'member' | 'survey'
+        targetId: targetId || null,
+        detail: detail || '',
+        timestamp: Date.now(),
+        admin: 'admin'
+      });
+    } catch(e) { console.warn('로그 작성 실패:', e); }
+  }
+  async function loadLogs() {
+    document.getElementById('logsList').innerHTML = '<div class="c-loading">📜 불러오는 중...</div>';
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs, query, orderBy, limit, where, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().find(a => a.name === 'logs') || initializeApp(FB_CFG, 'logs');
+      const db = getFirestore(app);
+      window._logsDb = db; window._logsDoc = doc; window._logsDeleteDoc = deleteDoc;
+      let snapshot;
+      try {
+        const q = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'), limit(500));
+        snapshot = await getDocs(q);
+      } catch { snapshot = await getDocs(collection(db, 'audit_logs')); }
+      logsItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      logsItems.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      // 90일 이전 자동 삭제
+      const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const expired = logsItems.filter(l => l.timestamp && (now - l.timestamp > NINETY_DAYS));
+      for (const log of expired) {
+        try { await deleteDoc(doc(db, 'audit_logs', log.id)); } catch(e) {}
+      }
+      logsItems = logsItems.filter(l => !l.timestamp || (now - l.timestamp <= NINETY_DAYS));
+      renderLogs();
+    } catch(e) {
+      document.getElementById('logsList').innerHTML = '<div class="empty-history">⚠️ 불러오기 실패: ' + e.message + '</div>';
+    }
+  }
+  function renderLogs() {
+    const filter = document.getElementById('logFilter')?.value || 'all';
+    const items = filter === 'all' ? logsItems : logsItems.filter(l => l.action === filter || (filter === 'delete' && l.action === 'auto_delete'));
+    if (items.length === 0) {
+      document.getElementById('logsList').innerHTML = '<div class="empty-history">📭 로그가 없어요</div>';
+      return;
+    }
+    const actionEmoji = { delete:'🗑️', auto_delete:'⏰', restore:'♻️', update:'✏️', create:'➕', send:'📤' };
+    const actionColor = { delete:'#dc3545', auto_delete:'#fd7e14', restore:'#28a745', update:'#ffc107', create:'#17a2b8', send:'#7c3aed' };
+    const targetLabel = { consulting:'상담', notice:'공지', calendar:'캘린더', library:'자료', member:'가입자', survey:'만족도', notification:'알림' };
+    document.getElementById('logsList').innerHTML = items.map(log => {
+      const time = log.timestamp ? new Date(log.timestamp).toLocaleString('ko-KR') : '-';
+      const emoji = actionEmoji[log.action] || '📝';
+      const color = actionColor[log.action] || '#6c757d';
+      return `<div style="background:white;border-left:4px solid ${color};padding:12px 14px;border-radius:8px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+          <span style="font-weight:700;color:${color};">${emoji} ${targetLabel[log.target] || log.target} · ${log.action}</span>
+          <span style="font-size:12px;color:#6c757d;">${time}</span>
+        </div>
+        <div style="font-size:13px;color:#1a2a3a;">${(log.detail || '-').replace(/</g, '&lt;')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ═══════════════════════════════════════════
+  // ── 통계 대시보드 ──
+  // ═══════════════════════════════════════════
+  async function loadStats() {
+    document.getElementById('statsContent').innerHTML = '<div class="c-loading">📊 데이터 불러오는 중...</div>';
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().find(a => a.name === 'stats') || initializeApp(FB_CFG, 'stats');
+      const db = getFirestore(app);
+      const [usersSnap, noticesSnap, consultingSnap, librarySnap, calendarSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'notices')),
+        getDocs(collection(db, 'consulting')),
+        getDocs(collection(db, 'library')),
+        getDocs(collection(db, 'calendar_events'))
+      ]);
+      const users = usersSnap.docs.map(d => d.data());
+      const notices = noticesSnap.docs.map(d => d.data());
+      const consultings = consultingSnap.docs.map(d => d.data());
+      const libraries = librarySnap.docs.map(d => d.data());
+      const events = calendarSnap.docs.map(d => d.data());
+      // 사용자 카테고리 분포
+      const cat = { student: 0, graduate: 0, prospect: 0, company: 0, other: 0 };
+      users.forEach(u => {
+        if (u.category === 'student') cat.student++;
+        else if (u.category === 'graduate') cat.graduate++;
+        else if (u.category === 'prospect') cat.prospect++;
+        else if (u.category === 'company') cat.company++;
+        else cat.other++;
+      });
+      // 학년별 분포 (재학생)
+      const deptCount = {};
+      users.filter(u => u.category === 'student').forEach(u => {
+        const k = u.dept || u.학년 || '미지정';
+        deptCount[k] = (deptCount[k] || 0) + 1;
+      });
+      // 활성 상담 (휴지통 제외)
+      const activeConsult = consultings.filter(c => !c.deleted);
+      const waitingConsult = activeConsult.filter(c => c.status === '대기중').length;
+      const doneConsult = activeConsult.filter(c => c.status === '완료').length;
+      // 평균 응답 시간 계산 (첫 신청 → 첫 관리자 답변)
+      let totalResponseSec = 0, respondedCount = 0;
+      activeConsult.forEach(c => {
+        const cmt = c.comments || [];
+        const firstAdminReply = cmt.find(m => m.author === 'admin');
+        if (firstAdminReply && c.createdAt) {
+          const replyTime = firstAdminReply.createdAt ? new Date(firstAdminReply.createdAt).getTime() : 0;
+          const reqTime = (c.createdAt.seconds || 0) * 1000;
+          if (replyTime && reqTime && replyTime > reqTime) {
+            totalResponseSec += (replyTime - reqTime) / 1000;
+            respondedCount++;
+          }
+        }
+      });
+      const avgRespHours = respondedCount > 0 ? (totalResponseSec / respondedCount / 3600).toFixed(1) : '-';
+      // 최근 7일 신규 가입
+      const now = Date.now();
+      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+      const newUsers7d = users.filter(u => {
+        const t = u.createdAt?.seconds ? u.createdAt.seconds * 1000 : (u.createdAt || 0);
+        return t > sevenDaysAgo;
+      }).length;
+      // 카테고리 차트 함수
+      const categoryNames = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력', other: '❓ 기타' };
+      const totalUsers = users.length;
+      const catBars = Object.entries(cat).filter(([_, v]) => v > 0).map(([k, v]) => {
+        const pct = totalUsers > 0 ? (v / totalUsers * 100).toFixed(1) : 0;
+        return `<div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>${categoryNames[k] || k}</span>
+            <span><b>${v}</b>명 (${pct}%)</span>
+          </div>
+          <div style="background:#e4eaf4;height:8px;border-radius:4px;overflow:hidden;">
+            <div style="background:#2196f3;height:100%;width:${pct}%;"></div>
+          </div>
+        </div>`;
+      }).join('');
+      const deptBars = Object.entries(deptCount).sort((a, b) => b[1] - a[1]).map(([k, v]) => {
+        const max = Math.max(...Object.values(deptCount));
+        const pct = max > 0 ? (v / max * 100) : 0;
+        return `<div style="margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span>${k}</span><span><b>${v}</b>명</span>
+          </div>
+          <div style="background:#e4eaf4;height:6px;border-radius:3px;overflow:hidden;">
+            <div style="background:#10b981;height:100%;width:${pct}%;"></div>
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('statsContent').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;">
+          <div style="background:linear-gradient(135deg,#2196f3,#1976d2);color:white;padding:14px;border-radius:12px;">
+            <div style="font-size:11px;opacity:0.9;">총 가입자</div>
+            <div style="font-size:24px;font-weight:800;">${totalUsers}</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:14px;border-radius:12px;">
+            <div style="font-size:11px;opacity:0.9;">7일 신규</div>
+            <div style="font-size:24px;font-weight:800;">+${newUsers7d}</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:14px;border-radius:12px;">
+            <div style="font-size:11px;opacity:0.9;">대기 상담</div>
+            <div style="font-size:24px;font-weight:800;">${waitingConsult}</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;padding:14px;border-radius:12px;">
+            <div style="font-size:11px;opacity:0.9;">평균 응답(h)</div>
+            <div style="font-size:24px;font-weight:800;">${avgRespHours}</div>
+          </div>
+        </div>
+        <div style="background:#f4f6fb;padding:16px;border-radius:12px;margin-bottom:14px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px;">👥 사용자 카테고리 분포</div>
+          ${catBars || '<div style="font-size:13px;color:#718096;">데이터 없음</div>'}
+        </div>
+        ${Object.keys(deptCount).length > 0 ? `
+        <div style="background:#f4f6fb;padding:16px;border-radius:12px;margin-bottom:14px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px;">📚 학과별 분포 (재학생)</div>
+          ${deptBars}
+        </div>` : ''}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+          <div style="background:#f4f6fb;padding:14px;border-radius:12px;text-align:center;">
+            <div style="font-size:11px;color:#718096;">📢 전체 공지</div>
+            <div style="font-size:22px;font-weight:800;color:#1976d2;">${notices.length}</div>
+          </div>
+          <div style="background:#f4f6fb;padding:14px;border-radius:12px;text-align:center;">
+            <div style="font-size:11px;color:#718096;">💬 전체 상담</div>
+            <div style="font-size:22px;font-weight:800;color:#1976d2;">${activeConsult.length}</div>
+          </div>
+          <div style="background:#f4f6fb;padding:14px;border-radius:12px;text-align:center;">
+            <div style="font-size:11px;color:#718096;">📚 자료실</div>
+            <div style="font-size:22px;font-weight:800;color:#1976d2;">${libraries.length}</div>
+          </div>
+          <div style="background:#f4f6fb;padding:14px;border-radius:12px;text-align:center;">
+            <div style="font-size:11px;color:#718096;">📅 일정</div>
+            <div style="font-size:22px;font-weight:800;color:#1976d2;">${events.length}</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:#718096;text-align:right;">
+          마지막 업데이트: ${new Date().toLocaleString('ko-KR')}
+        </div>
+      `;
+    } catch(e) {
+      document.getElementById('statsContent').innerHTML = '<div class="empty-history">⚠️ 불러오기 실패: ' + e.message + '</div>';
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // ── 예약 발송 관리 ──
+  // ═══════════════════════════════════════════
+  let scheduledItems = [];
+  async function loadScheduledItems() {
+    document.getElementById('scheduledList').innerHTML = '<div class="c-loading">⏰ 불러오는 중...</div>';
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().find(a => a.name === 'scheduled') || initializeApp(FB_CFG, 'scheduled');
+      const db = getFirestore(app);
+      window._schDb = db; window._schDoc = doc; window._schDeleteDoc = deleteDoc;
+      let snapshot;
+      try {
+        const q = query(collection(db, 'scheduled_notifications'), orderBy('sendAt', 'asc'));
+        snapshot = await getDocs(q);
+      } catch { snapshot = await getDocs(collection(db, 'scheduled_notifications')); }
+      scheduledItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 발송 대기/발송 완료 분리하여 표시
+      const now = Date.now();
+      const pending = scheduledItems.filter(s => !s.sent && s.sendAt > now).sort((a, b) => a.sendAt - b.sendAt);
+      const overdue = scheduledItems.filter(s => !s.sent && s.sendAt <= now).sort((a, b) => a.sendAt - b.sendAt);
+      const sent = scheduledItems.filter(s => s.sent).sort((a, b) => (b.sentAt || 0) - (a.sentAt || 0)).slice(0, 20);
+      // 자동 발송 처리 (시간 도달한 것)
+      for (const item of overdue) {
+        try { await executeScheduled(item); } catch(e) { console.warn('예약 발송 실행 실패:', e); }
+      }
+      const renderItem = (item) => {
+        const sendDate = new Date(item.sendAt).toLocaleString('ko-KR');
+        const sentDate = item.sentAt ? new Date(item.sentAt).toLocaleString('ko-KR') : '';
+        return `<div style="background:white;border-left:4px solid ${item.sent ? '#28a745' : '#fd7e14'};padding:12px 14px;border-radius:8px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;">
+            <div style="flex:1;min-width:200px;">
+              <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${item.sent ? '✅' : '⏰'} ${(item.title || '').replace(/</g, '&lt;')}</div>
+              <div style="font-size:13px;color:#1a2a3a;margin-bottom:6px;">${(item.message || '').replace(/</g, '&lt;')}</div>
+              <div style="font-size:11px;color:#718096;">대상: ${item.target || '-'} · 예약: ${sendDate}${sentDate ? ' · 발송: ' + sentDate : ''}</div>
+            </div>
+            ${!item.sent ? `<button class="c-delete" onclick="deleteScheduled('${item.id}')">🗑️ 취소</button>` : ''}
+          </div>
+        </div>`;
+      };
+      let html = '';
+      if (pending.length === 0 && sent.length === 0) {
+        html = '<div class="empty-history">📭 예약된 발송이 없어요</div>';
+      } else {
+        if (pending.length > 0) {
+          html += `<div style="font-size:13px;font-weight:700;color:#fd7e14;margin:10px 0 8px;">⏰ 발송 대기 (${pending.length}건)</div>`;
+          html += pending.map(renderItem).join('');
+        }
+        if (sent.length > 0) {
+          html += `<div style="font-size:13px;font-weight:700;color:#28a745;margin:18px 0 8px;">✅ 최근 발송 완료 (${sent.length}건)</div>`;
+          html += sent.map(renderItem).join('');
+        }
+      }
+      document.getElementById('scheduledList').innerHTML = html;
+    } catch(e) {
+      document.getElementById('scheduledList').innerHTML = '<div class="empty-history">⚠️ 불러오기 실패: ' + e.message + '</div>';
+    }
+  }
+  async function executeScheduled(item) {
+    if (item.executing) return; // 중복 실행 방지
+    item.executing = true;
+    try {
+      const filters = item.filters || [];
+      const body = {
+        app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
+        contents: { ko: item.message, en: item.message },
+        headings: { ko: item.title, en: item.title }
+      };
+      if (filters.length > 0) body.filters = filters;
+      else body.included_segments = ['Subscribed Users'];
+      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      // 발송 완료 마킹
+      const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(window._schDoc(window._schDb, 'scheduled_notifications', item.id), { sent: true, sentAt: Date.now() });
+      const idx = scheduledItems.findIndex(s => s.id === item.id);
+      if (idx !== -1) { scheduledItems[idx].sent = true; scheduledItems[idx].sentAt = Date.now(); }
+      await writeLog('send', 'notification', item.id, `예약 발송 자동 실행: "${item.title}"`);
+    } catch(e) { console.error('예약 발송 실패:', e); }
+    item.executing = false;
+  }
+  async function deleteScheduled(id) {
+    const item = scheduledItems.find(s => s.id === id);
+    if (!await customConfirm({
+      title: '예약 발송 취소',
+      message: `<b>${item?.title || '-'}</b><br>이 예약 발송을 취소할까요?`,
+      confirmText: '🗑️ 취소',
+      danger: true
+    })) return;
+    try {
+      await window._schDeleteDoc(window._schDoc(window._schDb, 'scheduled_notifications', id));
+      scheduledItems = scheduledItems.filter(s => s.id !== id);
+      await writeLog('delete', 'notification', id, `예약 발송 취소: "${item?.title || '-'}"`);
+      loadScheduledItems();
+    } catch(e) { alert('취소 실패: ' + e.message); }
   }
 
   // ── 만족도 조사 ──
@@ -1536,6 +1965,7 @@
     if (!await customConfirm({ title: '자료 삭제', message: '이 자료를 삭제할까요?<br>삭제 후 복구할 수 없어요.', confirmText: '🗑️ 삭제', danger: true })) return;
     try {
       await window._libDeleteDoc(window._libDoc(window._libDb, 'library', id));
+      await writeLog('delete', 'library', id, '자료 삭제');
       loadLibrary();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
