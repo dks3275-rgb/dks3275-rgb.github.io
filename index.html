@@ -622,6 +622,21 @@
         const snap = await getDoc(doc(db, 'users', deviceId));
         if (snap.exists()) {
           const latest = snap.data();
+          // 관리자가 휴지통으로 옮긴 경우 → 로컬 정보 삭제 + 가입 화면으로
+          if (latest.deleted === true) {
+            localStorage.removeItem('userInfo');
+            localStorage.removeItem('deviceId');
+            try {
+              if (window.OneSignalDeferred) {
+                window.OneSignalDeferred.push(async (OneSignal) => {
+                  try { await OneSignal.User.PushSubscription.optOut(); } catch(e) {}
+                });
+              }
+            } catch(e) {}
+            alert('관리자에 의해 가입 정보가 정리되었습니다. 다시 가입해주세요.');
+            location.reload();
+            return;
+          }
           // 관리자가 수정한 정보를 localStorage에 반영
           const updated = { ...info };
           if (latest.name) updated.name = latest.name;
