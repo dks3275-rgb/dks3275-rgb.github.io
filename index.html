@@ -29,6 +29,7 @@
     });
   </script>
   <script src="device-check.js"></script>
+  <script src="inapp-redirect.js"></script>
   <script src="dark-mode.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
@@ -414,6 +415,18 @@
         deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
         localStorage.setItem('deviceId', deviceId);
       }
+      // QR 출처 추적 (URL 또는 localStorage에서 읽어옴)
+      let qrSource = '';
+      try {
+        const urlParams = new URLSearchParams(location.search);
+        qrSource = urlParams.get('src') || '';
+        if (!qrSource) {
+          const saved = JSON.parse(localStorage.getItem('au_qr_origin') || '{}');
+          if (saved.src && saved.savedAt && (Date.now() - saved.savedAt < 7 * 24 * 60 * 60 * 1000)) {
+            qrSource = saved.src;
+          }
+        }
+      } catch(e) {}
       const docData = {
         deviceId,
         oneSignalId: oneSignalId || '',
@@ -421,6 +434,7 @@
         name: userInfo.name,
         updatedAt: new Date().toISOString(),
       };
+      if (qrSource) docData.signupSource = qrSource;
       if (userInfo.category === 'student') {
         docData.grade = userInfo.grade || '';
       } else if (userInfo.category === 'graduate') {

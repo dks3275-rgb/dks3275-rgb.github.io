@@ -337,6 +337,7 @@
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
   <button onclick="switchTab('library', this)">📚 자료실</button>
+  <button onclick="switchTab('qr', this)">📷 QR</button>
   <button onclick="switchTab('logs', this)">📜 로그</button>
 </div>
 
@@ -374,6 +375,70 @@
         <button class="refresh-btn" onclick="loadScheduledItems()">🔄 새로고침</button>
       </div>
       <div id="scheduledList"><div class="c-loading">⏰ 불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- QR 코드 생성기 탭 -->
+<div class="tab-content" id="tab-qr">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">📷 QR 코드 생성기</div>
+      <p style="font-size:13px;color:#718096;margin-bottom:14px;">
+        홍보용 QR 코드를 즉시 생성합니다. 카테고리/출처별로 분리해서 만들면 어떤 홍보가 효과적인지 추적 가능해요.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">📌 연결 페이지</label>
+        <select class="form-input" id="qrPage" onchange="updateQR()">
+          <option value="install.html">📱 앱 설치 안내 (install.html) - 추천</option>
+          <option value="onboarding.html">👋 환영 페이지 (onboarding.html)</option>
+          <option value="index.html">🏠 메인 화면 (index.html)</option>
+          <option value="feedback.html">📨 익명 의견함</option>
+          <option value="companies.html">🏢 학습기업 디렉토리</option>
+          <option value="jobs.html">💼 취업 정보</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🎯 카테고리 자동 지정 (선택)</label>
+        <select class="form-input" id="qrCategory" onchange="updateQR()">
+          <option value="">선택 안 함 (사용자가 직접 선택)</option>
+          <option value="student">🎓 재학생 자동 선택</option>
+          <option value="graduate">🎉 졸업생 자동 선택</option>
+          <option value="prospect">🌱 예비 신입생 자동 선택</option>
+          <option value="company">🏢 전담인력 자동 선택</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🏷️ 출처 추적 태그 (선택)</label>
+        <input type="text" class="form-input" id="qrSource" placeholder="예: 2026_입시설명회, 학과게시판, 카탈로그_p3" oninput="updateQR()">
+        <small style="font-size:11px;color:#718096;display:block;margin-top:4px;">
+          여러 곳에 QR 배포 시 어디서 가입했는지 추적할 수 있어요
+        </small>
+      </div>
+
+      <div style="background:#f4f6fb;border-radius:14px;padding:24px;text-align:center;margin:20px 0;">
+        <div id="qrCanvas" style="display:inline-block;background:white;padding:14px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.08);"></div>
+        <div style="font-size:12px;color:#718096;margin-top:14px;word-break:break-all;background:white;padding:8px 12px;border-radius:8px;">
+          <span id="qrUrlDisplay">URL 생성 중...</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="refresh-btn" onclick="downloadQR('png')">⬇️ PNG 다운로드</button>
+        <button class="refresh-btn" onclick="copyQRUrl()">📋 URL 복사</button>
+        <button class="refresh-btn" onclick="printQR()">🖨️ 인쇄용 보기</button>
+      </div>
+
+      <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-top:18px;font-size:13px;color:#78350f;line-height:1.6;">
+        💡 <b>활용 팁</b><br>
+        • <b>학과 게시판용</b>: install.html + 카테고리 student<br>
+        • <b>입시 설명회용</b>: install.html + 카테고리 prospect + 출처 "2026_입시설명회"<br>
+        • <b>동문회 행사용</b>: install.html + 카테고리 graduate + 출처 "2026_홈커밍"<br>
+        • <b>회사 출입증용</b>: install.html + 카테고리 company
+      </div>
     </div>
   </div>
 </div>
@@ -784,6 +849,119 @@
     if (tab === 'members') loadMembers();
     if (tab === 'library') loadLibrary();
     if (tab === 'logs') loadLogs();
+    if (tab === 'qr') initQRGenerator();
+  }
+
+  // ═══════════════════════════════════════════
+  // ── QR 코드 생성기 ──
+  // ═══════════════════════════════════════════
+  let qrLibLoaded = false;
+  async function loadQRLib() {
+    if (qrLibLoaded) return;
+    return new Promise((resolve) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+      s.onload = () => { qrLibLoaded = true; resolve(); };
+      s.onerror = () => resolve();
+      document.head.appendChild(s);
+    });
+  }
+  async function initQRGenerator() {
+    await loadQRLib();
+    updateQR();
+  }
+  function buildQRUrl() {
+    const page = document.getElementById('qrPage')?.value || 'install.html';
+    const cat = document.getElementById('qrCategory')?.value || '';
+    const src = document.getElementById('qrSource')?.value?.trim() || '';
+    const params = [];
+    if (cat) params.push('category=' + encodeURIComponent(cat));
+    if (src) params.push('src=' + encodeURIComponent(src));
+    let url = 'https://dks3275-rgb.github.io/' + page;
+    if (params.length > 0) url += '?' + params.join('&');
+    return url;
+  }
+  function updateQR() {
+    if (!qrLibLoaded || typeof QRCode === 'undefined') {
+      loadQRLib().then(updateQR);
+      return;
+    }
+    const url = buildQRUrl();
+    const display = document.getElementById('qrUrlDisplay');
+    if (display) display.textContent = url;
+    const canvas = document.getElementById('qrCanvas');
+    if (!canvas) return;
+    canvas.innerHTML = '';
+    try {
+      new QRCode(canvas, {
+        text: url,
+        width: 240,
+        height: 240,
+        colorDark: '#1976d2',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    } catch(e) { canvas.textContent = 'QR 생성 실패: ' + e.message; }
+  }
+  function downloadQR(format) {
+    const canvas = document.getElementById('qrCanvas');
+    if (!canvas) return;
+    const img = canvas.querySelector('img') || canvas.querySelector('canvas');
+    if (!img) { alert('QR 코드를 먼저 생성해주세요'); return; }
+    let dataUrl;
+    if (img.tagName === 'IMG') dataUrl = img.src;
+    else dataUrl = img.toDataURL('image/png');
+    const link = document.createElement('a');
+    const cat = document.getElementById('qrCategory')?.value || 'all';
+    const src = document.getElementById('qrSource')?.value?.trim() || 'qr';
+    link.download = `AU_QR_${cat}_${src}.png`;
+    link.href = dataUrl;
+    link.click();
+  }
+  function copyQRUrl() {
+    const url = buildQRUrl();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => alert('📋 URL 복사 완료!\n' + url));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      alert('📋 URL 복사 완료!');
+    }
+  }
+  function printQR() {
+    const url = buildQRUrl();
+    const canvas = document.getElementById('qrCanvas');
+    const img = canvas?.querySelector('img') || canvas?.querySelector('canvas');
+    if (!img) { alert('QR 코드를 먼저 생성해주세요'); return; }
+    const dataUrl = img.tagName === 'IMG' ? img.src : img.toDataURL('image/png');
+    const cat = document.getElementById('qrCategory')?.value || '';
+    const catLabel = cat === 'student' ? '재학생' : cat === 'graduate' ? '졸업생' : cat === 'prospect' ? '예비 신입생' : cat === 'company' ? '전담인력' : '';
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>AU 일학습병행 QR 코드 인쇄</title>
+      <style>
+        body { font-family: 'Noto Sans KR', sans-serif; padding: 40px; text-align: center; }
+        .qr-box { border: 2px dashed #2196f3; border-radius: 16px; padding: 30px; max-width: 400px; margin: 0 auto; }
+        h1 { color: #1976d2; font-size: 24px; margin-bottom: 8px; }
+        h2 { color: #2196f3; font-size: 16px; margin-bottom: 20px; }
+        img { width: 280px; height: 280px; }
+        .url { font-size: 11px; color: #5a7090; margin-top: 16px; word-break: break-all; padding: 8px; background: #f4f6fb; border-radius: 6px; }
+        .info { font-size: 13px; color: #4a5568; margin-top: 20px; line-height: 1.7; }
+        @media print { body { padding: 0; } }
+      </style></head><body>
+      <div class="qr-box">
+        <h1>📱 AU 일학습병행 앱</h1>
+        ${catLabel ? `<h2>🎯 ${catLabel}용 가입 QR</h2>` : '<h2>QR 코드를 스캔하세요</h2>'}
+        <img src="${dataUrl}" alt="QR 코드">
+        <div class="info">
+          📷 카메라로 위 QR을 스캔하면<br>
+          앱 설치 페이지로 이동합니다.
+        </div>
+        <div class="url">${url}</div>
+      </div>
+      <script>setTimeout(() => window.print(), 500);<\/script>
+      </body></html>`);
+    w.document.close();
   }
   // 페이지 첫 진입 시 통계 자동 로드
   setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);

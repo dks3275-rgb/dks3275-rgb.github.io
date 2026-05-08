@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>앱 설치 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<script src="inapp-redirect.js"></script>
+<script src="dark-mode.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+  :root {
+    --navy: #1976d2; --blue: #2196f3; --blue-light: #64b5f6;
+    --bg: #f4f6fb; --white: #fff; --text: #1a2a3a; --text2: #5a7090;
+    --border: #e4eaf4; --success: #10b981; --warning: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(180deg,#e3f2fd 0%,var(--bg) 300px); min-height: 100vh; padding-bottom: 80px; color: var(--text); }
+  .hero { padding: 50px 20px 30px; text-align: center; }
+  .hero-emoji { font-size: 72px; margin-bottom: 12px; }
+  .hero-title { font-size: 26px; font-weight: 900; margin-bottom: 6px; }
+  .hero-sub { font-size: 14px; color: var(--text2); }
+  .container { max-width: 480px; margin: 0 auto; padding: 0 20px; }
+  .device-badge { background: white; border-radius: 14px; padding: 14px 18px; box-shadow: 0 2px 10px rgba(33,150,243,0.1); margin-bottom: 18px; display: flex; gap: 12px; align-items: center; border-left: 4px solid var(--blue); }
+  .device-icon { font-size: 32px; }
+  .device-text { flex: 1; }
+  .device-title { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+  .device-desc { font-size: 12px; color: var(--text2); }
+  .install-options { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+  .option-card { background: white; border-radius: 16px; padding: 22px; box-shadow: 0 4px 16px rgba(33,150,243,0.1); border: 2px solid transparent; transition: all 0.2s; }
+  .option-card.recommended { border-color: var(--blue); position: relative; }
+  .option-card.recommended::before { content: '✨ 추천'; position: absolute; top: -10px; left: 16px; background: var(--blue); color: white; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .option-icon { font-size: 36px; margin-bottom: 10px; }
+  .option-title { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+  .option-desc { font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.5; }
+  .option-btn { display: block; background: var(--blue); color: white; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 800; text-decoration: none; text-align: center; cursor: pointer; border: none; width: 100%; font-family: inherit; }
+  .option-btn:hover { background: var(--navy); }
+  .option-btn:active { transform: scale(0.98); }
+  .option-btn.secondary { background: white; color: var(--blue); border: 2px solid var(--blue); }
+  .option-btn.secondary:hover { background: #e3f2fd; }
+  .option-pros { list-style: none; padding: 10px 0 0; font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .option-pros li::before { content: '✓ '; color: var(--success); font-weight: 700; }
+  .option-cons { list-style: none; padding: 6px 0 0; font-size: 11px; color: #b45309; line-height: 1.6; }
+  .option-cons li::before { content: '⚠ '; }
+  .info-box { background: white; border-radius: 12px; padding: 14px 16px; margin-top: 12px; font-size: 13px; color: var(--text2); border-left: 4px solid var(--warning); line-height: 1.6; }
+  .info-box strong { color: var(--text); }
+  .step-list { background: white; border-radius: 12px; padding: 16px 20px; margin-top: 14px; }
+  .step-list-title { font-size: 13px; font-weight: 800; color: var(--navy); margin-bottom: 10px; }
+  .step-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: start; font-size: 13px; }
+  .step-num { background: #e3f2fd; color: var(--blue); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+  .signup-link { display: block; text-align: center; margin-top: 24px; padding: 12px; background: white; border-radius: 12px; color: var(--blue); font-size: 13px; font-weight: 700; text-decoration: none; border: 1.5px solid var(--border); }
+  .signup-link:hover { background: #e3f2fd; }
+  .browser-warning { background: #fef3c7; border: 1.5px solid var(--warning); border-radius: 14px; padding: 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.7; color: #78350f; display: none; }
+  .browser-warning.show { display: block; }
+  .browser-warning strong { color: #92400e; }
+  .copy-btn { display: block; background: #92400e; color: white; padding: 10px 16px; border-radius: 8px; margin-top: 10px; text-align: center; font-weight: 700; cursor: pointer; border: none; width: 100%; font-family: inherit; font-size: 13px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2a3a; color: white; padding: 12px 20px; border-radius: 24px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 10000; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-emoji">📱</div>
+  <h1 class="hero-title">앱 설치 안내</h1>
+  <p class="hero-sub">AU 일학습병행 앱을 시작해보세요</p>
+</div>
+<div class="container">
+
+  <!-- 기기 자동 감지 표시 -->
+  <div class="device-badge" id="deviceBadge">
+    <div class="device-icon" id="deviceIcon">⏳</div>
+    <div class="device-text">
+      <div class="device-title" id="deviceTitle">기기 확인 중...</div>
+      <div class="device-desc" id="deviceDesc">잠시만 기다려주세요</div>
+    </div>
+  </div>
+
+  <!-- 인앱 브라우저 경고 -->
+  <div class="browser-warning" id="browserWarning">
+    <strong>⚠️ 카카오톡·네이버 등에서 열렸어요</strong><br>
+    원활한 설치를 위해 <strong>Chrome 또는 Safari</strong>에서 열어주세요.<br><br>
+    <small>아래 주소를 복사해서 외부 브라우저(Chrome/Safari)에 붙여넣기</small>
+    <button class="copy-btn" onclick="copyUrl()">📋 주소 복사</button>
+  </div>
+
+  <!-- 안드로이드: APK + PWA 옵션 -->
+  <div class="install-options" id="androidOptions" style="display:none;">
+
+    <!-- 옵션 1: APK 다운로드 (추천) -->
+    <div class="option-card recommended">
+      <div class="option-icon">📦</div>
+      <div class="option-title">APK 직접 설치</div>
+      <div class="option-desc">정식 앱처럼 폰에 설치되는 가장 좋은 방법</div>
+      <a class="option-btn" id="apkDownloadBtn" href="apk/AU일학습병행.apk" download>
+        ⬇️ APK 다운로드 (즉시 설치)
+      </a>
+      <ul class="option-pros">
+        <li>일반 앱처럼 작동</li>
+        <li>홈 화면 아이콘 자동 등록</li>
+        <li>알림 안정적 수신</li>
+      </ul>
+      <ul class="option-cons">
+        <li>"출처 불명 앱 허용" 필요</li>
+      </ul>
+    </div>
+
+    <!-- 옵션 2: PWA -->
+    <div class="option-card">
+      <div class="option-icon">🌐</div>
+      <div class="option-title">웹 앱 (PWA)으로 설치</div>
+      <div class="option-desc">브라우저에서 바로 사용, 설정 단순</div>
+      <a class="option-btn secondary" href="index.html">
+        🚀 웹앱으로 시작하기
+      </a>
+      <ul class="option-pros">
+        <li>즉시 사용 가능</li>
+        <li>설정 단순</li>
+      </ul>
+      <ul class="option-cons">
+        <li>홈 화면 추가는 직접 해야 함</li>
+      </ul>
+    </div>
+
+    <!-- APK 설치 안내 -->
+    <div class="step-list" id="apkSteps">
+      <div class="step-list-title">📥 APK 설치 단계</div>
+      <div class="step-row"><div class="step-num">1</div><div>APK 파일 다운로드</div></div>
+      <div class="step-row"><div class="step-num">2</div><div>다운로드 알림 또는 파일 관리자에서 APK 클릭</div></div>
+      <div class="step-row"><div class="step-num">3</div><div><b>"출처 불명 앱 허용"</b> 메시지 → 설정으로 이동 → 허용</div></div>
+      <div class="step-row"><div class="step-num">4</div><div>"설치" 버튼 클릭 → 완료!</div></div>
+      <div class="step-row"><div class="step-num">5</div><div>앱 실행 → 알림 권한 허용 → 가입 진행</div></div>
+    </div>
+  </div>
+
+  <!-- iOS: PWA만 가능 -->
+  <div class="install-options" id="iosOptions" style="display:none;">
+
+    <div class="option-card recommended">
+      <div class="option-icon">🌐</div>
+      <div class="option-title">홈 화면에 추가 (Safari)</div>
+      <div class="option-desc">아이폰은 Safari에서만 설치 가능합니다</div>
+      <a class="option-btn" href="index.html">
+        🚀 시작하기
+      </a>
+      <ul class="option-pros">
+        <li>홈 화면 아이콘으로 일반 앱처럼 사용</li>
+        <li>알림 수신 가능 (iOS 16.4+)</li>
+      </ul>
+    </div>
+
+    <div class="step-list">
+      <div class="step-list-title">📲 iOS 설치 단계 (Safari)</div>
+      <div class="step-row"><div class="step-num">1</div><div>이 페이지를 <b>Safari</b>에서 열기</div></div>
+      <div class="step-row"><div class="step-num">2</div><div>화면 하단 <b>공유 버튼</b> (□↑) 누르기</div></div>
+      <div class="step-row"><div class="step-num">3</div><div>"홈 화면에 추가" 선택</div></div>
+      <div class="step-row"><div class="step-num">4</div><div>"추가" 클릭 → 완료!</div></div>
+    </div>
+  </div>
+
+  <!-- 데스크톱 -->
+  <div class="install-options" id="desktopOptions" style="display:none;">
+    <div class="option-card">
+      <div class="option-icon">💻</div>
+      <div class="option-title">모바일에서 접속해주세요</div>
+      <div class="option-desc">앱은 안드로이드/아이폰에서 사용할 수 있습니다.</div>
+      <div class="info-box">
+        <strong>📱 모바일 폰에서</strong> 다음 주소로 접속하면 앱을 설치할 수 있어요:<br>
+        <code style="background:#fff;padding:6px 10px;border-radius:6px;display:inline-block;margin-top:6px;font-size:12px;">https://dks3275-rgb.github.io/install.html</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- 일반 진입 (이미 설치 등) -->
+  <a href="index.html" class="signup-link" id="continueLink">
+    이미 설치하셨나요? → 메인 화면으로
+  </a>
+
+  <script>
+    // URL 파라미터 → index.html로 자동 전달 (가입 카테고리/출처 추적)
+    (function() {
+      const params = new URLSearchParams(location.search);
+      const cat = params.get('category');
+      const src = params.get('src');
+      if (cat || src) {
+        // localStorage에 저장 (나중에 가입 시 자동 적용)
+        const data = { cat: cat || '', src: src || '', savedAt: Date.now() };
+        try { localStorage.setItem('au_qr_origin', JSON.stringify(data)); } catch(e) {}
+        // continueLink + iOS/Android 시작 버튼에도 파라미터 추가
+        const passParams = [];
+        if (cat) passParams.push('category=' + encodeURIComponent(cat));
+        if (src) passParams.push('src=' + encodeURIComponent(src));
+        const qs = passParams.length ? '?' + passParams.join('&') : '';
+        const link = document.getElementById('continueLink');
+        if (link) link.href = 'index.html' + qs;
+        document.querySelectorAll('a[href="index.html"]').forEach(a => { a.href = 'index.html' + qs; });
+      }
+    })();
+  </script>
+
+</div>
+
+<div class="toast" id="toast">주소가 복사됐어요!</div>
+
+<script>
+  function detectDevice() {
+    const ua = (navigator.userAgent || '').toLowerCase();
+    if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+    if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return 'ios';
+    if (/android/.test(ua)) return 'android';
+    return 'desktop';
+  }
+  function detectBrowser() {
+    const ua = (navigator.userAgent || '').toLowerCase();
+    if (/kakaotalk/.test(ua)) return 'kakao';
+    if (/naver/.test(ua)) return 'naver';
+    if (/instagram/.test(ua)) return 'instagram';
+    if (/fban|fbav/.test(ua)) return 'facebook';
+    if (/line/.test(ua)) return 'line';
+    if (/iphone|ipad/.test(ua) && /safari/.test(ua) && !/crios|fxios|edgios/.test(ua)) return 'safari';
+    if (/android/.test(ua) && /chrome/.test(ua)) return 'chrome';
+    return 'other';
+  }
+  function isStandalone() {
+    return (window.navigator.standalone === true) ||
+           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  }
+
+  const device = detectDevice();
+  const browser = detectBrowser();
+  const deviceBadge = document.getElementById('deviceBadge');
+  const deviceIcon = document.getElementById('deviceIcon');
+  const deviceTitle = document.getElementById('deviceTitle');
+  const deviceDesc = document.getElementById('deviceDesc');
+
+  // 인앱 브라우저 경고
+  const inAppBrowsers = ['kakao', 'naver', 'instagram', 'facebook', 'line'];
+  if (inAppBrowsers.includes(browser)) {
+    document.getElementById('browserWarning').classList.add('show');
+  }
+
+  // 기기별 옵션 표시
+  if (device === 'android') {
+    deviceIcon.textContent = '🤖';
+    deviceTitle.textContent = '안드로이드 폰';
+    deviceDesc.textContent = 'APK 또는 PWA 모두 설치 가능';
+    document.getElementById('androidOptions').style.display = 'flex';
+  } else if (device === 'ios') {
+    deviceIcon.textContent = '🍎';
+    deviceTitle.textContent = '아이폰 / 아이패드';
+    deviceDesc.textContent = 'Safari에서 PWA로 설치';
+    document.getElementById('iosOptions').style.display = 'flex';
+  } else {
+    deviceIcon.textContent = '💻';
+    deviceTitle.textContent = '데스크톱 PC';
+    deviceDesc.textContent = '모바일 접속 권장';
+    document.getElementById('desktopOptions').style.display = 'flex';
+  }
+
+  // 이미 설치된 경우
+  if (isStandalone()) {
+    deviceBadge.style.borderLeftColor = '#10b981';
+    deviceIcon.textContent = '✅';
+    deviceTitle.textContent = '이미 설치되어 있어요';
+    deviceDesc.textContent = '홈 화면 아이콘으로 사용하세요';
+  }
+
+  // APK 다운로드 시 안내
+  const apkBtn = document.getElementById('apkDownloadBtn');
+  if (apkBtn) {
+    apkBtn.addEventListener('click', () => {
+      // 다운로드 시작 후 안내
+      setTimeout(() => {
+        showToast('⬇️ 다운로드 중... 완료 후 알림 영역에서 클릭');
+      }, 500);
+    });
+  }
+
+  function copyUrl() {
+    const url = location.href;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => showToast('📋 주소가 복사됐어요'));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('📋 주소가 복사됐어요');
+    }
+  }
+  window.copyUrl = copyUrl;
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
