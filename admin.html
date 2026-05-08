@@ -2081,6 +2081,7 @@
       let updateData = {
         category: cat,
         updatedAt: new Date().toISOString(),
+        _needsTagSync: true,  // 사용자가 앱 열 때 강제 태그 동기화 트리거
         // 다른 카테고리 필드 초기화
         grade: '', dept: '', graduateYear: '', workplace: '',
         phone: '', school: '', interest: ''
@@ -2111,11 +2112,76 @@
 
       if (!updateData.name) { alert('이름을 입력해주세요!'); return; }
 
+      // 1. Firestore 업데이트
       await updateDoc(doc(db, 'users', deviceId), updateData);
+
+      // 2. OneSignal 즉시 동기화 시도 (사용자가 앱 안 켜도 알림 정상 수신)
+      const member = (allMembers || []).find(m => m.deviceId === deviceId);
+      let syncSuccess = false;
+      if (member?.oneSignalId) {
+        syncSuccess = await syncOneSignalTags(member.oneSignalId, { ...member, ...updateData });
+      }
+
+      // 3. 활동 로그
+      await writeLog('update', 'member', deviceId, `가입자 정보 수정: ${updateData.name} (${cat})`);
+
       closeMemberEdit();
       await loadMembers();
-      alert('✅ 수정 완료!\n학생이 다음에 앱을 열면 자동으로 반영돼요.');
+
+      const msg = syncSuccess
+        ? `✅ 수정 완료!\n🔔 OneSignal 태그 즉시 동기화됨\n해당 사용자는 새 그룹 알림을 즉시 수신합니다.`
+        : `✅ 수정 완료!\n📱 사용자가 다음에 앱을 열면 알림 그룹이 자동 반영돼요.`;
+      alert(msg);
     } catch(e) { alert('❌ 수정 실패: ' + e.message); }
+  }
+
+  // OneSignal 태그를 즉시 강제 업데이트 (관리자 수정 시 호출)
+  // 사용자가 앱을 열지 않아도 새 그룹 알림 수신 가능하게 함
+  async function syncOneSignalTags(oneSignalId, userInfo) {
+    if (!oneSignalId) return false;
+    const APP_ID = '6bed6730-b167-48a8-a98d-83cdcb1cbc10';
+    // 새 태그 구성
+    const tags = {
+      카테고리: userInfo.category || '',
+      이름: userInfo.name || '',
+      // 차단 해제
+      blocked: '',
+      role: '',
+      역할: ''
+    };
+    if (userInfo.category === 'student') {
+      tags['학년'] = userInfo.grade || '';
+      tags['직책'] = '';  // 학생이 됐으면 직책 비우기
+    } else if (userInfo.category === 'company') {
+      tags['직책'] = userInfo.role || '';
+      tags['학년'] = '';  // 전담인력이 됐으면 학년 비우기
+    } else {
+      tags['학년'] = '';
+      tags['직책'] = '';
+    }
+    try {
+      // 무음 알림으로 태그 업데이트 (OneSignal v16: data 알림 + tag 변경 효과)
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: APP_ID,
+          include_aliases: { onesignal_id: [oneSignalId] },
+          target_channel: 'push',
+          contents: { en: ' ', ko: ' ' },
+          headings: { en: ' ', ko: ' ' },
+          content_available: true,  // 무음 데이터 메시지
+          priority: 5,
+          // OneSignal API: 알림과 함께 태그 갱신
+          tags
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      return !!(data.id || data.recipients);
+    } catch(e) {
+      console.warn('OneSignal 태그 동기화 실패:', e);
+      return false;
+    }
   }
 
   // OneSignal에 푸시 알림 전송 차단 (deleted 태그 추가 + 카테고리 태그 제거)
@@ -2207,12 +2273,27 @@
       const db = getFirestore(app);
       await updateDoc(doc(db, 'users', deviceId), {
         deleted: false,
-        deletedAt: null
+        deletedAt: null,
+        _needsTagSync: true  // 사용자가 앱 열면 태그 자동 복원 트리거
       });
-      // 원래 태그로 복원하라고 안내 (사용자가 앱 다시 열 때 자동 복원됨)
+      // OneSignal 태그도 즉시 복원 시도
+      let syncSuccess = false;
+      if (member?.oneSignalId) {
+        // 원래 카테고리/학년으로 복원
+        const restoreInfo = {
+          ...member,
+          category: member._origCategory || member.category,
+          grade: member._origDept || member.grade,
+          role: member._origRole || member.role
+        };
+        syncSuccess = await syncOneSignalTags(member.oneSignalId, restoreInfo);
+      }
       await writeLog('restore', 'member', deviceId, `가입자 복원: ${previewName}`);
       await loadMembers();
-      alert(`✅ ${previewName}님 복원 완료\n⚠️ 사용자가 앱을 다시 열면 알림 태그가 자동 복원됩니다.`);
+      const msg = syncSuccess
+        ? `✅ ${previewName}님 복원 완료\n🔔 OneSignal 태그 즉시 복원됨`
+        : `✅ ${previewName}님 복원 완료\n📱 사용자가 앱을 다시 열면 알림이 자동 복원됩니다.`;
+      alert(msg);
     } catch(e) { alert('❌ 복원 실패: ' + e.message); }
   }
 

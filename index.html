@@ -651,8 +651,10 @@
           if (latest.firm) updated.firm = latest.firm;
           if (latest.role) updated.role = latest.role;
           if (latest.student) updated.student = latest.student;
+          // 관리자 수정 감지 시 강제 태그 동기화
+          const needsForcedSync = latest._needsTagSync === true;
           // 변경사항 있으면 화면 업데이트
-          if (JSON.stringify(updated) !== JSON.stringify(info)) {
+          if (JSON.stringify(updated) !== JSON.stringify(info) || needsForcedSync) {
             localStorage.setItem('userInfo', JSON.stringify(updated));
             updateUserCard(updated);
             applyMenuByCategory(updated.category);
@@ -674,8 +676,18 @@
                 const tagsToRemove = [];
                 if (updated.category !== 'student') tagsToRemove.push('학년');
                 if (updated.category !== 'company') tagsToRemove.push('직책');
+                // 차단 태그 제거 (이전에 휴지통이었다가 복원된 경우)
+                tagsToRemove.push('blocked');
                 if (tagsToRemove.length > 0) {
                   try { await OneSignal.User.removeTags(tagsToRemove); } catch(e) {}
+                }
+                // _needsTagSync 플래그 초기화 (다음 진입 시 또 동기화하지 않게)
+                if (needsForcedSync) {
+                  try {
+                    const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+                    await updateDoc(doc(db, 'users', deviceId), { _needsTagSync: false });
+                    console.log('[Firebase] 🔔 관리자 수정으로 강제 태그 동기화 완료');
+                  } catch(e) { console.warn('플래그 초기화 실패:', e); }
                 }
               } catch(e) {}
             } catch(e) {}
