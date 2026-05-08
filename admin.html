@@ -809,11 +809,36 @@
 
     let filters = null;
     let body = { app_id: APP_ID, headings: { en: title, ko: title }, contents: { en: message, ko: message } };
-    if (selectedGroup === '전체') { body.included_segments = ["Total Subscriptions"]; }
+
+    // 전담인력은 가입자가 적어 태그 미스매치 가능성 높음 → Firestore에서 직접 조회 후 include_aliases 사용
+    if (selectedGroup === 'company') {
+      try {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+        const db = getFirestore(app);
+        const snap = await getDocs(collection(db, 'users'));
+        const targets = snap.docs
+          .map(d => d.data())
+          .filter(u => (u.category === 'company' || u.category === '회사') && !u.deleted && u.oneSignalId)
+          .map(u => u.oneSignalId);
+        if (targets.length === 0) {
+          showResult('❌ 전담인력 가입자가 없거나 알림 미구독 상태입니다.', 'error');
+          sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
+          return;
+        }
+        body.include_aliases = { onesignal_id: targets };
+        body.target_channel = 'push';
+      } catch(e) {
+        showResult('❌ 가입자 조회 실패: ' + e.message, 'error');
+        sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
+        return;
+      }
+    }
+    else if (selectedGroup === '전체') { body.included_segments = ["Total Subscriptions"]; }
     else if (selectedGroup === '재학생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"student"}]; body.filters = filters; }
     else if (selectedGroup === '졸업생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"graduate"}]; body.filters = filters; }
     else if (selectedGroup === '예비 신입생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"prospect"}]; body.filters = filters; }
-    else if (selectedGroup === 'company') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"company"},{operator:"OR"},{field:"tag",key:"카테고리",relation:"=",value:"회사"}]; body.filters = filters; }
     else { filters = [{ field: "tag", key: "학년", relation: "=", value: selectedGroup }]; body.filters = filters; }
 
     try {
@@ -851,8 +876,59 @@
     sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
   }
   function showResult(msg, type) { const box = document.getElementById('resultBox'); box.textContent = msg; box.className = 'result-box ' + type; setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 5000); }
-  function addHistory(group, title, message, scheduleVal) { const now = new Date().toLocaleString('ko-KR'); const scheduled = scheduleVal ? new Date(scheduleVal).toLocaleString('ko-KR') : null; sendHistory.unshift({ group, title, message, time: now, scheduled }); if (sendHistory.length > 20) sendHistory.pop(); localStorage.setItem('sendHistory', JSON.stringify(sendHistory)); renderHistory(); }
-  function renderHistory() { const list = document.getElementById('historyList'); if (sendHistory.length === 0) { list.innerHTML = '<div class="empty-history">아직 발송 기록이 없어요</div>'; return; } list.innerHTML = sendHistory.map(h => '<div class="history-item"><div class="time">' + h.time + (h.scheduled ? ' · <span style="color:#805ad5">⏰ ' + h.scheduled + ' 예약</span>' : '') + '</div><span class="group-tag">' + (h.group === '전체' ? '전체' : h.group) + '</span><div style="font-weight:500;margin-top:4px;">' + h.title + '</div><div style="color:#4a5568;margin-top:2px;">' + h.message + '</div></div>').join(''); }
+  function addHistory(group, title, message, scheduleVal) {
+    const now = new Date().toLocaleString('ko-KR');
+    const scheduled = scheduleVal ? new Date(scheduleVal).toLocaleString('ko-KR') : null;
+    // 고유 ID로 식별
+    const id = 'h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    sendHistory.unshift({ id, group, title, message, time: now, scheduled });
+    if (sendHistory.length > 50) sendHistory.pop();
+    localStorage.setItem('sendHistory', JSON.stringify(sendHistory));
+    renderHistory();
+  }
+  function deleteHistoryItem(id) {
+    sendHistory = sendHistory.filter(h => h.id !== id);
+    localStorage.setItem('sendHistory', JSON.stringify(sendHistory));
+    renderHistory();
+  }
+  async function clearAllHistory() {
+    if (sendHistory.length === 0) return;
+    if (!await customConfirm({
+      title: '발송 기록 전체 삭제',
+      message: `발송 기록 <b>${sendHistory.length}건</b>을 모두 삭제할까요?<br>(실제 발송된 알림은 영향 없습니다)`,
+      confirmText: '🗑️ 전체 삭제',
+      danger: true
+    })) return;
+    sendHistory = [];
+    localStorage.setItem('sendHistory', '[]');
+    renderHistory();
+  }
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    if (sendHistory.length === 0) {
+      list.innerHTML = '<div class="empty-history">아직 발송 기록이 없어요</div>';
+      return;
+    }
+    // 기록 ID 부여 (이전에 저장된 데이터 호환)
+    sendHistory.forEach(h => { if (!h.id) h.id = 'h_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); });
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:13px;color:#5a7090;">총 ${sendHistory.length}건</span>
+      <button class="delete-btn" onclick="clearAllHistory()" style="font-size:11px;padding:5px 10px;">🗑️ 전체 삭제</button>
+    </div>`;
+    html += sendHistory.map(h => {
+      const safeTitle = (h.title || '').replace(/</g, '&lt;');
+      const safeMsg = (h.message || '').replace(/</g, '&lt;');
+      return `<div class="history-item" style="position:relative;">
+        <div class="time">${h.time}${h.scheduled ? ' · <span style="color:#805ad5">⏰ ' + h.scheduled + ' 예약</span>' : ''}</div>
+        <span class="group-tag">${h.group === '전체' ? '전체' : h.group}</span>
+        <div style="font-weight:500;margin-top:4px;padding-right:36px;">${safeTitle}</div>
+        <div style="color:#4a5568;margin-top:2px;padding-right:36px;">${safeMsg}</div>
+        <button onclick="deleteHistoryItem('${h.id}')" title="이 기록 삭제"
+          style="position:absolute;top:8px;right:8px;background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;">🗑️</button>
+      </div>`;
+    }).join('');
+    list.innerHTML = html;
+  }
   renderHistory();
 
   // ── 공지사항 ──
