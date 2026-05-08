@@ -623,12 +623,12 @@
   <div class="container">
     <div class="card">
       <div class="card-title">📚 자료 등록</div>
-      <div style="background:#d1fae5;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#065f46;line-height:1.6;">
-        ✨ <strong>업로드 방법 (자동)</strong><br>
-        1. 파일 선택 → <strong>자동으로 클라우드에 업로드</strong> (10MB 이하)<br>
-        2. 제목·카테고리 입력 후 등록!<br>
-        <small style="color:#065f46;opacity:0.8;">
-          ※ 큰 파일(10MB 초과)이거나 직접 URL 사용 시 아래 "수동 URL 입력" 활용
+      <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0d47a1;line-height:1.6;">
+        📌 <strong>파일 종류별 업로드 방법</strong><br>
+        🖼️ <b>이미지(JPG/PNG)</b>: 파일 선택 → 자동 업로드 (즉시 완료)<br>
+        📄 <b>PDF/HWP/Excel/Word/ZIP</b>: GitHub 저장소 → <code>files/</code> 폴더 업로드 → Raw URL 복사<br>
+        <small style="color:#1976d2;opacity:0.85;">
+          ※ Cloudinary 무료 플랜은 이미지만 안전하게 처리되어, 나머지 파일은 GitHub 방식 권장
         </small>
       </div>
       <div class="form-group">
@@ -675,23 +675,21 @@
         <input type="text" class="form-input" id="libDesc" placeholder="간단한 설명을 입력해주세요" />
       </div>
       <div class="form-group">
-        <label class="form-label">📎 파일 선택 <span style="font-weight:400;color:#10b981;font-size:12px;">(자동 업로드)</span></label>
+        <label class="form-label">📎 파일 선택 <span style="font-weight:400;color:#718096;font-size:12px;">(이미지는 자동 업로드, 나머지는 메타 자동 입력)</span></label>
         <input type="file" id="libFilePicker" class="form-input" style="padding:10px 12px;cursor:pointer;" onchange="autofillLibFields(this)" accept=".pdf,.hwp,.hwpx,.xls,.xlsx,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.zip" />
-        <div style="font-size:12px;color:#718096;margin-top:6px;">📌 파일을 선택하면 <strong style="color:#10b981">자동으로 업로드</strong>됩니다. 업로드 완료 후 등록 버튼을 눌러주세요.</div>
+        <div style="font-size:12px;color:#718096;margin-top:6px;">
+          🖼️ 이미지는 자동 업로드 완료 후 URL이 채워져요.<br>
+          📄 PDF/HWP/Excel 등은 파일명·종류만 자동 입력되며, 아래 GitHub URL을 복사해서 붙여넣기 해주세요.
+        </div>
         <div id="libUploadProgress" style="margin-top:8px;"></div>
       </div>
-      <details style="margin-bottom:14px;">
-        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:#5a7090;padding:8px 12px;background:#f4f6fb;border-radius:8px;">
-          🔧 수동 URL 입력 (대용량/외부 파일용)
-        </summary>
-        <div class="form-group" style="margin-top:10px;">
-          <label class="form-label">파일 URL</label>
-          <input type="url" class="form-input" id="libFileUrl" placeholder="https://... (직접 URL 입력 시)" />
-          <div style="font-size:12px;color:#718096;margin-top:6px;">
-            10MB 초과 파일이거나 외부 URL 사용 시 직접 입력하세요. (자동 업로드 시 비워두세요)
-          </div>
+      <div class="form-group">
+        <label class="form-label">파일 URL <span style="color:#dc3545;font-size:12px;">(필수)</span></label>
+        <input type="url" class="form-input" id="libFileUrl" placeholder="https://raw.githubusercontent.com/... 또는 자동 업로드 URL" />
+        <div style="font-size:12px;color:#718096;margin-top:6px;">
+          📌 <b>PDF/HWP/Excel 파일</b>은 GitHub <code>files/</code> 폴더에 업로드 → 파일 클릭 → <strong>Raw 버튼</strong> → URL 복사 → 여기 붙여넣기
         </div>
-      </details>
+      </div>
       <div class="form-group">
         <label class="form-label">파일명</label>
         <input type="text" class="form-input" id="libFileName" placeholder="예: 학습안내서_2026.pdf" />
@@ -2068,7 +2066,7 @@
   }
   function cancelLibUpload() { if (libUploadXhr) libUploadXhr.abort(); }
 
-  // ── 파일 선택 시 자동 업로드 + 메타 자동 입력 ──
+  // ── 파일 선택 시 메타 자동 입력 + 이미지만 자동 업로드 ──
   async function autofillLibFields(input) {
     const file = input.files && input.files[0];
     if (!file) {
@@ -2081,41 +2079,54 @@
     const fileNameEl = document.getElementById('libFileName');
     const fileTypeEl = document.getElementById('libFileType');
     if (fileNameEl) fileNameEl.value = file.name;
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const extMap = {
+      pdf: 'application/pdf',
+      hwp: 'application/hwp', hwpx: 'application/hwp',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      png: 'image/png'
+    };
     if (fileTypeEl) {
-      const ext = (file.name.split('.').pop() || '').toLowerCase();
-      const extMap = {
-        pdf: 'application/pdf',
-        hwp: 'application/hwp', hwpx: 'application/hwp',
-        xls: 'application/vnd.ms-excel',
-        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        doc: 'application/msword',
-        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        jpg: 'image/jpeg', jpeg: 'image/jpeg',
-        png: 'image/png'
-      };
       const guessed = extMap[ext] || file.type || 'other';
       const options = Array.from(fileTypeEl.options).map(o => o.value);
       fileTypeEl.value = options.includes(guessed) ? guessed : 'other';
     }
 
-    // 10MB 초과 시 자동 업로드 안 함 (수동 URL 사용 안내)
+    // 이미지 파일만 자동 업로드 (PDF/HWP 등은 GitHub URL 사용 안내)
+    const isImage = ['jpg', 'jpeg', 'png'].includes(ext) || file.type.startsWith('image/');
+    if (!isImage) {
+      libUploadedUrl = '';
+      document.getElementById('libUploadProgress').innerHTML =
+        `<div style="background:#e3f2fd;border-left:4px solid #2196f3;padding:10px 12px;border-radius:6px;font-size:12px;color:#0d47a1;line-height:1.6;">
+          📄 <b>${file.name}</b> (${(file.size/1024).toFixed(0)} KB)<br>
+          🔗 이 파일은 GitHub 저장소에 업로드 후 Raw URL을 아래 입력란에 붙여넣어 주세요.<br>
+          <small style="opacity:0.8;">파일명·종류는 자동으로 입력되었습니다.</small>
+        </div>`;
+      return;
+    }
+
+    // 이미지 10MB 초과 시 안내
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       libUploadedUrl = '';
       document.getElementById('libUploadProgress').innerHTML =
         `<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px 12px;border-radius:6px;font-size:12px;color:#92400e;">
-          ⚠️ 파일이 너무 큽니다 (${(file.size/1024/1024).toFixed(1)}MB / 최대 10MB)<br>
-          "수동 URL 입력"을 사용해주세요. (외부 호스팅에 업로드 후 URL 입력)
+          ⚠️ 이미지 파일이 너무 큽니다 (${(file.size/1024/1024).toFixed(1)}MB / 최대 10MB)<br>
+          이미지를 압축하거나 GitHub URL 방식을 사용해주세요.
         </div>`;
       return;
     }
 
-    // 자동 업로드 시작
+    // 이미지 자동 업로드 시작
     const progress = document.getElementById('libUploadProgress');
     progress.innerHTML =
       `<div class="up-bar-wrap" style="background:#e3f2fd;border-radius:10px;padding:10px 14px;">
         <div class="up-bar-label" style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:#1565c0;margin-bottom:6px;">
-          <span>📤 자동 업로드 중... (${(file.size/1024).toFixed(0)} KB)</span>
+          <span>🖼️ 이미지 자동 업로드 중... (${(file.size/1024).toFixed(0)} KB)</span>
           <span id="libUpPct">0%</span>
         </div>
         <div class="up-bar-track" style="background:#bbdefb;height:6px;border-radius:3px;overflow:hidden;">
@@ -2135,19 +2146,17 @@
         if (pctEl) pctEl.textContent = pct + '%';
       });
       libUploadedUrl = url;
-      // 수동 URL 입력란도 자동 업로드 URL로 채움 (사용자 인지)
       document.getElementById('libFileUrl').value = url;
       progress.innerHTML =
         `<div style="background:#d1fae5;border-left:4px solid #10b981;padding:10px 12px;border-radius:6px;font-size:12px;color:#065f46;">
-          ✅ 업로드 완료! 이제 "📚 자료 등록" 버튼을 눌러주세요.
-          <div style="font-size:10px;margin-top:4px;word-break:break-all;opacity:0.8;">${url}</div>
+          ✅ 이미지 업로드 완료! "📚 자료 등록" 버튼을 눌러주세요.
         </div>`;
     } catch(err) {
       libUploadedUrl = '';
       progress.innerHTML =
         `<div style="background:#fee2e2;border-left:4px solid #dc3545;padding:10px 12px;border-radius:6px;font-size:12px;color:#991b1b;">
-          ❌ 업로드 실패: ${err.message}<br>
-          <small>"수동 URL 입력"을 펼쳐서 직접 URL을 입력해주세요.</small>
+          ❌ 이미지 업로드 실패: ${err.message}<br>
+          <small>GitHub URL 방식으로 업로드해주세요.</small>
         </div>`;
     }
   }
