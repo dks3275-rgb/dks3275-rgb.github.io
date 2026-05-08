@@ -282,33 +282,56 @@
     <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
   </div>
 </div>
-<!-- 홈화면 추가 팝업 -->
+<!-- 앱 설치 팝업 (APK + PWA) -->
 <div class="install-overlay" id="installOverlay">
   <div class="install-box">
     <div class="install-icon">📱</div>
-    <div class="install-title">앱으로 설치하세요!</div>
-    <div class="install-sub" id="installSub">홈화면에 아이콘을 추가하면<br>알림 수신과 앱 사용이 편해져요</div>
-    <div class="install-steps" id="installStepsIOS" style="display:none;">
-      <div class="install-step"><div class="install-step-num">1</div><div class="install-step-text">하단 <span class="install-icon-inline">⬆️ 공유</span> 버튼을 눌러주세요</div></div>
-      <div class="install-step"><div class="install-step-num">2</div><div class="install-step-text"><span class="hl">'홈 화면에 추가'</span>를 선택해주세요</div></div>
-      <div class="install-step"><div class="install-step-num">3</div><div class="install-step-text">오른쪽 위 <span class="hl">'추가'</span> 버튼을 눌러주세요</div></div>
+    <div class="install-title">앱을 설치하세요!</div>
+    <div class="install-sub" id="installSub">간편하게 설치하고 알림 받아보세요</div>
+
+    <!-- 안드로이드: APK 옵션 (추천) -->
+    <div id="installAndroidApk" style="display:none;">
+      <a href="apk/AU일학습병행.apk" download
+         style="display:block;background:linear-gradient(135deg,#10b981,#059669);color:white;padding:16px 18px;border-radius:14px;text-decoration:none;margin-bottom:10px;text-align:center;position:relative;box-shadow:0 4px 16px rgba(16,185,129,0.3);">
+        <span style="position:absolute;top:-8px;left:14px;background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;">⭐ 추천</span>
+        <div style="font-size:24px;margin-bottom:4px;">📦</div>
+        <div style="font-size:15px;font-weight:800;">APK 직접 설치 (1초)</div>
+        <div style="font-size:11px;opacity:0.9;margin-top:2px;">정식 앱처럼 폰에 깔려요</div>
+      </a>
+      <div style="text-align:center;font-size:11px;color:#5a7090;margin:8px 0;">또는</div>
     </div>
+
+    <!-- 안드로이드: PWA 옵션 -->
     <div class="install-steps" id="installStepsAndroid" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:#1976d2;margin-bottom:8px;">🌐 웹앱으로 설치 (홈 화면 추가)</div>
       <div class="install-step"><div class="install-step-num">1</div><div class="install-step-text">오른쪽 위 <span class="install-icon-inline">⋮</span> 메뉴를 눌러주세요</div></div>
       <div class="install-step"><div class="install-step-num">2</div><div class="install-step-text"><span class="hl">'홈 화면에 추가'</span> 또는 <span class="hl">'앱 설치'</span>를 선택해주세요</div></div>
       <div class="install-step"><div class="install-step-num">3</div><div class="install-step-text"><span class="hl">'추가'</span> 또는 <span class="hl">'설치'</span> 버튼을 눌러주세요</div></div>
     </div>
+
+    <!-- iOS: PWA 옵션만 (APK 불가) -->
+    <div class="install-steps" id="installStepsIOS" style="display:none;">
+      <div style="font-size:12px;font-weight:700;color:#1976d2;margin-bottom:8px;">🌐 Safari에서 홈 화면에 추가</div>
+      <div class="install-step"><div class="install-step-num">1</div><div class="install-step-text">하단 <span class="install-icon-inline">⬆️ 공유</span> 버튼을 눌러주세요</div></div>
+      <div class="install-step"><div class="install-step-num">2</div><div class="install-step-text"><span class="hl">'홈 화면에 추가'</span>를 선택해주세요</div></div>
+      <div class="install-step"><div class="install-step-num">3</div><div class="install-step-text">오른쪽 위 <span class="hl">'추가'</span> 버튼을 눌러주세요</div></div>
+    </div>
+
     <div class="install-tip" id="installTipIOS" style="display:none;">
       <strong>⚠️ 반드시 Safari(사파리)로 접속해주세요!</strong><br>
       크롬·네이버 등 다른 브라우저에서는 <strong>홈화면 추가와 알림이 작동하지 않아요.</strong>
     </div>
     <div class="install-tip" id="installTipAndroid" style="display:none;">
-      <strong>⚠️ 반드시 Chrome(크롬)으로 접속해주세요!</strong><br>
-      삼성인터넷·네이버 등 다른 브라우저에서는 <strong>기능이 제대로 작동하지 않을 수 있어요.</strong>
+      💡 <strong>APK 설치 시</strong>: "출처 불명 앱 허용" 메시지가 뜨면 허용해주세요. 안전한 학교 공식 앱입니다.
     </div>
+
+    <a href="install.html" style="display:block;text-align:center;font-size:12px;color:#1976d2;margin-top:12px;text-decoration:none;font-weight:600;">
+      🛠️ 자세한 설치 가이드 보기 →
+    </a>
+
     <div class="install-btns">
       <button class="install-btn-main" onclick="closeInstallGuide()">알겠어요!</button>
-      <button class="install-btn-skip" onclick="dismissInstallGuide()">다시 보지 않기</button>
+      <button class="install-btn-skip" onclick="dismissInstallGuide()">7일간 안 보기</button>
     </div>
   </div>
 </div>
@@ -833,22 +856,36 @@
   }
   function checkAndShowInstallGuide(forceShow = false) {
     if (isStandalone()) return;
-    if (!forceShow && localStorage.getItem('installGuideDismissed') === 'true') return;
+    // 옛 영구 차단 키 → 7일 차단으로 마이그레이션 (한 번만 실행)
+    if (localStorage.getItem('installGuideDismissed') === 'true') {
+      localStorage.removeItem('installGuideDismissed');
+      // 마이그레이션: 옛날에 차단했어도 한 번 다시 보여주기
+    }
+    // 7일 임시 차단 체크 (영구 X)
+    const dismissedAt = parseInt(localStorage.getItem('installGuideDismissedAt') || '0');
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    if (!forceShow && dismissedAt && (Date.now() - dismissedAt < SEVEN_DAYS)) return;
     const device = detectDevice();
     const overlay = document.getElementById('installOverlay');
     const stepsIOS = document.getElementById('installStepsIOS');
     const stepsAndroid = document.getElementById('installStepsAndroid');
+    const apkSection = document.getElementById('installAndroidApk');
     const tipIOS = document.getElementById('installTipIOS');
     const tipAndroid = document.getElementById('installTipAndroid');
     const subText = document.getElementById('installSub');
+    // 모든 섹션 일단 숨김
     stepsIOS.style.display = 'none'; stepsAndroid.style.display = 'none';
     tipIOS.style.display = 'none'; if(tipAndroid) tipAndroid.style.display = 'none';
+    if (apkSection) apkSection.style.display = 'none';
     if (device === 'ios') {
       stepsIOS.style.display = 'block'; tipIOS.style.display = 'block';
-      subText.innerHTML = '홈화면에 아이콘을 추가하면<br><strong style="color:#1976d2">알림 수신</strong>과 앱 사용이 편해져요';
+      subText.innerHTML = '홈 화면에 추가하면<br><strong style="color:#1976d2">정식 앱처럼</strong> 사용할 수 있어요';
     } else if (device === 'android') {
-      stepsAndroid.style.display = 'block'; if(tipAndroid) tipAndroid.style.display = 'block';
-      subText.innerHTML = '홈화면에 아이콘을 추가하면<br>앱처럼 편리하게 사용할 수 있어요';
+      // 안드로이드: APK 추천 + PWA 옵션
+      if (apkSection) apkSection.style.display = 'block';
+      stepsAndroid.style.display = 'block';
+      if(tipAndroid) tipAndroid.style.display = 'block';
+      subText.innerHTML = '<b style="color:#10b981">📦 APK 직접 설치</b> 또는 홈 화면 추가';
     } else {
       if (!forceShow) return;
       stepsIOS.style.display = 'block';
@@ -863,7 +900,7 @@
   }
   function closeInstallGuide() { document.getElementById('installOverlay').classList.remove('show'); }
   function dismissInstallGuide() {
-    localStorage.setItem('installGuideDismissed', 'true');
+    localStorage.setItem('installGuideDismissedAt', String(Date.now()));
     document.getElementById('installOverlay').classList.remove('show');
   }
 
