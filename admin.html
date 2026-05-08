@@ -623,11 +623,13 @@
   <div class="container">
     <div class="card">
       <div class="card-title">📚 자료 등록</div>
-      <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#1565c0;line-height:1.6;">
-        📌 <strong>파일 업로드 방법</strong><br>
-        1. GitHub 저장소 → <code>files/</code> 폴더에 파일 업로드<br>
-        2. 파일 클릭 → <strong>Raw 버튼</strong> 클릭 → URL 복사<br>
-        3. 아래 URL 입력란에 붙여넣기
+      <div style="background:#d1fae5;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#065f46;line-height:1.6;">
+        ✨ <strong>업로드 방법 (자동)</strong><br>
+        1. 파일 선택 → <strong>자동으로 클라우드에 업로드</strong> (10MB 이하)<br>
+        2. 제목·카테고리 입력 후 등록!<br>
+        <small style="color:#065f46;opacity:0.8;">
+          ※ 큰 파일(10MB 초과)이거나 직접 URL 사용 시 아래 "수동 URL 입력" 활용
+        </small>
       </div>
       <div class="form-group">
         <label class="form-label">대상</label>
@@ -673,15 +675,23 @@
         <input type="text" class="form-input" id="libDesc" placeholder="간단한 설명을 입력해주세요" />
       </div>
       <div class="form-group">
-        <label class="form-label">파일 선택 <span style="font-weight:400;color:#718096;font-size:12px;">(파일명·종류 자동 입력)</span></label>
+        <label class="form-label">📎 파일 선택 <span style="font-weight:400;color:#10b981;font-size:12px;">(자동 업로드)</span></label>
         <input type="file" id="libFilePicker" class="form-input" style="padding:10px 12px;cursor:pointer;" onchange="autofillLibFields(this)" accept=".pdf,.hwp,.hwpx,.xls,.xlsx,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.zip" />
-        <div style="font-size:12px;color:#718096;margin-top:6px;">💡 GitHub에 올린 그 파일을 여기서도 선택하면 아래 <strong>파일명·파일 종류가 자동으로 채워집니다</strong>. (업로드는 안 되며 입력 편의용입니다.)</div>
+        <div style="font-size:12px;color:#718096;margin-top:6px;">📌 파일을 선택하면 <strong style="color:#10b981">자동으로 업로드</strong>됩니다. 업로드 완료 후 등록 버튼을 눌러주세요.</div>
+        <div id="libUploadProgress" style="margin-top:8px;"></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">파일 URL (GitHub Raw URL)</label>
-        <input type="url" class="form-input" id="libFileUrl" placeholder="https://raw.githubusercontent.com/..." />
-        <div style="font-size:12px;color:#718096;margin-top:6px;">GitHub → files/ 폴더 → 파일 클릭 → Raw 버튼 → URL 복사</div>
-      </div>
+      <details style="margin-bottom:14px;">
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:#5a7090;padding:8px 12px;background:#f4f6fb;border-radius:8px;">
+          🔧 수동 URL 입력 (대용량/외부 파일용)
+        </summary>
+        <div class="form-group" style="margin-top:10px;">
+          <label class="form-label">파일 URL</label>
+          <input type="url" class="form-input" id="libFileUrl" placeholder="https://... (직접 URL 입력 시)" />
+          <div style="font-size:12px;color:#718096;margin-top:6px;">
+            10MB 초과 파일이거나 외부 URL 사용 시 직접 입력하세요. (자동 업로드 시 비워두세요)
+          </div>
+        </div>
+      </details>
       <div class="form-group">
         <label class="form-label">파일명</label>
         <input type="text" class="form-input" id="libFileName" placeholder="예: 학습안내서_2026.pdf" />
@@ -2018,28 +2028,128 @@
     else studentCat.style.display = 'block';
   }
 
-  // ── 파일 선택 시 파일명/파일종류 자동 입력 (업로드는 안 함) ──
-  function autofillLibFields(input) {
+  // ── 자료실 자동 업로드 (Cloudinary auto endpoint) ──
+  // 모든 파일 형식 지원: 이미지, PDF, HWP, Excel, Word, ZIP 등
+  let libUploadedUrl = ''; // 자동 업로드된 URL 저장
+  let libUploadXhr = null;
+
+  function uploadLibraryFile(file, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      libUploadXhr = xhr;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_LIBRARY_PRESET);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && typeof onProgress === 'function') onProgress(e.loaded / e.total);
+      };
+      xhr.onload = () => {
+        libUploadXhr = null;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            resolve(res.secure_url);
+          } catch(err) { reject(new Error('응답 파싱 실패')); }
+        } else {
+          let errMsg = '업로드 실패 (HTTP ' + xhr.status + ')';
+          try {
+            const err = JSON.parse(xhr.responseText);
+            if (err.error?.message) errMsg = err.error.message;
+          } catch(e) {}
+          reject(new Error(errMsg));
+        }
+      };
+      xhr.onerror = () => { libUploadXhr = null; reject(new Error('네트워크 오류')); };
+      xhr.onabort = () => { libUploadXhr = null; reject(new Error('업로드 취소됨')); };
+      // /auto/upload 사용 - 이미지/PDF/HWP/Excel 등 모든 파일 지원
+      xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/auto/upload');
+      xhr.send(formData);
+    });
+  }
+  function cancelLibUpload() { if (libUploadXhr) libUploadXhr.abort(); }
+
+  // ── 파일 선택 시 자동 업로드 + 메타 자동 입력 ──
+  async function autofillLibFields(input) {
     const file = input.files && input.files[0];
-    if (!file) return;
+    if (!file) {
+      libUploadedUrl = '';
+      document.getElementById('libUploadProgress').innerHTML = '';
+      return;
+    }
+
+    // 파일명/타입 자동 입력
     const fileNameEl = document.getElementById('libFileName');
     const fileTypeEl = document.getElementById('libFileType');
     if (fileNameEl) fileNameEl.value = file.name;
-    if (!fileTypeEl) return;
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    const extMap = {
-      pdf: 'application/pdf',
-      hwp: 'application/hwp', hwpx: 'application/hwp',
-      xls: 'application/vnd.ms-excel',
-      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      doc: 'application/msword',
-      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      jpg: 'image/jpeg', jpeg: 'image/jpeg',
-      png: 'image/png'
-    };
-    const guessed = extMap[ext] || file.type || 'other';
-    const options = Array.from(fileTypeEl.options).map(o => o.value);
-    fileTypeEl.value = options.includes(guessed) ? guessed : 'other';
+    if (fileTypeEl) {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const extMap = {
+        pdf: 'application/pdf',
+        hwp: 'application/hwp', hwpx: 'application/hwp',
+        xls: 'application/vnd.ms-excel',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        doc: 'application/msword',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        jpg: 'image/jpeg', jpeg: 'image/jpeg',
+        png: 'image/png'
+      };
+      const guessed = extMap[ext] || file.type || 'other';
+      const options = Array.from(fileTypeEl.options).map(o => o.value);
+      fileTypeEl.value = options.includes(guessed) ? guessed : 'other';
+    }
+
+    // 10MB 초과 시 자동 업로드 안 함 (수동 URL 사용 안내)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      libUploadedUrl = '';
+      document.getElementById('libUploadProgress').innerHTML =
+        `<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px 12px;border-radius:6px;font-size:12px;color:#92400e;">
+          ⚠️ 파일이 너무 큽니다 (${(file.size/1024/1024).toFixed(1)}MB / 최대 10MB)<br>
+          "수동 URL 입력"을 사용해주세요. (외부 호스팅에 업로드 후 URL 입력)
+        </div>`;
+      return;
+    }
+
+    // 자동 업로드 시작
+    const progress = document.getElementById('libUploadProgress');
+    progress.innerHTML =
+      `<div class="up-bar-wrap" style="background:#e3f2fd;border-radius:10px;padding:10px 14px;">
+        <div class="up-bar-label" style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:#1565c0;margin-bottom:6px;">
+          <span>📤 자동 업로드 중... (${(file.size/1024).toFixed(0)} KB)</span>
+          <span id="libUpPct">0%</span>
+        </div>
+        <div class="up-bar-track" style="background:#bbdefb;height:6px;border-radius:3px;overflow:hidden;">
+          <div class="up-bar-fill" id="libUpFill" style="width:0%;height:100%;background:linear-gradient(90deg,#2196f3,#1976d2);transition:width 0.2s;"></div>
+        </div>
+        <div style="text-align:center;margin-top:8px;">
+          <button type="button" onclick="cancelLibUpload()" style="background:white;border:1.5px solid #ef4444;color:#ef4444;padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">✕ 취소</button>
+        </div>
+      </div>`;
+
+    try {
+      const url = await uploadLibraryFile(file, (ratio) => {
+        const pct = Math.round(ratio * 100);
+        const fill = document.getElementById('libUpFill');
+        const pctEl = document.getElementById('libUpPct');
+        if (fill) fill.style.width = pct + '%';
+        if (pctEl) pctEl.textContent = pct + '%';
+      });
+      libUploadedUrl = url;
+      // 수동 URL 입력란도 자동 업로드 URL로 채움 (사용자 인지)
+      document.getElementById('libFileUrl').value = url;
+      progress.innerHTML =
+        `<div style="background:#d1fae5;border-left:4px solid #10b981;padding:10px 12px;border-radius:6px;font-size:12px;color:#065f46;">
+          ✅ 업로드 완료! 이제 "📚 자료 등록" 버튼을 눌러주세요.
+          <div style="font-size:10px;margin-top:4px;word-break:break-all;opacity:0.8;">${url}</div>
+        </div>`;
+    } catch(err) {
+      libUploadedUrl = '';
+      progress.innerHTML =
+        `<div style="background:#fee2e2;border-left:4px solid #dc3545;padding:10px 12px;border-radius:6px;font-size:12px;color:#991b1b;">
+          ❌ 업로드 실패: ${err.message}<br>
+          <small>"수동 URL 입력"을 펼쳐서 직접 URL을 입력해주세요.</small>
+        </div>`;
+    }
   }
 
   async function submitLibrary() {
@@ -2050,13 +2160,15 @@
                    : target === 'prospect' ? '자료'
                    : target === 'graduate' ? '자료'
                    : document.getElementById('libCategoryStudent').value;
-    const fileUrl = document.getElementById('libFileUrl').value.trim();
+    // 자동 업로드 URL이 있으면 우선, 없으면 수동 입력
+    const manualUrl = document.getElementById('libFileUrl').value.trim();
+    const fileUrl = libUploadedUrl || manualUrl;
     const fileName = document.getElementById('libFileName').value.trim();
     const fileType = document.getElementById('libFileType').value;
     const btn = document.getElementById('libSubmitBtn');
 
     if (!title) { showLibResult('제목을 입력해주세요!', 'error'); return; }
-    if (!fileUrl) { showLibResult('파일 URL을 입력해주세요!', 'error'); return; }
+    if (!fileUrl) { showLibResult('파일을 선택하거나 URL을 입력해주세요!', 'error'); return; }
     if (!fileName) { showLibResult('파일명을 입력해주세요!', 'error'); return; }
 
     btn.disabled = true; btn.textContent = '등록 중...';
@@ -2065,20 +2177,26 @@
       const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
       const db = getFirestore(app);
+      const resourceType = libUploadedUrl ? 'cloudinary' : 'manual';
       await addDoc(collection(db, 'library'), {
         title, desc, target, category,
         fileUrl, fileName, fileType,
-        resourceType: 'github',
+        resourceType,
         createdAt: serverTimestamp(),
         updatedAt: new Date().toISOString()
       });
+      await writeLog('create', 'library', null, `자료 등록: ${title} (${target}/${category})`);
       showLibResult('✅ 자료가 등록됐어요!', 'success');
+      // 폼 초기화
       document.getElementById('libTitle').value = '';
       document.getElementById('libDesc').value = '';
       document.getElementById('libFileUrl').value = '';
       document.getElementById('libFileName').value = '';
+      libUploadedUrl = '';
       const picker = document.getElementById('libFilePicker');
       if (picker) picker.value = '';
+      const progress = document.getElementById('libUploadProgress');
+      if (progress) progress.innerHTML = '';
       loadLibrary();
     } catch(e) { showLibResult('❌ 오류: ' + e.message, 'error'); }
     btn.disabled = false; btn.textContent = '📚 자료 등록';
