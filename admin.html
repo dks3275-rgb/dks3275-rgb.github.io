@@ -343,6 +343,15 @@
 <!-- 통계 대시보드 탭 -->
 <div class="tab-content active" id="tab-stats">
   <div class="container">
+    <div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-left:4px solid #f59e0b;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#92400e;">🔐 관리자 권한 상태</div>
+          <div id="adminRoleStatus" style="font-size:12px;color:#78350f;margin-top:4px;">확인 중...</div>
+        </div>
+        <button class="refresh-btn" onclick="refreshAdminRole()" style="background:#f59e0b;color:white;">🔄 권한 새로고침</button>
+      </div>
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <div class="card-title" style="margin:0;">📊 통계 대시보드</div>
@@ -1503,6 +1512,89 @@
   }
 
   // ═══════════════════════════════════════════
+  // ── 관리자 권한 상태 확인 + 새로고침 ──
+  // ═══════════════════════════════════════════
+  async function checkAdminRoleStatus() {
+    const statusEl = document.getElementById('adminRoleStatus');
+    if (!statusEl) return;
+    try {
+      // OneSignal SDK가 로드된 경우 태그 직접 확인
+      if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            const tags = await OneSignal.User.getTags();
+            const isAdmin = tags && (tags.role === 'admin' || tags['역할'] === '관리자');
+            const subscribed = OneSignal.User.PushSubscription.optedIn;
+            if (isAdmin && subscribed) {
+              statusEl.innerHTML = '✅ <b>관리자 알림 ON</b> · 새 상담 신청이 오면 알림을 받습니다';
+              statusEl.style.color = '#065f46';
+            } else if (isAdmin && !subscribed) {
+              statusEl.innerHTML = '⚠️ 관리자 태그는 있지만 <b>알림 미구독</b> · "권한 새로고침" 클릭 필요';
+              statusEl.style.color = '#9a3412';
+            } else {
+              statusEl.innerHTML = '❌ <b>관리자 권한 없음</b> · "권한 새로고침" 클릭 필요';
+              statusEl.style.color = '#991b1b';
+            }
+          } catch(e) {
+            statusEl.innerHTML = '⚠️ 상태 확인 실패: ' + e.message;
+          }
+        });
+      } else {
+        statusEl.innerHTML = '⏳ OneSignal SDK 로딩 중...';
+      }
+    } catch(e) {
+      statusEl.innerHTML = '⚠️ 확인 불가';
+    }
+  }
+  // 페이지 로드 시 자동 확인
+  setTimeout(checkAdminRoleStatus, 1500);
+
+  async function refreshAdminRole() {
+    const btn = event?.target;
+    if (btn) { btn.disabled = true; btn.textContent = '설정 중...'; }
+    try {
+      // OneSignal SDK 로드 확인
+      if (!window.OneSignalDeferred) {
+        // SDK 없으면 동적 로드
+        await new Promise((resolve) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+          s.onload = resolve;
+          s.onerror = resolve;
+          document.head.appendChild(s);
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
+          window.OneSignalDeferred.push(async function(OneSignal) {
+            try {
+              await OneSignal.init({ appId: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', notifyButton: { enable: false } });
+            } catch(e) {}
+          });
+          setTimeout(resolve, 3000);
+        });
+      }
+      await new Promise((resolve, reject) => {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            // 1. 알림 구독 활성화
+            const subscribed = OneSignal.User.PushSubscription.optedIn;
+            if (!subscribed) {
+              await OneSignal.Notifications.requestPermission();
+              await new Promise(r => setTimeout(r, 1500));
+            }
+            // 2. role 태그 강제 설정
+            await OneSignal.User.addTags({ role: 'admin', 역할: '관리자' });
+            resolve();
+          } catch(e) { reject(e); }
+        });
+      });
+      alert('✅ 관리자 권한 새로고침 완료!\n이제 새 상담 알림을 받을 수 있어요.');
+      checkAdminRoleStatus();
+    } catch(e) {
+      alert('❌ 새로고침 실패: ' + e.message);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 권한 새로고침'; }
+  }
+
+  // ═══════════════════════════════════════════
   // ── 통계 대시보드 ──
   // ═══════════════════════════════════════════
   async function loadStats() {
@@ -2212,18 +2304,16 @@
   }
 
   // OneSignal 태그를 즉시 강제 업데이트 (관리자 수정 시 호출)
-  // 사용자가 앱을 열지 않아도 새 그룹 알림 수신 가능하게 함
+  // ⚠️ role/역할 태그는 절대 건드리지 않음 (관리자 권한 보존)
   async function syncOneSignalTags(oneSignalId, userInfo) {
     if (!oneSignalId) return false;
     const APP_ID = '6bed6730-b167-48a8-a98d-83cdcb1cbc10';
-    // 새 태그 구성
+    // 새 태그 구성 (role/역할은 절대 건드리지 않음)
     const tags = {
       카테고리: userInfo.category || '',
       이름: userInfo.name || '',
       // 차단 해제
-      blocked: '',
-      role: '',
-      역할: ''
+      blocked: ''
     };
     if (userInfo.category === 'student') {
       tags['학년'] = userInfo.grade || '';
@@ -2248,7 +2338,7 @@
           headings: { en: ' ', ko: ' ' },
           content_available: true,  // 무음 데이터 메시지
           priority: 5,
-          // OneSignal API: 알림과 함께 태그 갱신
+          // OneSignal API: 알림과 함께 태그 갱신 (role/역할 제외)
           tags
         })
       });
@@ -2260,13 +2350,11 @@
     }
   }
 
-  // OneSignal에 푸시 알림 전송 차단 (deleted 태그 추가 + 카테고리 태그 제거)
-  // OneSignal 태그 기반 필터로 모든 그룹 발송에서 자동 제외됨
+  // OneSignal에 푸시 알림 전송 차단 (가입자 휴지통 시)
+  // ⚠️ role/역할 태그는 건드리지 않음 (관리자 권한 보존)
   async function blockOneSignalSubscription(oneSignalId, name) {
     if (!oneSignalId) return false;
     try {
-      // 무음 알림으로 태그 업데이트 (OneSignal v16: data 알림 + tag 변경 효과)
-      // 태그 카테고리/학년/role을 모두 'deleted_user'로 덮어써서 그룹 매칭 차단
       const APP_ID = '6bed6730-b167-48a8-a98d-83cdcb1cbc10';
       await fetch(WORKER_URL, {
         method: 'POST',
@@ -2275,19 +2363,16 @@
           app_id: APP_ID,
           include_aliases: { onesignal_id: [oneSignalId] },
           target_channel: 'push',
-          // 무음(content_available + 빈 contents)
           contents: { en: ' ', ko: ' ' },
           headings: { en: ' ', ko: ' ' },
           content_available: true,
           priority: 1,
-          // 사용자 태그를 차단 상태로 업데이트
           send_after: new Date(Date.now() + 1000).toISOString(),
-          // 태그 변경 (OneSignal API: tags 필드)
+          // 카테고리/학년/직책만 차단 상태로 (role/역할은 건드리지 않음)
           tags: {
             카테고리: 'deleted',
             학년: 'deleted',
-            role: 'deleted',
-            역할: 'deleted',
+            직책: 'deleted',
             blocked: 'true'
           }
         })
