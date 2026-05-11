@@ -795,6 +795,17 @@
   }
   // 페이지 첫 진입 시 통계 자동 로드
   setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);
+  // 페이지 첫 진입 시 예약 발송 자동 체크 (현재 시각 이전 예약이 있으면 즉시 발송)
+  setTimeout(async () => {
+    try {
+      await loadScheduledItems();
+      console.log('[예약 발송] 자동 체크 완료');
+    } catch(e) { console.warn('[예약 발송] 자동 체크 실패:', e); }
+  }, 2000);
+  // 5분마다 예약 발송 체크 (관리자가 페이지 열어둔 채 있을 때)
+  setInterval(async () => {
+    try { await loadScheduledItems(); } catch(e) {}
+  }, 5 * 60 * 1000);
 
   // ── 알림 발송 ──
   function selectGroup(group, btn) {
@@ -827,35 +838,46 @@
     let filters = null;
     let body = { app_id: APP_ID, headings: { en: title, ko: title }, contents: { en: message, ko: message } };
 
-    // 전담인력은 가입자가 적어 태그 미스매치 가능성 높음 → Firestore에서 직접 조회 후 include_aliases 사용
-    if (selectedGroup === 'company') {
+    // 카테고리/전체 발송은 Firestore에서 직접 조회 → include_aliases 사용 (OneSignal 세그먼트 매칭 문제 회피)
+    const useFirestore = ['전체', '재학생 전체', '졸업생 전체', '예비 신입생 전체', 'company'].includes(selectedGroup);
+    if (useFirestore) {
       try {
         const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
         const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
         const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
         const db = getFirestore(app);
         const snap = await getDocs(collection(db, 'users'));
-        const targets = snap.docs
-          .map(d => d.data())
-          .filter(u => (u.category === 'company' || u.category === '회사') && !u.deleted && u.oneSignalId)
-          .map(u => u.oneSignalId);
+        const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+        let targets;
+        if (selectedGroup === '전체') {
+          targets = allUsers.map(u => u.oneSignalId);
+        } else if (selectedGroup === '재학생 전체') {
+          targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
+        } else if (selectedGroup === '졸업생 전체') {
+          targets = allUsers.filter(u => u.category === 'graduate').map(u => u.oneSignalId);
+        } else if (selectedGroup === '예비 신입생 전체') {
+          targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
+        } else if (selectedGroup === 'company') {
+          targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
+        }
+        // 중복 제거
+        targets = [...new Set(targets)].filter(id => id);
         if (targets.length === 0) {
-          showResult('❌ 전담인력 가입자가 없거나 알림 미구독 상태입니다.', 'error');
+          const labelMap = { '전체': '전체', '재학생 전체': '재학생', '졸업생 전체': '졸업생', '예비 신입생 전체': '예비 신입생', 'company': '전담인력' };
+          showResult(`❌ ${labelMap[selectedGroup]} 가입자가 없거나 모두 알림 미구독 상태입니다.`, 'error');
           sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
           return;
         }
+        // OneSignal은 한 번에 2000명까지 → 학교 앱 규모는 1번에 OK
         body.include_aliases = { onesignal_id: targets };
         body.target_channel = 'push';
+        console.log(`[알림] ${selectedGroup} 대상 ${targets.length}명에게 발송`);
       } catch(e) {
         showResult('❌ 가입자 조회 실패: ' + e.message, 'error');
         sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
         return;
       }
     }
-    else if (selectedGroup === '전체') { body.included_segments = ["Total Subscriptions"]; }
-    else if (selectedGroup === '재학생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"student"}]; body.filters = filters; }
-    else if (selectedGroup === '졸업생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"graduate"}]; body.filters = filters; }
-    else if (selectedGroup === '예비 신입생 전체') { filters = [{field:"tag",key:"카테고리",relation:"=",value:"prospect"}]; body.filters = filters; }
     else { filters = [{ field: "tag", key: "학년", relation: "=", value: selectedGroup }]; body.filters = filters; }
 
     try {
@@ -1810,22 +1832,68 @@
     if (item.executing) return; // 중복 실행 방지
     item.executing = true;
     try {
-      const filters = item.filters || [];
       const body = {
         app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
         contents: { ko: item.message, en: item.message },
         headings: { ko: item.title, en: item.title }
       };
-      if (filters.length > 0) body.filters = filters;
-      else body.included_segments = ['Subscribed Users'];
-      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      // 예약 발송도 Firestore 기반 (전체 발송 정확도 보장)
+      const target = item.target;
+      const useFirestore = ['전체', '재학생 전체', '졸업생 전체', '예비 신입생 전체', 'company'].includes(target);
+      if (useFirestore) {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+        const db = getFirestore(app);
+        const snap = await getDocs(collection(db, 'users'));
+        const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+        let targets;
+        if (target === '전체') targets = allUsers.map(u => u.oneSignalId);
+        else if (target === '재학생 전체') targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
+        else if (target === '졸업생 전체') targets = allUsers.filter(u => u.category === 'graduate').map(u => u.oneSignalId);
+        else if (target === '예비 신입생 전체') targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
+        else if (target === 'company') targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
+        targets = [...new Set(targets)].filter(id => id);
+        if (targets.length === 0) {
+          throw new Error(`${target} 가입자가 없거나 알림 미구독`);
+        }
+        body.include_aliases = { onesignal_id: targets };
+        body.target_channel = 'push';
+        console.log(`[예약 발송] ${target} 대상 ${targets.length}명에게 발송`);
+      } else if (item.filters && item.filters.length > 0) {
+        // 학년별 등 태그 기반
+        body.filters = item.filters;
+      } else {
+        // 알 수 없는 대상 → 전체로 폴백
+        body.included_segments = ['Subscribed Users'];
+      }
+      const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const result = await res.json().catch(() => ({}));
+      if (!result.id && !result.recipients) {
+        throw new Error('OneSignal 응답 오류: ' + JSON.stringify(result.errors || result));
+      }
       // 발송 완료 마킹
       const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      await updateDoc(window._schDoc(window._schDb, 'scheduled_notifications', item.id), { sent: true, sentAt: Date.now() });
+      await updateDoc(window._schDoc(window._schDb, 'scheduled_notifications', item.id), {
+        sent: true,
+        sentAt: Date.now(),
+        sentRecipients: result.recipients || 0
+      });
       const idx = scheduledItems.findIndex(s => s.id === item.id);
       if (idx !== -1) { scheduledItems[idx].sent = true; scheduledItems[idx].sentAt = Date.now(); }
-      await writeLog('send', 'notification', item.id, `예약 발송 자동 실행: "${item.title}"`);
-    } catch(e) { console.error('예약 발송 실패:', e); }
+      await writeLog('send', 'notification', item.id, `예약 발송 자동 실행: "${item.title}" → ${result.recipients || '?'}명`);
+    } catch(e) {
+      console.error('예약 발송 실패:', e);
+      // 실패 기록도 Firestore에 저장
+      try {
+        const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        await updateDoc(window._schDoc(window._schDb, 'scheduled_notifications', item.id), {
+          sendError: e.message,
+          lastTriedAt: Date.now()
+        });
+        await writeLog('send', 'notification', item.id, `예약 발송 실패: "${item.title}" - ${e.message}`);
+      } catch(e2) {}
+    }
     item.executing = false;
   }
   async function deleteScheduled(id) {
