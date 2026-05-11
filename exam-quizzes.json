@@ -2770,7 +2770,7 @@
   },
   {
     "id": "hotel-interview-식음료영업준비",
-    "title": "호텔경영학과 면접 - 식음료 영업 준비",
+    "title": "호텔관광학과 면접 - 식음료 영업 준비",
     "department": "hotel",
     "type": "interview",
     "unit": "식음료 영업 준비",
@@ -2869,7 +2869,7 @@
   },
   {
     "id": "hotel-interview-음료서비스",
-    "title": "호텔경영학과 면접 - 음료 서비스",
+    "title": "호텔관광학과 면접 - 음료 서비스",
     "department": "hotel",
     "type": "interview",
     "unit": "음료 서비스",
@@ -4802,7 +4802,7 @@
   },
   {
     "id": "hotel-interview-환영환송",
-    "title": "호텔경영학과 면접 - 환영·환송",
+    "title": "호텔관광학과 면접 - 환영·환송",
     "department": "hotel",
     "type": "interview",
     "unit": "환영·환송",
@@ -4901,7 +4901,7 @@
   },
   {
     "id": "hotel-interview-음식서비스",
-    "title": "호텔경영학과 면접 - 음식 서비스",
+    "title": "호텔관광학과 면접 - 음식 서비스",
     "department": "hotel",
     "type": "interview",
     "unit": "음식 서비스",
@@ -5000,7 +5000,7 @@
   },
   {
     "id": "hotel-interview-위생안전",
-    "title": "호텔경영학과 면접 - 식음료 영업장 위생안전관리",
+    "title": "호텔관광학과 면접 - 식음료 영업장 위생안전관리",
     "department": "hotel",
     "type": "interview",
     "unit": "식음료 영업장 위생안전관리",
