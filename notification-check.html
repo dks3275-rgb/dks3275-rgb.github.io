@@ -212,11 +212,45 @@
             const isDeleted = tags['카테고리'] === 'deleted' || tags['blocked'] === 'true';
             const category = tags['카테고리'] || '없음';
             const name = tags['이름'] || '없음';
+            const grade = tags['학년'] || '';
+            const role = tags['직책'] || '';
 
             addCheck('🏷️',
-              '등록 정보',
-              `카테고리: ${category} · 이름: ${name}${isAdmin ? ' · ⭐관리자' : ''}`,
+              '카테고리 / 이름',
+              `${category} · ${name}${isAdmin ? ' · ⭐관리자' : ''}`,
               isDeleted ? 'error' : 'ok');
+
+            // 학년 태그 별도 표시 (재학생의 경우 매우 중요!)
+            if (category === 'student' || category === 'graduate') {
+              const gradeOk = grade && grade !== 'deleted';
+              addCheck(gradeOk ? '🎓' : '⚠️',
+                '학년 태그',
+                gradeOk ? grade : '⚠️ 비어있음! 학년별 알림 못 받음',
+                gradeOk ? 'ok' : 'error');
+              if (!gradeOk) {
+                issues.push('no_grade');
+                guides.push(`<b>🎓 학년 태그가 비어있어요!</b><br>
+                  P-TECH 1학년, P-TECH 2학년 등 학년별로 보내는 알림을 못 받는 원인입니다.<br>
+                  <b>해결:</b><ol>
+                  <li>메인 메뉴 → 본인 정보 ✏️ 수정</li>
+                  <li>학년 다시 선택 후 저장</li>
+                  <li>저장하면 자동으로 OneSignal에 학년 태그 등록</li>
+                  </ol>`);
+              }
+            }
+
+            // 전담인력 직책
+            if (category === 'company' && !role) {
+              addCheck('⚠️', '직책 태그', '비어있음', 'warn');
+              issues.push('no_role');
+            }
+
+            // 모든 태그 디버그 정보
+            const allTagsText = Object.entries(tags).map(([k,v]) => `${k}=${v}`).join(', ');
+            addCheck('🔍',
+              '전체 태그 (디버그)',
+              allTagsText.length > 100 ? allTagsText.slice(0, 100) + '...' : allTagsText,
+              'ok');
 
             if (isDeleted) {
               issues.push('blocked');
