@@ -898,8 +898,20 @@
     }
 
     try {
-      // 예약 발송: Firestore에 저장 (OneSignal에는 보내지 않음 - 자체 관리)
+      // 예약 발송: OneSignal에 send_after로 즉시 예약 + Firestore에도 백업 저장
       if (sendAfter) {
+        // 1. OneSignal에 즉시 예약 등록 (서버 측 자동 발송 → 관리자 페이지 의존 X)
+        const scheduledBody = { ...body, send_after: sendAfter };
+        const response = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(scheduledBody)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!data.id) {
+          throw new Error('OneSignal 예약 실패: ' + JSON.stringify(data.errors || data));
+        }
+        // 2. Firestore에도 추적용 저장 (취소/관리 위해)
         const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
         const { getFirestore, collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
         const app = getApps().find(a => a.name === 'scheduled') || initializeApp(FB_CFG, 'scheduled');
@@ -907,12 +919,15 @@
         const ref = await addDoc(collection(db, 'scheduled_notifications'), {
           title, message, target: selectedGroup, filters,
           sendAt: new Date(scheduleVal).getTime(),
-          sent: false, sentAt: null, createdAt: Date.now()
+          sent: false, sentAt: null, createdAt: Date.now(),
+          oneSignalNotifId: data.id,  // OneSignal 알림 ID (취소 시 사용)
+          delegatedToOneSignal: true,  // OneSignal에 위임됨 표시
+          recipientsCount: data.recipients || body.include_aliases?.onesignal_id?.length || 0
         });
         const timeStr = new Date(scheduleVal).toLocaleString('ko-KR');
-        showResult(`⏰ 예약 완료! (${timeStr} 발송 예정 · "예약" 탭에서 관리)`, 'success');
+        showResult(`⏰ 예약 완료! (${timeStr} 발송 · OneSignal 서버 처리 · 관리자 페이지 닫아도 OK)`, 'success');
         addHistory(selectedGroup, title, message, scheduleVal);
-        await writeLog('create', 'notification', ref.id, `예약 등록: "${title}" (${selectedGroup}) - ${timeStr}`);
+        await writeLog('create', 'notification', ref.id, `예약 등록 (OneSignal 위임): "${title}" (${selectedGroup}) - ${timeStr} → ${body.include_aliases?.onesignal_id?.length || 0}명`);
         document.getElementById('title').value = '';
         document.getElementById('message').value = '';
         document.getElementById('scheduleTime').value = '';
@@ -1876,6 +1891,24 @@
   }
   async function executeScheduled(item) {
     if (item.executing) return; // 메모리 중복 방지
+    // OneSignal에 위임된 예약은 자동 발송되므로 클라이언트가 처리 안 함
+    if (item.delegatedToOneSignal) {
+      // OneSignal이 알아서 발송할 거라 우리는 sent 마킹만
+      // 단, 시간 지난 경우만 (혹시 OneSignal이 발송 실패한 케이스 대비)
+      const overdueGracePeriod = 10 * 60 * 1000; // 10분 grace
+      if (item.sendAt && (Date.now() - item.sendAt) > overdueGracePeriod && !item.sent) {
+        try {
+          const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+          await updateDoc(window._schDoc(window._schDb, 'scheduled_notifications', item.id), {
+            sent: true,
+            sentAt: item.sendAt,
+            sentRecipients: item.recipientsCount || 0,
+            sentNote: 'OneSignal 위임 발송 (자동 마킹)'
+          });
+        } catch(e) { console.warn('위임 발송 sent 마킹 실패:', e); }
+      }
+      return;
+    }
     item.executing = true;
     try {
       // Firestore 잠금: 다른 관리자/탭에서 동시 실행 방지
@@ -1975,6 +2008,16 @@
       danger: true
     })) return;
     try {
+      // OneSignal에 위임된 경우 cancel 요청 (선택 - 실패해도 진행)
+      if (item?.delegatedToOneSignal && item?.oneSignalNotifId) {
+        try {
+          await fetch(WORKER_URL + '/cancel/' + item.oneSignalNotifId, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10' })
+          });
+        } catch(e) { console.warn('OneSignal 취소 실패 (Firestore만 삭제):', e); }
+      }
       await window._schDeleteDoc(window._schDoc(window._schDb, 'scheduled_notifications', id));
       scheduledItems = scheduledItems.filter(s => s.id !== id);
       await writeLog('delete', 'notification', id, `예약 발송 취소: "${item?.title || '-'}"`);
