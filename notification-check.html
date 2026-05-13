@@ -129,30 +129,24 @@
       isIOS ? 'iOS (Apple)' : isAndroid ? 'Android' : 'PC/기타',
       isIOS || isAndroid ? 'ok' : 'warn');
 
-    // 2. Standalone 모드 확인 (PWA 설치 상태)
+    // 2. Standalone 모드 확인 (iOS는 필수, Android는 권장)
     const isStandalone = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-    addCheck(isStandalone ? '✅' : '❌',
+    const standaloneCritical = isIOS && !isStandalone; // iOS만 필수
+    addCheck(isStandalone ? '✅' : (isIOS ? '❌' : 'ℹ️'),
       'PWA 설치 (Standalone)',
-      isStandalone ? '정상 - 홈 화면에서 실행 중' : '⚠️ 브라우저 탭에서 실행 중 (알림 안 옴!)',
-      isStandalone ? 'ok' : 'error');
-    if (!isStandalone) {
+      isStandalone ? '정상 - 홈 화면에서 실행 중'
+        : isIOS ? '⚠️ iOS는 홈 화면 추가 필수! (알림 못 받음)'
+        : '브라우저 탭에서 실행 중 (Android는 OK, 설치하면 더 좋음)',
+      isStandalone ? 'ok' : (standaloneCritical ? 'error' : 'warn'));
+    if (standaloneCritical) {
       issues.push('standalone');
-      if (isIOS) {
-        guides.push(`<b>📱 iOS 사용자 → 홈 화면 추가 필수</b><ol>
-          <li><b>Safari</b>로 이 페이지 열기 (Chrome 안 됨!)</li>
-          <li>하단 <b>공유 버튼 (⬆️)</b> 클릭</li>
-          <li><b>"홈 화면에 추가"</b> 선택</li>
-          <li>"추가" 클릭</li>
-          <li>홈 화면 아이콘으로 앱 실행</li>
-        </ol>`);
-      } else if (isAndroid) {
-        guides.push(`<b>📱 Android 사용자 → 홈 화면 추가</b><ol>
-          <li><b>Chrome</b>으로 이 페이지 열기 (삼성인터넷 X)</li>
-          <li>우측 상단 <b>⋮ 메뉴</b> 클릭</li>
-          <li><b>"앱 설치" 또는 "홈 화면에 추가"</b></li>
-          <li>"설치" 클릭</li>
-        </ol>`);
-      }
+      guides.push(`<b>📱 iOS 사용자 → 홈 화면 추가 필수</b><ol>
+        <li><b>Safari</b>로 이 페이지 열기 (Chrome 안 됨!)</li>
+        <li>하단 <b>공유 버튼 (⬆️)</b> 클릭</li>
+        <li><b>"홈 화면에 추가"</b> 선택</li>
+        <li>"추가" 클릭</li>
+        <li>홈 화면 아이콘으로 앱 실행</li>
+      </ol>`);
     }
 
     // 3. iOS 버전 확인

@@ -836,7 +836,20 @@
     sendBtn.textContent = sendAfter ? '예약 중...' : '발송 중...';
 
     let filters = null;
-    let body = { app_id: APP_ID, headings: { en: title, ko: title }, contents: { en: message, ko: message } };
+    let body = {
+      app_id: APP_ID,
+      headings: { en: title, ko: title },
+      contents: { en: message, ko: message },
+      // 도달률 개선 옵션
+      priority: 10,                    // 최고 우선순위
+      ttl: 259200,                     // 3일 보관 (사용자 미접속 시에도 3일 안에 켜면 받음)
+      android_priority: 'high',        // Android FCM 최고 우선순위
+      android_visibility: 1,           // 잠금 화면에도 표시
+      android_channel_id: 'au-default', // 알림 채널 (있으면)
+      web_url: 'https://dks3275-rgb.github.io/notice.html',  // 클릭 시 공지로
+      ios_interruption_level: 'time-sensitive',  // iOS 집중 모드 우회
+      ios_relevance_score: 1.0         // iOS 알림 중요도 최고
+    };
 
     // 카테고리/전체 발송은 Firestore에서 직접 조회 → include_aliases 사용 (OneSignal 세그먼트 매칭 문제 회피)
     const useFirestore = ['전체', '재학생 전체', '졸업생 전체', '예비 신입생 전체', 'company'].includes(selectedGroup);
@@ -1835,7 +1848,15 @@
       const body = {
         app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
         contents: { ko: item.message, en: item.message },
-        headings: { ko: item.title, en: item.title }
+        headings: { ko: item.title, en: item.title },
+        // 도달률 개선 옵션
+        priority: 10,
+        ttl: 259200,
+        android_priority: 'high',
+        android_visibility: 1,
+        web_url: 'https://dks3275-rgb.github.io/notice.html',
+        ios_interruption_level: 'time-sensitive',
+        ios_relevance_score: 1.0
       };
       // 예약 발송도 Firestore 기반 (전체 발송 정확도 보장)
       const target = item.target;
