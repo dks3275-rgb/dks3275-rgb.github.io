@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>알림 진단 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "6bed6730-b167-48a8-a98d-83cdcb1cbc10",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+</script>
+<script src="dark-mode.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+  :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; --green: #10b981; --red: #ef4444; --orange: #f59e0b; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; padding-bottom: 80px; }
+  .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
+  .back-btn { background: rgba(255,255,255,0.2); color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; }
+  .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .header h1 { color: white; font-size: 18px; font-weight: 700; }
+  .container { max-width: 600px; margin: 0 auto; padding: 20px 16px; }
+  .card { background: white; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); margin-bottom: 14px; }
+  .card-title { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+  .check-item { display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: var(--light); border-radius: 10px; margin-bottom: 8px; }
+  .check-icon { font-size: 22px; flex-shrink: 0; }
+  .check-text { flex: 1; }
+  .check-label { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .check-value { font-size: 12px; color: var(--gray); }
+  .check-item.ok { background: #d1fae5; }
+  .check-item.ok .check-label { color: #065f46; }
+  .check-item.warn { background: #fff3cd; }
+  .check-item.warn .check-label { color: #92400e; }
+  .check-item.error { background: #fee2e2; }
+  .check-item.error .check-label { color: #991b1b; }
+  .action-btn { display: block; width: 100%; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; margin-top: 10px; }
+  .action-btn:hover:not(:disabled) { background: var(--navy); }
+  .action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .action-btn.success { background: var(--green); }
+  .action-btn.warn { background: var(--orange); }
+  .summary { text-align: center; padding: 20px; border-radius: 14px; margin-bottom: 14px; }
+  .summary.success { background: #d1fae5; color: #065f46; border: 2px solid var(--green); }
+  .summary.warn { background: #fff3cd; color: #92400e; border: 2px solid var(--orange); }
+  .summary.error { background: #fee2e2; color: #991b1b; border: 2px solid var(--red); }
+  .summary-icon { font-size: 48px; margin-bottom: 8px; }
+  .summary-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .summary-text { font-size: 13px; line-height: 1.6; }
+  .guide-box { background: #e3f2fd; border-left: 4px solid var(--blue); padding: 12px 14px; border-radius: 8px; font-size: 13px; color: #0d47a1; line-height: 1.7; margin-top: 10px; }
+  .guide-box ol { padding-left: 18px; margin-top: 4px; }
+  .guide-box code { background: white; padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="index.html" class="back-btn" aria-label="홈으로">←</a>
+  <div class="header-badge">진단</div>
+  <h1>🔔 알림 진단</h1>
+</div>
+<div class="container">
+
+  <!-- 종합 결과 -->
+  <div id="summary" class="summary warn">
+    <div class="summary-icon">⏳</div>
+    <div class="summary-title">진단 중...</div>
+    <div class="summary-text">잠시만 기다려주세요</div>
+  </div>
+
+  <!-- 진단 항목 -->
+  <div class="card">
+    <div class="card-title">📊 진단 결과</div>
+    <div id="checks"></div>
+  </div>
+
+  <!-- 해결 가이드 -->
+  <div class="card" id="guideCard" style="display:none;">
+    <div class="card-title">💡 해결 방법</div>
+    <div id="guideContent"></div>
+  </div>
+
+  <!-- 테스트 버튼 -->
+  <button class="action-btn success" id="testBtn" onclick="sendTestNotification()">📤 본인에게 테스트 알림 보내기</button>
+  <button class="action-btn warn" id="fixBtn" onclick="fixIssues()" style="margin-top:8px;display:none;">🔧 자동 복구 시도</button>
+
+</div>
+<script>
+  let osState = null;
+
+  const summary = document.getElementById('summary');
+  const checks = document.getElementById('checks');
+  const guideCard = document.getElementById('guideCard');
+  const guideContent = document.getElementById('guideContent');
+  const fixBtn = document.getElementById('fixBtn');
+
+  function addCheck(icon, label, value, status) {
+    const div = document.createElement('div');
+    div.className = 'check-item ' + status;
+    div.innerHTML = `<div class="check-icon">${icon}</div><div class="check-text"><div class="check-label">${label}</div><div class="check-value">${value}</div></div>`;
+    checks.appendChild(div);
+  }
+  function setSummary(status, icon, title, text) {
+    summary.className = 'summary ' + status;
+    summary.innerHTML = `<div class="summary-icon">${icon}</div><div class="summary-title">${title}</div><div class="summary-text">${text}</div>`;
+  }
+  function showGuide(items) {
+    guideCard.style.display = 'block';
+    guideContent.innerHTML = items.map(i => `<div class="guide-box">${i}</div>`).join('');
+  }
+
+  async function runDiagnostics() {
+    checks.innerHTML = '';
+    const issues = [];
+    const guides = [];
+
+    // 1. 기기/브라우저 감지
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /android/.test(ua);
+    const isSafari = /safari/.test(ua) && !/crios|fxios|edgios|chrome/.test(ua);
+    const isChrome = /chrome/.test(ua) && !/edg|samsung/.test(ua);
+    addCheck(isIOS ? '🍎' : isAndroid ? '🤖' : '💻',
+      '기기',
+      isIOS ? 'iOS (Apple)' : isAndroid ? 'Android' : 'PC/기타',
+      isIOS || isAndroid ? 'ok' : 'warn');
+
+    // 2. Standalone 모드 확인 (PWA 설치 상태)
+    const isStandalone = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    addCheck(isStandalone ? '✅' : '❌',
+      'PWA 설치 (Standalone)',
+      isStandalone ? '정상 - 홈 화면에서 실행 중' : '⚠️ 브라우저 탭에서 실행 중 (알림 안 옴!)',
+      isStandalone ? 'ok' : 'error');
+    if (!isStandalone) {
+      issues.push('standalone');
+      if (isIOS) {
+        guides.push(`<b>📱 iOS 사용자 → 홈 화면 추가 필수</b><ol>
+          <li><b>Safari</b>로 이 페이지 열기 (Chrome 안 됨!)</li>
+          <li>하단 <b>공유 버튼 (⬆️)</b> 클릭</li>
+          <li><b>"홈 화면에 추가"</b> 선택</li>
+          <li>"추가" 클릭</li>
+          <li>홈 화면 아이콘으로 앱 실행</li>
+        </ol>`);
+      } else if (isAndroid) {
+        guides.push(`<b>📱 Android 사용자 → 홈 화면 추가</b><ol>
+          <li><b>Chrome</b>으로 이 페이지 열기 (삼성인터넷 X)</li>
+          <li>우측 상단 <b>⋮ 메뉴</b> 클릭</li>
+          <li><b>"앱 설치" 또는 "홈 화면에 추가"</b></li>
+          <li>"설치" 클릭</li>
+        </ol>`);
+      }
+    }
+
+    // 3. iOS 버전 확인
+    if (isIOS) {
+      const iosVer = parseFloat((ua.match(/os (\d+_\d+)/) || [])[1]?.replace('_', '.') || '0');
+      const iosOk = iosVer >= 16.4;
+      addCheck(iosOk ? '✅' : '⚠️',
+        'iOS 버전',
+        iosVer ? `iOS ${iosVer.toFixed(1)} ${iosOk ? '(지원)' : '(16.4 이상 필요!)'}` : '버전 확인 불가',
+        iosOk ? 'ok' : 'error');
+      if (!iosOk && iosVer) {
+        guides.push(`<b>📱 iOS 버전 업데이트 필요</b><br>알림 기능은 <b>iOS 16.4 이상</b>에서만 작동합니다.<br>설정 → 일반 → 소프트웨어 업데이트에서 최신 버전 설치`);
+        issues.push('ios_version');
+      }
+    }
+
+    // 4. OneSignal SDK 상태
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    if (!window.OneSignalDeferred) {
+      addCheck('❌', 'OneSignal SDK', '로드 실패', 'error');
+      issues.push('sdk_load');
+      return;
+    }
+
+    await new Promise((resolve) => {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          const onesignalId = OneSignal.User.onesignalId || '없음';
+          const subscribed = OneSignal.User.PushSubscription.optedIn;
+          const tokenExists = !!OneSignal.User.PushSubscription.id;
+          const tags = await OneSignal.User.getTags();
+
+          osState = { onesignalId, subscribed, tokenExists, tags };
+
+          addCheck(onesignalId !== '없음' ? '✅' : '❌',
+            'OneSignal ID',
+            onesignalId !== '없음' ? onesignalId.slice(0, 12) + '...' : '없음 (재로드 필요)',
+            onesignalId !== '없음' ? 'ok' : 'error');
+
+          addCheck(subscribed ? '✅' : '❌',
+            '푸시 구독 상태',
+            subscribed ? '구독 중 (알림 받음)' : '구독 안 됨 (알림 차단!)',
+            subscribed ? 'ok' : 'error');
+          if (!subscribed) {
+            issues.push('not_subscribed');
+            guides.push(`<b>🔔 알림 권한 활성화 필요</b><br>아래 <b>"본인에게 테스트 알림 보내기"</b> 버튼을 누르면 권한 요청이 뜹니다. "허용"을 눌러주세요.`);
+          }
+
+          addCheck(tokenExists ? '✅' : '⚠️',
+            'Push 토큰',
+            tokenExists ? '발급됨' : '없음',
+            tokenExists ? 'ok' : 'warn');
+
+          // 태그 확인
+          if (tags && Object.keys(tags).length > 0) {
+            const isAdmin = tags.role === 'admin' || tags['역할'] === '관리자';
+            const isDeleted = tags['카테고리'] === 'deleted' || tags['blocked'] === 'true';
+            const category = tags['카테고리'] || '없음';
+            const name = tags['이름'] || '없음';
+
+            addCheck('🏷️',
+              '등록 정보',
+              `카테고리: ${category} · 이름: ${name}${isAdmin ? ' · ⭐관리자' : ''}`,
+              isDeleted ? 'error' : 'ok');
+
+            if (isDeleted) {
+              issues.push('blocked');
+              guides.push(`<b>⚠️ 알림 차단 상태 감지</b><br>가입 정보가 삭제 처리된 상태입니다. 메인 페이지에서 다시 가입해주세요.`);
+            }
+          } else {
+            addCheck('⚠️',
+              '등록 정보',
+              '태그 없음 (가입 안 함?)',
+              'warn');
+            issues.push('no_tags');
+          }
+
+          resolve();
+        } catch(e) {
+          addCheck('❌', 'OneSignal 진단', '오류: ' + e.message, 'error');
+          resolve();
+        }
+      });
+    });
+
+    // 5. 알림 권한 확인
+    if ('Notification' in window) {
+      const perm = Notification.permission;
+      const permIcon = perm === 'granted' ? '✅' : perm === 'denied' ? '❌' : '⚠️';
+      const permLabel = perm === 'granted' ? '허용됨' : perm === 'denied' ? '거부됨 (재허용 어려움)' : '아직 결정 안 함';
+      addCheck(permIcon, '브라우저 알림 권한', permLabel, perm === 'granted' ? 'ok' : 'error');
+      if (perm === 'denied') {
+        issues.push('permission_denied');
+        guides.push(`<b>🚫 알림 권한이 거부됨</b><br>
+          ${isIOS ? `<b>iOS</b>: 설정 → AU 일학습병행 → 알림 → ON` :
+             isAndroid ? `<b>Android</b>: 설정 → 앱 → 크롬 또는 AU 앱 → 알림 → ON` :
+             `브라우저 설정에서 알림 권한 허용`}`);
+      }
+    }
+
+    // 종합 평가
+    if (issues.length === 0) {
+      setSummary('success', '✅', '모든 항목 정상!', '알림을 정상적으로 받을 수 있는 상태입니다.<br>아래 테스트 버튼으로 확인해보세요.');
+    } else if (issues.includes('standalone') || issues.includes('not_subscribed') || issues.includes('permission_denied') || issues.includes('blocked')) {
+      setSummary('error', '❌', '알림 못 받는 상태', `${issues.length}개의 문제가 발견됐어요.<br>아래 가이드를 따라주세요.`);
+      fixBtn.style.display = 'block';
+    } else {
+      setSummary('warn', '⚠️', '일부 항목 점검 필요', `${issues.length}개의 잠재적 문제가 있습니다.`);
+    }
+
+    if (guides.length > 0) showGuide(guides);
+  }
+
+  async function sendTestNotification() {
+    if (!osState || !osState.onesignalId) {
+      alert('OneSignal ID가 없어 테스트할 수 없어요. 페이지 새로고침 후 다시 시도해주세요.');
+      return;
+    }
+    const btn = document.getElementById('testBtn');
+    btn.disabled = true;
+    btn.textContent = '📤 발송 중...';
+    try {
+      const WORKER_URL = 'https://damp-leaf-0c5c.dks3275.workers.dev';
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
+          include_aliases: { onesignal_id: [osState.onesignalId] },
+          target_channel: 'push',
+          headings: { ko: '🔔 테스트 알림', en: 'Test Notification' },
+          contents: { ko: '이 알림이 보이면 정상이에요! ✅', en: 'You can receive notifications!' }
+        })
+      });
+      const data = await res.json();
+      if (data.id) {
+        btn.textContent = '✅ 발송 완료! 알림 확인하세요';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = '📤 본인에게 테스트 알림 보내기';
+        }, 5000);
+      } else {
+        btn.textContent = '❌ ' + (data.errors?.[0] || '실패');
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = '📤 본인에게 테스트 알림 보내기';
+        }, 3000);
+      }
+    } catch(e) {
+      alert('테스트 실패: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '📤 본인에게 테스트 알림 보내기';
+    }
+  }
+
+  async function fixIssues() {
+    const btn = document.getElementById('fixBtn');
+    btn.disabled = true;
+    btn.textContent = '🔧 복구 중...';
+    try {
+      await new Promise((resolve, reject) => {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            // 알림 권한 요청
+            if (!OneSignal.User.PushSubscription.optedIn) {
+              await OneSignal.Notifications.requestPermission();
+              await new Promise(r => setTimeout(r, 1500));
+            }
+            // 태그 다시 설정 (localStorage에 정보 있으면)
+            const info = JSON.parse(localStorage.getItem('userInfo') || '{}');
+            if (info.category && info.name) {
+              const tags = { 카테고리: info.category, 이름: info.name, blocked: '' };
+              if (info.category === 'student' && info.grade) tags['학년'] = info.grade;
+              if (info.category === 'company' && info.role) tags['직책'] = info.role;
+              await OneSignal.User.addTags(tags);
+            }
+            resolve();
+          } catch(e) { reject(e); }
+        });
+      });
+      btn.textContent = '✅ 복구 완료! 다시 진단합니다...';
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    } catch(e) {
+      alert('복구 실패: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '🔧 자동 복구 시도';
+    }
+  }
+
+  // 페이지 로드 시 자동 진단
+  setTimeout(runDiagnostics, 800);
+</script>
+</body>
+</html>
