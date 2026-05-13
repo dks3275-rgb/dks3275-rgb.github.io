@@ -851,47 +851,51 @@
       ios_relevance_score: 1.0         // iOS 알림 중요도 최고
     };
 
-    // 카테고리/전체 발송은 Firestore에서 직접 조회 → include_aliases 사용 (OneSignal 세그먼트 매칭 문제 회피)
-    const useFirestore = ['전체', '재학생 전체', '졸업생 전체', '예비 신입생 전체', 'company'].includes(selectedGroup);
-    if (useFirestore) {
-      try {
-        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-        const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
-        const db = getFirestore(app);
-        const snap = await getDocs(collection(db, 'users'));
-        const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
-        let targets;
-        if (selectedGroup === '전체') {
-          targets = allUsers.map(u => u.oneSignalId);
-        } else if (selectedGroup === '재학생 전체') {
-          targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
-        } else if (selectedGroup === '졸업생 전체') {
-          targets = allUsers.filter(u => u.category === 'graduate').map(u => u.oneSignalId);
-        } else if (selectedGroup === '예비 신입생 전체') {
-          targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
-        } else if (selectedGroup === 'company') {
-          targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
-        }
-        // 중복 제거
-        targets = [...new Set(targets)].filter(id => id);
-        if (targets.length === 0) {
-          const labelMap = { '전체': '전체', '재학생 전체': '재학생', '졸업생 전체': '졸업생', '예비 신입생 전체': '예비 신입생', 'company': '전담인력' };
-          showResult(`❌ ${labelMap[selectedGroup]} 가입자가 없거나 모두 알림 미구독 상태입니다.`, 'error');
-          sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
-          return;
-        }
-        // OneSignal은 한 번에 2000명까지 → 학교 앱 규모는 1번에 OK
-        body.include_aliases = { onesignal_id: targets };
-        body.target_channel = 'push';
-        console.log(`[알림] ${selectedGroup} 대상 ${targets.length}명에게 발송`);
-      } catch(e) {
-        showResult('❌ 가입자 조회 실패: ' + e.message, 'error');
+    // 모든 발송을 Firestore에서 직접 조회 → include_aliases 사용 (OneSignal 태그 매칭 문제 완전 회피)
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const db = getFirestore(app);
+      const snap = await getDocs(collection(db, 'users'));
+      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+      let targets;
+      if (selectedGroup === '전체') {
+        targets = allUsers.map(u => u.oneSignalId);
+      } else if (selectedGroup === '재학생 전체') {
+        targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
+      } else if (selectedGroup === '졸업생 전체') {
+        targets = allUsers.filter(u => u.category === 'graduate').map(u => u.oneSignalId);
+      } else if (selectedGroup === '예비 신입생 전체') {
+        targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
+      } else if (selectedGroup === 'company') {
+        targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
+      } else {
+        // 학년/학과별 (P-TECH 1학년, 전문대 호텔관광학과 등) - Firestore grade/dept 필드로 매칭
+        targets = allUsers.filter(u => {
+          // category가 student이고 grade가 selectedGroup과 일치
+          if (u.category !== 'student') return false;
+          // grade, dept, 학년 등 여러 필드 중 매칭되는 값 확인
+          return u.grade === selectedGroup || u.dept === selectedGroup || u['학년'] === selectedGroup;
+        }).map(u => u.oneSignalId);
+      }
+      // 중복 제거
+      targets = [...new Set(targets)].filter(id => id);
+      if (targets.length === 0) {
+        const labelMap = { '전체': '전체', '재학생 전체': '재학생', '졸업생 전체': '졸업생', '예비 신입생 전체': '예비 신입생', 'company': '전담인력' };
+        const label = labelMap[selectedGroup] || selectedGroup;
+        showResult(`❌ ${label} 가입자가 없거나 모두 알림 미구독 상태입니다.`, 'error');
         sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
         return;
       }
+      body.include_aliases = { onesignal_id: targets };
+      body.target_channel = 'push';
+      console.log(`[알림] ${selectedGroup} 대상 ${targets.length}명에게 발송`);
+    } catch(e) {
+      showResult('❌ 가입자 조회 실패: ' + e.message, 'error');
+      sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
+      return;
     }
-    else { filters = [{ field: "tag", key: "학년", relation: "=", value: selectedGroup }]; body.filters = filters; }
 
     try {
       // 예약 발송: Firestore에 저장 (OneSignal에는 보내지 않음 - 자체 관리)
@@ -1858,36 +1862,31 @@
         ios_interruption_level: 'time-sensitive',
         ios_relevance_score: 1.0
       };
-      // 예약 발송도 Firestore 기반 (전체 발송 정확도 보장)
+      // 예약 발송도 Firestore 기반 통일 (모든 발송 정확도 보장)
       const target = item.target;
-      const useFirestore = ['전체', '재학생 전체', '졸업생 전체', '예비 신입생 전체', 'company'].includes(target);
-      if (useFirestore) {
-        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-        const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
-        const db = getFirestore(app);
-        const snap = await getDocs(collection(db, 'users'));
-        const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
-        let targets;
-        if (target === '전체') targets = allUsers.map(u => u.oneSignalId);
-        else if (target === '재학생 전체') targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
-        else if (target === '졸업생 전체') targets = allUsers.filter(u => u.category === 'graduate').map(u => u.oneSignalId);
-        else if (target === '예비 신입생 전체') targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
-        else if (target === 'company') targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
-        targets = [...new Set(targets)].filter(id => id);
-        if (targets.length === 0) {
-          throw new Error(`${target} 가입자가 없거나 알림 미구독`);
-        }
-        body.include_aliases = { onesignal_id: targets };
-        body.target_channel = 'push';
-        console.log(`[예약 발송] ${target} 대상 ${targets.length}명에게 발송`);
-      } else if (item.filters && item.filters.length > 0) {
-        // 학년별 등 태그 기반
-        body.filters = item.filters;
-      } else {
-        // 알 수 없는 대상 → 전체로 폴백
-        body.included_segments = ['Subscribed Users'];
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const db = getFirestore(app);
+      const snap = await getDocs(collection(db, 'users'));
+      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+      let targets;
+      if (target === '전체') targets = allUsers.map(u => u.oneSignalId);
+      else if (target === '재학생 전체') targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
+      else if (target === '졸업생 전체') targets = allUsers.filter(u => u.category === 'graduate').map(u => u.oneSignalId);
+      else if (target === '예비 신입생 전체') targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
+      else if (target === 'company') targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
+      else {
+        // 학년/학과별
+        targets = allUsers.filter(u => u.category === 'student' && (u.grade === target || u.dept === target || u['학년'] === target)).map(u => u.oneSignalId);
       }
+      targets = [...new Set(targets)].filter(id => id);
+      if (targets.length === 0) {
+        throw new Error(`${target} 가입자가 없거나 알림 미구독`);
+      }
+      body.include_aliases = { onesignal_id: targets };
+      body.target_channel = 'push';
+      console.log(`[예약 발송] ${target} 대상 ${targets.length}명에게 발송`);
       const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const result = await res.json().catch(() => ({}));
       if (!result.id && !result.recipients) {
