@@ -919,16 +919,25 @@
       } else {
         const response = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         const data = await response.json();
-        if (data.id) {
-          showResult('✅ 발송 완료!', 'success');
+        // 응답 검증 강화: id 또는 recipients 둘 중 하나 있으면 성공
+        if (data.id || data.recipients > 0) {
+          const recipients = data.recipients || '?';
+          showResult(`✅ 발송 완료! (${recipients}명 도달)`, 'success');
           addHistory(selectedGroup, title, message, null);
-          await writeLog('send', 'notification', data.id, `즉시 발송: "${title}" (${selectedGroup})`);
+          await writeLog('send', 'notification', data.id || 'unknown', `즉시 발송: "${title}" (${selectedGroup}) → ${recipients}명`);
           document.getElementById('title').value = '';
           document.getElementById('message').value = '';
           document.getElementById('scheduleTime').value = '';
-        } else { showResult('❌ 발송 실패: ' + JSON.stringify(data.errors || data), 'error'); }
+        } else {
+          const errMsg = JSON.stringify(data.errors || data);
+          showResult('❌ 발송 실패: ' + errMsg, 'error');
+          await writeLog('send', 'notification', null, `즉시 발송 실패: "${title}" (${selectedGroup}) - ${errMsg}`);
+        }
       }
-    } catch(e) { showResult('❌ 오류: ' + e.message, 'error'); }
+    } catch(e) {
+      showResult('❌ 오류: ' + e.message, 'error');
+      try { await writeLog('send', 'notification', null, `발송 오류: "${title}" - ${e.message}`); } catch(_) {}
+    }
     sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
   }
   function showResult(msg, type) { const box = document.getElementById('resultBox'); box.textContent = msg; box.className = 'result-box ' + type; setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 5000); }
@@ -1136,13 +1145,33 @@
       // 알림 대상 분기
       const targetLabel = target === 'company' ? '전담인력' : target === 'student' ? '재학생' : target === 'graduate' ? '졸업생' : target === 'prospect' ? '예비신입생' : '전체';
       if (confirm(`📢 ${targetLabel}에게 알림도 보낼까요?`)) {
-        let notifBody = { app_id: APP_ID, headings: { en: title, ko: title }, contents: { en: '새 공지사항이 등록됐어요. 확인해주세요!', ko: '새 공지사항이 등록됐어요. 확인해주세요!' }, url: "https://dks3275-rgb.github.io/notice.html" };
-        if (target === 'all') notifBody.included_segments = ["Total Subscriptions"];
-        else if (target === 'student') notifBody.filters = [{field:"tag",key:"카테고리",relation:"=",value:"student"}];
-        else if (target === 'graduate') notifBody.filters = [{field:"tag",key:"카테고리",relation:"=",value:"graduate"}];
-        else if (target === 'prospect') notifBody.filters = [{field:"tag",key:"카테고리",relation:"=",value:"prospect"}];
-        else if (target === 'company') notifBody.filters = [{field:"tag",key:"카테고리",relation:"=",value:"company"}];
-        await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(notifBody) });
+        // Firestore 기반 발송 (휴지통 사용자 자동 제외)
+        try {
+          const { collection: col, getDocs: gDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+          const userSnap = await gDocs(col(db, 'users'));
+          const allUsers = userSnap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+          let recipients = target === 'all' ? allUsers
+            : target === 'company' ? allUsers.filter(u => u.category === 'company' || u.category === '회사')
+            : allUsers.filter(u => u.category === target);
+          const targetIds = [...new Set(recipients.map(u => u.oneSignalId))].filter(id => id);
+          if (targetIds.length > 0) {
+            const notifBody = {
+              app_id: APP_ID,
+              headings: { en: title, ko: title },
+              contents: { en: '새 공지사항이 등록됐어요. 확인해주세요!', ko: '새 공지사항이 등록됐어요. 확인해주세요!' },
+              url: "https://dks3275-rgb.github.io/notice.html",
+              include_aliases: { onesignal_id: targetIds },
+              target_channel: 'push',
+              priority: 10, ttl: 259200, android_priority: 'high'
+            };
+            const res = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(notifBody) });
+            const data = await res.json().catch(() => ({}));
+            await writeLog('send', 'notification', data.id || null, `공지 알림: "${title}" (${targetLabel}) → ${data.recipients || targetIds.length}명`);
+          }
+        } catch(e) {
+          console.warn('공지 알림 발송 실패:', e);
+          await writeLog('send', 'notification', null, `공지 알림 실패: "${title}" - ${e.message}`);
+        }
       }
       document.getElementById('noticeTitle').value = '';
       document.getElementById('noticeContent').value = '';
@@ -1846,9 +1875,28 @@
     }
   }
   async function executeScheduled(item) {
-    if (item.executing) return; // 중복 실행 방지
+    if (item.executing) return; // 메모리 중복 방지
     item.executing = true;
     try {
+      // Firestore 잠금: 다른 관리자/탭에서 동시 실행 방지
+      const { runTransaction, doc: txDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const acquireLock = await runTransaction(window._schDb, async (tx) => {
+        const ref = window._schDoc(window._schDb, 'scheduled_notifications', item.id);
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return false;
+        const data = snap.data();
+        // 이미 발송 완료 또는 다른 곳에서 잠금 중 (1분 이내)
+        if (data.sent) return false;
+        const lockUntil = data.lockUntil || 0;
+        if (lockUntil > Date.now()) return false;
+        // 1분 잠금 획득
+        tx.update(ref, { lockUntil: Date.now() + 60000 });
+        return true;
+      });
+      if (!acquireLock) {
+        item.executing = false;
+        return; // 다른 곳에서 이미 처리 중 또는 완료
+      }
       const body = {
         app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
         contents: { ko: item.message, en: item.message },
@@ -1897,7 +1945,8 @@
       await updateDoc(window._schDoc(window._schDb, 'scheduled_notifications', item.id), {
         sent: true,
         sentAt: Date.now(),
-        sentRecipients: result.recipients || 0
+        sentRecipients: result.recipients || 0,
+        lockUntil: 0
       });
       const idx = scheduledItems.findIndex(s => s.id === item.id);
       if (idx !== -1) { scheduledItems[idx].sent = true; scheduledItems[idx].sentAt = Date.now(); }
@@ -1909,7 +1958,8 @@
         const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
         await updateDoc(window._schDoc(window._schDb, 'scheduled_notifications', item.id), {
           sendError: e.message,
-          lastTriedAt: Date.now()
+          lastTriedAt: Date.now(),
+          lockUntil: 0  // 실패 시 잠금 해제하여 재시도 가능
         });
         await writeLog('send', 'notification', item.id, `예약 발송 실패: "${item.title}" - ${e.message}`);
       } catch(e2) {}

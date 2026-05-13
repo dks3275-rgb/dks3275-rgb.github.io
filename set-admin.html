@@ -138,7 +138,7 @@
       await new Promise((resolve, reject) => {
         OneSignalDeferred.push(async function(OneSignal) {
           try {
-            await OneSignal.User.removeTags(['role']);
+            await OneSignal.User.removeTags(['role', '역할']);
             resolve();
           } catch(e) { reject(e); }
         });
