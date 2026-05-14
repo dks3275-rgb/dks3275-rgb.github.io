@@ -666,6 +666,16 @@
           <span style="color:#d97706;font-size:12px;">카테고리는 자동으로 "자료"로 저장됩니다.</span>
         </div>
       </div>
+      <!-- 서브 카테고리 (재학생만, NCS 모듈 분류용) -->
+      <div class="form-group" id="libSubCategoryGroup">
+        <label class="form-label">📂 서브 카테고리 <span style="font-weight:400;color:#718096;font-size:12px;">(재학생 자료실 분류)</span></label>
+        <select class="form-input" id="libSubCategory">
+          <option value="학습안내서">📘 학습안내서</option>
+          <option value="NCS 모듈">🎯 NCS 모듈</option>
+          <option value="기타 자료">📁 기타 자료</option>
+        </select>
+        <div style="font-size:11px;color:#718096;margin-top:4px;">자료실에서 학과 → 서브 카테고리 순서로 분류됩니다.</div>
+      </div>
       <div class="form-group">
         <label class="form-label">자료 제목</label>
         <input type="text" class="form-input" id="libTitle" placeholder="자료 제목을 입력해주세요" />
@@ -2217,6 +2227,7 @@
     const companyCat = document.getElementById('libCategoryCompany');
     const prospectCat = document.getElementById('libCategoryProspect');
     const graduateCat = document.getElementById('libCategoryGraduate');
+    const subCatGroup = document.getElementById('libSubCategoryGroup');
     studentCat.style.display = 'none';
     companyCat.style.display = 'none';
     if (prospectCat) prospectCat.style.display = 'none';
@@ -2225,6 +2236,8 @@
     else if (target === 'prospect' && prospectCat) prospectCat.style.display = 'block';
     else if (target === 'graduate' && graduateCat) graduateCat.style.display = 'block';
     else studentCat.style.display = 'block';
+    // 서브 카테고리는 재학생만 표시
+    if (subCatGroup) subCatGroup.style.display = (target === 'student') ? 'block' : 'none';
   }
 
   // ── 자료실 자동 업로드 (Cloudinary auto endpoint) ──
@@ -2388,14 +2401,19 @@
       const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
       const db = getFirestore(app);
       const resourceType = libUploadedUrl ? 'cloudinary' : 'manual';
+      // 서브 카테고리 (재학생만 의미 있음)
+      const subCategory = target === 'student'
+        ? (document.getElementById('libSubCategory')?.value || '기타 자료')
+        : null;
       await addDoc(collection(db, 'library'), {
         title, desc, target, category,
+        subCategory,  // NCS 모듈 / 학습안내서 / 기타 자료
         fileUrl, fileName, fileType,
         resourceType,
         createdAt: serverTimestamp(),
         updatedAt: new Date().toISOString()
       });
-      await writeLog('create', 'library', null, `자료 등록: ${title} (${target}/${category})`);
+      await writeLog('create', 'library', null, `자료 등록: ${title} (${target}/${category}${subCategory ? '/' + subCategory : ''})`);
       showLibResult('✅ 자료가 등록됐어요!', 'success');
       // 폼 초기화
       document.getElementById('libTitle').value = '';

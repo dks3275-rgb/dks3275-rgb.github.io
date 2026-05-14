@@ -85,6 +85,12 @@
     { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
     { name: '공통', icon: '📢' },
   ];
+  // 서브 카테고리 (학과 안의 분류)
+  const SUB_CATEGORIES = [
+    { name: '학습안내서', icon: '📘', desc: '학습 가이드' },
+    { name: 'NCS 모듈', icon: '🎯', desc: '국가직무능력표준 자료' },
+    { name: '기타 자료', icon: '📁', desc: '그 외 자료' }
+  ];
   const COMPANY_CATEGORIES = [
     { name: '훈련 운영 서식', icon: '📋' },
     { name: '가이드 · 매뉴얼', icon: '📘' },
@@ -187,6 +193,16 @@
     }).join('');
   }
 
+  // 자료가 어느 서브 카테고리에 속하는지 판단
+  function getSubCategory(resource) {
+    if (resource.subCategory) return resource.subCategory;
+    // 레거시: subCategory 없으면 desc/title로 추정
+    const text = `${resource.title || ''} ${resource.desc || ''}`.toLowerCase();
+    if (text.includes('ncs')) return 'NCS 모듈';
+    if (text.includes('학습안내서') || text.includes('가이드')) return '학습안내서';
+    return '기타 자료';
+  }
+
   window.showCategories = function() {
     document.getElementById('backBtn').classList.remove('visible');
     document.getElementById('sectionTitle').textContent = '카테고리 선택';
@@ -195,9 +211,10 @@
     const searchEl = document.getElementById('resourceSearch');
     if (searchEl) { searchEl.style.display = 'none'; searchEl.value = ''; }
     window._currentCategory = null;
+    window._currentSubCategory = null;
     document.getElementById('categoryGrid').innerHTML = CATEGORIES.map(cat => {
       const count = allResources.filter(r => r.category === cat.name).length;
-      return `<div class="category-card" onclick="showFiles('${cat.name}')">
+      return `<div class="category-card" onclick="showSubCategories('${cat.name}')">
         <div class="category-icon">${cat.icon}</div>
         <div class="category-name">${cat.name}</div>
         <div class="category-count">자료 ${count}개</div>
@@ -205,21 +222,70 @@
     }).join('');
   }
 
-  window.filterResources = function() {
-    if (window._currentCategory) window.showFiles(window._currentCategory);
+  // 학과 클릭 시 → 서브 카테고리 표시 (재학생만)
+  window.showSubCategories = function(categoryName) {
+    // 전담인력은 서브 카테고리 없이 바로 파일 목록
+    if (userCategory === 'company') {
+      window.showFiles(categoryName);
+      return;
+    }
+    document.getElementById('backBtn').classList.add('visible');
+    document.getElementById('backBtn').textContent = '← 학과 선택으로';
+    document.getElementById('backBtn').setAttribute('onclick', 'showCategories()');
+    document.getElementById('sectionTitle').textContent = categoryName;
+    document.getElementById('fileList').style.display = 'none';
+    document.getElementById('categoryGrid').style.display = 'grid';
+    const searchEl = document.getElementById('resourceSearch');
+    if (searchEl) { searchEl.style.display = 'none'; searchEl.value = ''; }
+    window._currentCategory = categoryName;
+    window._currentSubCategory = null;
+    const categoryResources = allResources.filter(r => r.category === categoryName);
+    // 서브 카테고리별 카운트
+    document.getElementById('categoryGrid').innerHTML = SUB_CATEGORIES.map(sub => {
+      const count = categoryResources.filter(r => getSubCategory(r) === sub.name).length;
+      return `<div class="category-card" onclick="showFiles('${categoryName}', '${sub.name}')">
+        <div class="category-icon">${sub.icon}</div>
+        <div class="category-name">${sub.name}</div>
+        <div class="category-count">${sub.desc} · ${count}개</div>
+      </div>`;
+    }).join('') + `<div class="category-card" onclick="showFiles('${categoryName}', 'ALL')" style="grid-column: 1 / -1; background:#e3f2fd;">
+        <div class="category-icon">📂</div>
+        <div class="category-name">전체 보기</div>
+        <div class="category-count">모든 자료 (${categoryResources.length}개)</div>
+      </div>`;
   };
 
-  window.showFiles = function(categoryName) {
+  window.filterResources = function() {
+    if (window._currentCategory) window.showFiles(window._currentCategory, window._currentSubCategory);
+  };
+
+  window.showFiles = function(categoryName, subCategory) {
     document.getElementById('backBtn').classList.add('visible');
-    document.getElementById('sectionTitle').textContent = categoryName;
+    // 재학생: 학과 → 서브 카테고리 → 파일 (3단계)
+    // 전담인력: 카테고리 → 파일 (2단계)
+    if (subCategory && userCategory !== 'company') {
+      document.getElementById('backBtn').textContent = '← ' + categoryName;
+      document.getElementById('backBtn').setAttribute('onclick', `showSubCategories('${categoryName}')`);
+      const subDisplay = subCategory === 'ALL' ? '전체 보기' : subCategory;
+      document.getElementById('sectionTitle').textContent = `${categoryName} · ${subDisplay}`;
+    } else {
+      document.getElementById('backBtn').textContent = '← 카테고리로 돌아가기';
+      document.getElementById('backBtn').setAttribute('onclick', 'showCategories()');
+      document.getElementById('sectionTitle').textContent = categoryName;
+    }
     document.getElementById('categoryGrid').style.display = 'none';
     document.getElementById('fileList').style.display = 'flex';
     const searchEl = document.getElementById('resourceSearch');
     if (searchEl) searchEl.style.display = 'block';
     window._currentCategory = categoryName;
+    window._currentSubCategory = subCategory;
     const searchTerm = (searchEl?.value || '').trim().toLowerCase();
 
     let filtered = allResources.filter(r => r.category === categoryName);
+    // 서브 카테고리 필터 (재학생만, ALL이면 필터 안 함)
+    if (subCategory && subCategory !== 'ALL' && userCategory !== 'company') {
+      filtered = filtered.filter(r => getSubCategory(r) === subCategory);
+    }
     if (searchTerm) {
       filtered = filtered.filter(r => {
         const hay = `${r.title || ''} ${r.desc || ''} ${r.fileName || ''}`.toLowerCase();
