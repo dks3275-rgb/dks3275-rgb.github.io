@@ -840,14 +840,12 @@
       app_id: APP_ID,
       headings: { en: title, ko: title },
       contents: { en: message, ko: message },
-      // 도달률 개선 옵션
+      // 도달률 개선 옵션 (안전 검증된 것만)
       priority: 10,                    // 최고 우선순위
       ttl: 259200,                     // 3일 보관 (사용자 미접속 시에도 3일 안에 켜면 받음)
       android_priority: 'high',        // Android FCM 최고 우선순위
       android_visibility: 1,           // 잠금 화면에도 표시
-      web_url: 'https://dks3275-rgb.github.io/notice.html',  // 클릭 시 공지로
-      ios_interruption_level: 'time-sensitive',  // iOS 집중 모드 우회
-      ios_relevance_score: 1.0         // iOS 알림 중요도 최고
+      web_url: 'https://dks3275-rgb.github.io/notice.html'  // 클릭 시 공지로
     };
 
     // 모든 발송을 Firestore에서 직접 조회 → include_aliases 사용 (OneSignal 태그 매칭 문제 완전 회피)
@@ -1938,9 +1936,7 @@
         ttl: 259200,
         android_priority: 'high',
         android_visibility: 1,
-        web_url: 'https://dks3275-rgb.github.io/notice.html',
-        ios_interruption_level: 'time-sensitive',
-        ios_relevance_score: 1.0
+        web_url: 'https://dks3275-rgb.github.io/notice.html'
       };
       // 예약 발송도 Firestore 기반 통일 (모든 발송 정확도 보장)
       const target = item.target;
