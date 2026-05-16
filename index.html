@@ -986,7 +986,7 @@
     // URL 파라미터로 카테고리 지정 (onboarding에서 넘어온 경우)
     const urlParams = new URLSearchParams(window.location.search);
     const paramCategory = urlParams.get('category');
-    if (paramCategory === 'student' || paramCategory === 'graduate' || paramCategory === 'prospect') {
+    if (paramCategory === 'student' || paramCategory === 'graduate' || paramCategory === 'prospect' || paramCategory === 'company') {
       setTimeout(() => selectCategory(paramCategory), 100);
     }
   });
