@@ -721,6 +721,24 @@
       <button class="send-btn" id="libSubmitBtn" onclick="submitLibrary()">📚 자료 등록</button>
       <div class="result-box" id="libResult"></div>
     </div>
+
+    <!-- NCS 모듈 일괄 등록 카드 -->
+    <div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-left:4px solid #f59e0b;">
+      <div class="card-title">🎯 NCS 모듈 일괄 등록</div>
+      <p style="font-size:13px;color:#78350f;margin-bottom:12px;line-height:1.6;">
+        업로드된 NCS 학습모듈 PDF를 학과별로 한 번에 등록합니다.<br>
+        <strong>26개 NCS 모듈</strong> (세무회계 8 + 식음료서비스 12 + 양식조리 6)
+      </p>
+      <div style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#475569;">
+        📂 <b>등록 매핑:</b><br>
+        • <b>세무회계정보관리_L3</b> → 전문대 회계세무학과 (8개)<br>
+        • <b>식음료서비스_L3</b> → P-TECH 1학년 + 2학년 + 호텔관광학과 (12×3=36개)<br>
+        • <b>양식조리_L4</b> → 전문대 호텔조리학과 (6개)
+      </div>
+      <button class="send-btn" id="ncsBulkBtn" onclick="bulkRegisterNCS()" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🚀 NCS 모듈 일괄 등록</button>
+      <div class="result-box" id="ncsBulkResult"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">📋 등록된 자료
         <div style="display:flex;gap:8px;align-items:center;">
@@ -2373,6 +2391,134 @@
           <small>GitHub URL 방식으로 업로드해주세요.</small>
         </div>`;
     }
+  }
+
+  // ═══════════════════════════════════════════
+  // ── NCS 모듈 일괄 등록 ──
+  // ═══════════════════════════════════════════
+  async function bulkRegisterNCS() {
+    const btn = document.getElementById('ncsBulkBtn');
+    const result = document.getElementById('ncsBulkResult');
+    if (!await customConfirm({
+      title: 'NCS 모듈 일괄 등록',
+      message: '<b>50개</b>의 NCS 모듈을 자료실에 등록할까요?<br><br>' +
+        '• 회계세무학과: 8개<br>' +
+        '• P-TECH 1학년: 12개<br>' +
+        '• P-TECH 2학년: 12개<br>' +
+        '• 호텔관광학과: 12개<br>' +
+        '• 호텔조리학과: 6개<br><br>' +
+        '⚠️ 이미 등록된 경우 중복으로 추가될 수 있습니다.',
+      confirmText: '🚀 등록',
+      danger: false
+    })) return;
+
+    btn.disabled = true; btn.textContent = '등록 중...';
+    const BASE = 'https://raw.githubusercontent.com/dks3275-rgb/dks3275-rgb.github.io/main/files';
+    const enc = (s) => encodeURIComponent(s);
+
+    // NCS 모듈 데이터 (학과별 매핑)
+    const accountingModules = [
+      { title: '부가가치세 신고', file: '1. 부가가치세 신고.pdf' },
+      { title: '결산관리', file: '2. 결산관리.pdf' },
+      { title: '적격증빙관리', file: '3. 적격증빙관리.pdf' },
+      { title: '원천징수', file: '4. 원천징수.pdf' },
+      { title: '법인세 신고', file: '5. 법인세신고.pdf' },
+      { title: '급여지급', file: '6. 급여지급.pdf' },
+      { title: '지방세 신고', file: '7. 지방세 신고.pdf' },
+      { title: '종합소득세 신고', file: '8. 종합소득세 신고.pdf' }
+    ];
+    const foodBeverageModules = [
+      { title: '위생 음료영업장 관리', file: '1. 위생 음료영업장 관리.pdf' },
+      { title: '식음료 영업장 위생안전관리', file: '2. 식음료 영업장 위생안전관리.pdf' },
+      { title: '식음료 고객 관리', file: '3. 식음료 고객 관리.pdf' },
+      { title: '식음료 영업장 예약 관리', file: '4. 식음료 영업장 예약 관리.pdf' },
+      { title: '식음료영업준비', file: '5. 식음료영업준비.pdf' },
+      { title: '연회 행사 준비', file: '6. 연회 행사 준비.pdf' },
+      { title: '식음료주문', file: '7. 식음료주문.pdf' },
+      { title: '식음료 업장 운영', file: '8. 식음료 업장 운영.pdf' },
+      { title: '식음료 영업장 마감', file: '9. 식음료 영업장 마감.pdf' },
+      { title: '식음료 영업장 관리', file: '10. 식음료 영업장 관리.pdf' },
+      { title: '와인·와인셀러·와인장비 및 비품관리', file: '11. 와인·와인셀러·와인장비 및 비품관리.pdf' },
+      { title: '와인 추천·판매', file: '12. 와인 추천·판매.pdf' }
+    ];
+    const cookingModules = [
+      { title: '양식수프조리', file: '1. 양식수프조리_능력단위.pdf' },
+      { title: '양식어패류조리', file: '2. 양식어패류조리_능력단위.pdf' },
+      { title: '양식육류조리', file: '3. 양식육류조리_능력단위.pdf' },
+      { title: '양식파스타조리', file: '4. 양식파스타조리_능력단위.pdf' },
+      { title: '양식사이드디쉬조리', file: '5. 양식사이드디쉬조리_능력단위.pdf' },
+      { title: '양식디저트조리', file: '6. 양식디저트조리_능력단위.pdf' }
+    ];
+
+    // 등록할 자료 목록 생성
+    const items = [];
+    // 회계세무학과
+    accountingModules.forEach(m => items.push({
+      title: m.title,
+      desc: '세무회계정보관리 L3 NCS 능력단위',
+      category: '전문대 회계세무학과',
+      subCategory: 'NCS 모듈',
+      fileName: m.file,
+      fileUrl: `${BASE}/NCS_세무회계정보관리_L3/${enc(m.file)}`,
+      fileType: 'application/pdf'
+    }));
+    // P-TECH 1학년, P-TECH 2학년, 호텔관광학과 (식음료서비스 공통)
+    ['P-TECH 1학년', 'P-TECH 2학년', '전문대 호텔관광학과'].forEach(cat => {
+      foodBeverageModules.forEach(m => items.push({
+        title: m.title,
+        desc: '식음료서비스 L3 NCS 능력단위',
+        category: cat,
+        subCategory: 'NCS 모듈',
+        fileName: m.file,
+        fileUrl: `${BASE}/NCS_식음료서비스_L3/${enc(m.file)}`,
+        fileType: 'application/pdf'
+      }));
+    });
+    // 호텔조리학과
+    cookingModules.forEach(m => items.push({
+      title: m.title,
+      desc: '양식조리 L4 NCS 능력단위',
+      category: '전문대 호텔조리학과',
+      subCategory: 'NCS 모듈',
+      fileName: m.file,
+      fileUrl: `${BASE}/NCS_양식조리_L4/${enc(m.file)}`,
+      fileType: 'application/pdf'
+    }));
+
+    // Firestore에 일괄 등록
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
+      const db = getFirestore(app);
+
+      let success = 0, fail = 0;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        btn.textContent = `등록 중... (${i+1}/${items.length})`;
+        try {
+          await addDoc(collection(db, 'library'), {
+            ...item,
+            target: 'student',
+            resourceType: 'github',
+            createdAt: serverTimestamp(),
+            updatedAt: new Date().toISOString()
+          });
+          success++;
+        } catch(e) {
+          console.warn('등록 실패:', item.title, e);
+          fail++;
+        }
+      }
+      await writeLog('create', 'library', null, `NCS 모듈 일괄 등록: 성공 ${success}건, 실패 ${fail}건`);
+      result.innerHTML = `<div class="result-box success">✅ 등록 완료! 성공 ${success}건${fail > 0 ? ` · 실패 ${fail}건` : ''}</div>`;
+      result.style.display = 'block';
+      loadLibrary();
+    } catch(e) {
+      result.innerHTML = `<div class="result-box error">❌ 오류: ${e.message}</div>`;
+      result.style.display = 'block';
+    }
+    btn.disabled = false; btn.textContent = '🚀 NCS 모듈 일괄 등록';
   }
 
   async function submitLibrary() {
