@@ -487,8 +487,24 @@
       </div>
     </div>
 
-    <!-- Android 가이드 -->
+    <!-- Android APK 다운로드 (추천) -->
+    <div id="apkSection" style="display:none;margin-bottom:14px;">
+      <a href="apk/AU일학습병행.apk" download
+         style="display:block;background:linear-gradient(135deg,#10b981,#059669);color:white;padding:18px 20px;border-radius:16px;text-decoration:none;text-align:center;position:relative;box-shadow:0 6px 18px rgba(16,185,129,0.3);">
+        <span style="position:absolute;top:-10px;left:16px;background:#f59e0b;color:white;font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;">⭐ 가장 쉬움</span>
+        <div style="font-size:36px;margin-bottom:6px;">📦</div>
+        <div style="font-size:17px;font-weight:900;margin-bottom:4px;">APK 직접 설치 (1초)</div>
+        <div style="font-size:12px;opacity:0.95;">파일 다운로드 → 클릭 한 번이면 끝!</div>
+      </a>
+      <div style="background:#fff3cd;border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12px;color:#92400e;line-height:1.6;">
+        💡 <b>설치 안내</b>: APK 다운로드 후 알림창의 파일 클릭 → "출처 불명 앱 허용" 메시지 나오면 허용 → 설치
+      </div>
+      <div style="text-align:center;font-size:12px;color:var(--text2);margin:14px 0 8px;">또는 ↓ 아래 방법으로도 가능</div>
+    </div>
+
+    <!-- Android 가이드 (PWA 홈 화면 추가) -->
     <div class="step-list" id="stepsAndroid" style="display:none;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;letter-spacing:1px;">🌐 또는 홈 화면에 추가 (PWA 방식)</div>
       <div class="step-card">
         <div class="step-number">1</div>
         <div class="step-content">
@@ -629,13 +645,14 @@
       showBrowserWarning(device, browser);
       // 인앱 브라우저에서는 가이드도 함께 표시
       if (device === 'ios') document.getElementById('stepsIOS').style.display = 'flex';
-      else if (device === 'android') document.getElementById('stepsAndroid').style.display = 'flex';
+      else if (device === 'android') { document.getElementById('apkSection').style.display='block'; document.getElementById('stepsAndroid').style.display = 'flex'; }
       return;
     }
 
     // 삼성인터넷 등 다른 안드로이드 브라우저
     if (browser === 'samsung' || browser === 'android-other') {
       showBrowserWarning(device, browser);
+      document.getElementById('apkSection').style.display = 'block';
       document.getElementById('stepsAndroid').style.display = 'flex';
       return;
     }
@@ -652,8 +669,9 @@
       document.getElementById('stepsIOS').style.display = 'flex';
       showStatusMessage('info', '✅ Safari로 접속하셨네요! 아래 안내대로 설치해주세요');
     } else if (device === 'android') {
+      document.getElementById('apkSection').style.display = 'block';
       document.getElementById('stepsAndroid').style.display = 'flex';
-      showStatusMessage('info', '✅ Chrome으로 접속하셨네요! 아래 안내대로 설치해주세요');
+      showStatusMessage('info', '✅ Chrome으로 접속하셨네요! APK 또는 홈 화면 추가 중 선택하세요');
     }
   }
 
