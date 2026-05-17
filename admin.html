@@ -727,17 +727,20 @@
       <div class="card-title">🎯 NCS 모듈 일괄 등록</div>
       <p style="font-size:13px;color:#78350f;margin-bottom:12px;line-height:1.6;">
         업로드된 NCS 학습모듈 PDF를 학과별로 한 번에 등록합니다.<br>
-        <strong>50개 항목 등록</strong> (5개 능력단위 × 학과 매핑)
+        <strong>총 114개 항목 등록</strong> (재학생 64개 + 졸업생 50개)
       </p>
       <div style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#475569;">
         📂 <b>등록 매핑:</b><br>
-        • <b>세무회계정보관리_L3</b> (8개) → 전문대 회계세무학과<br>
-        • <b>식음료서비스_L3</b> (12개) → 전문대 호텔관광학과<br>
-        • <b>양식조리_L4</b> (8개) → 전문대 호텔조리학과<br>
-        • <b>총무인사_L3</b> (8개) → 전문대 마케팅경영학과<br>
-        • <b>호텔식음료서비스_L3</b> (14개×2) → P-TECH 1학년 + 2학년
+        <b>[재학생]</b><br>
+        • 세무회계정보관리_L3 (8개) → 회계세무학과<br>
+        • 식음료서비스_L3 (12개) → 호텔관광학과<br>
+        • 양식조리_L4 (8개) → 호텔조리학과<br>
+        • 총무인사_L3 (8개) → 마케팅경영학과<br>
+        • 호텔식음료서비스_L3 (14개×2) → P-TECH 1학년 + 2학년<br>
+        <b>[졸업생]</b><br>
+        • 모든 NCS 모듈 50개 → 졸업생 자료실
       </div>
-      <button class="send-btn" id="ncsBulkBtn" onclick="bulkRegisterNCS()" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🚀 NCS 모듈 일괄 등록</button>
+      <button class="send-btn" id="ncsBulkBtn" onclick="bulkRegisterNCS()" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🚀 NCS 모듈 일괄 등록 (재학생 + 졸업생)</button>
       <div class="result-box" id="ncsBulkResult"></div>
     </div>
 
@@ -2403,13 +2406,16 @@
     const result = document.getElementById('ncsBulkResult');
     if (!await customConfirm({
       title: 'NCS 모듈 일괄 등록',
-      message: '<b>총 50개</b>의 NCS 모듈을 자료실에 등록할까요?<br><br>' +
+      message: '<b>총 114개</b>의 NCS 모듈을 자료실에 등록할까요?<br><br>' +
+        '<b>[재학생] 64개</b><br>' +
         '• 회계세무학과: 8개 (세무회계정보관리)<br>' +
         '• 호텔관광학과: 12개 (식음료서비스)<br>' +
         '• 호텔조리학과: 8개 (양식조리)<br>' +
         '• 마케팅경영학과: 8개 (총무인사)<br>' +
         '• P-TECH 1학년: 14개 (호텔식음료서비스)<br>' +
         '• P-TECH 2학년: 14개 (호텔식음료서비스)<br><br>' +
+        '<b>[졸업생] 50개</b><br>' +
+        '• 모든 NCS 모듈 (5개 직무 전체)<br><br>' +
         '⚠️ 이미 등록된 경우 중복으로 추가될 수 있습니다.',
       confirmText: '🚀 등록',
       danger: false
@@ -2536,6 +2542,29 @@
       }));
     });
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 졸업생 자료실 (모든 NCS 모듈 50개)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const graduateItems = [
+      { modules: accountingModules, folder: 'NCS_세무회계정보관리_L3', label: '세무회계정보관리' },
+      { modules: foodBeverageModules, folder: 'NCS_식음료서비스_L3', label: '식음료서비스' },
+      { modules: cookingModules, folder: 'NCS_양식조리_L4', label: '양식조리' },
+      { modules: hrModules, folder: 'NCS_총무인사_L3', label: '총무인사' },
+      { modules: hotelFBModules, folder: 'NCS_호텔식음료서비스_L3', label: '호텔식음료서비스' }
+    ];
+    graduateItems.forEach(({ modules, folder, label }) => {
+      modules.forEach(m => items.push({
+        title: `[${label}] ${m.title}`,
+        desc: `${label} NCS 능력단위`,
+        category: '자료',
+        subCategory: 'NCS 모듈',
+        fileName: m.file,
+        fileUrl: `${BASE}/${folder}/${enc(m.file)}`,
+        fileType: 'application/pdf',
+        target: 'graduate'  // ← 졸업생 타겟
+      }));
+    });
+
     // Firestore에 일괄 등록
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
@@ -2550,7 +2579,7 @@
         try {
           await addDoc(collection(db, 'library'), {
             ...item,
-            target: 'student',
+            target: item.target || 'student',  // item에 target이 있으면 그대로 사용 (졸업생용), 없으면 student
             resourceType: 'github',
             createdAt: serverTimestamp(),
             updatedAt: new Date().toISOString()
