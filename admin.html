@@ -2579,7 +2579,7 @@
       let success = 0, fail = 0;
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        btn.textContent = `등록 중... (${i+1}/${items.length})`;
+        if (activeBtn) activeBtn.textContent = `등록 중... (${i+1}/${items.length})`;
         try {
           await addDoc(collection(db, 'library'), {
             ...item,
