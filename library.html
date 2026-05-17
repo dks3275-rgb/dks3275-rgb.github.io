@@ -85,6 +85,13 @@
     { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
     { name: '공통', icon: '📢' },
   ];
+  // 졸업생은 P-TECH 1/2학년 구분 없이 단일 P-TECH 카테고리 사용
+  const GRADUATE_CATEGORIES = [
+    { name: 'P-TECH', icon: '🎓' },
+    { name: '전문대 마케팅경영학과', icon: '📚' }, { name: '전문대 호텔조리학과', icon: '🍳' },
+    { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
+    { name: '공통', icon: '📢' },
+  ];
   // 서브 카테고리 (학과 안의 분류)
   const SUB_CATEGORIES = [
     { name: '학습안내서', icon: '📘', desc: '학습 가이드' },
@@ -96,8 +103,10 @@
     { name: '가이드 · 매뉴얼', icon: '📘' },
     { name: '공지 · 안내', icon: '📢' },
   ];
-  // 재학생과 졸업생 모두 동일한 학과 카테고리 사용
-  const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES : STUDENT_CATEGORIES;
+  // 카테고리 선택: 전담인력 / 졸업생 / 재학생 (기본)
+  const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES
+                   : userCategory === 'graduate' ? GRADUATE_CATEGORIES
+                   : STUDENT_CATEGORIES;
 
   let allResources = [];
 

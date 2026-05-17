@@ -738,9 +738,9 @@
         • 호텔식음료서비스_L3 (14개×2) → P-TECH 1학년 + 2학년
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="send-btn" id="ncsBulkGradBtn" onclick="bulkRegisterNCS('graduate')" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🎉 졸업생 자료실에만 등록 (64개)</button>
+        <button class="send-btn" id="ncsBulkGradBtn" onclick="bulkRegisterNCS('graduate')" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🎉 졸업생 자료실에만 등록 (50개)</button>
         <button class="send-btn" id="ncsBulkStuBtn" onclick="bulkRegisterNCS('student')" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">🎓 재학생 자료실에만 등록 (64개)</button>
-        <button class="send-btn" id="ncsBulkAllBtn" onclick="bulkRegisterNCS('both')" style="background:linear-gradient(135deg,#10b981,#047857);font-size:13px;">⚡ 재학생 + 졸업생 모두 등록 (128개)</button>
+        <button class="send-btn" id="ncsBulkAllBtn" onclick="bulkRegisterNCS('both')" style="background:linear-gradient(135deg,#10b981,#047857);font-size:13px;">⚡ 재학생 + 졸업생 모두 등록 (114개)</button>
       </div>
       <div class="result-box" id="ncsBulkResult"></div>
     </div>
@@ -2409,7 +2409,7 @@
     const result = document.getElementById('ncsBulkResult');
     const allBtns = ['ncsBulkGradBtn', 'ncsBulkStuBtn', 'ncsBulkAllBtn'].map(id => document.getElementById(id));
     const modeLabel = mode === 'graduate' ? '졸업생만' : mode === 'student' ? '재학생만' : '재학생 + 졸업생';
-    const totalCount = (includeStudent ? 64 : 0) + (includeGraduate ? 64 : 0);
+    const totalCount = (includeStudent ? 64 : 0) + (includeGraduate ? 50 : 0);
 
     if (!await customConfirm({
       title: `NCS 모듈 일괄 등록 (${modeLabel})`,
@@ -2419,9 +2419,9 @@
         '• 호텔관광학과: 12개 (식음료서비스)<br>' +
         '• 호텔조리학과: 8개 (양식조리)<br>' +
         '• 마케팅경영학과: 8개 (총무인사)<br>' +
-        '• P-TECH 1학년: 14개 (호텔식음료서비스)<br>' +
-        '• P-TECH 2학년: 14개 (호텔식음료서비스)<br><br>' +
-        '⚠️ 이미 등록된 경우 중복으로 추가될 수 있습니다.',
+        (includeStudent ? '• P-TECH 1학년: 14개 (호텔식음료서비스)<br>• P-TECH 2학년: 14개 (호텔식음료서비스)<br>' : '') +
+        (includeGraduate ? '• P-TECH (졸업생): 14개 (호텔식음료서비스)<br>' : '') +
+        '<br>⚠️ 이미 등록된 경우 중복으로 추가될 수 있습니다.',
       confirmText: '🚀 등록',
       danger: false
     })) return;
@@ -2559,14 +2559,13 @@
         fileName: m.file, fileUrl: `${BASE}/NCS_총무인사_L3/${enc(m.file)}`,
         fileType: 'application/pdf', target: 'graduate'
       }));
-      ['P-TECH 1학년', 'P-TECH 2학년'].forEach(cat => {
-        hotelFBModules.forEach(m => items.push({
-          title: m.title, desc: '호텔식음료서비스 L3 NCS 능력단위',
-          category: cat, subCategory: 'NCS 모듈',
-          fileName: m.file, fileUrl: `${BASE}/NCS_호텔식음료서비스_L3/${enc(m.file)}`,
-          fileType: 'application/pdf', target: 'graduate'
-        }));
-      });
+      // 졸업생은 P-TECH 1학년/2학년 구분 없이 'P-TECH' 단일 카테고리로
+      hotelFBModules.forEach(m => items.push({
+        title: m.title, desc: '호텔식음료서비스 L3 NCS 능력단위',
+        category: 'P-TECH', subCategory: 'NCS 모듈',
+        fileName: m.file, fileUrl: `${BASE}/NCS_호텔식음료서비스_L3/${enc(m.file)}`,
+        fileType: 'application/pdf', target: 'graduate'
+      }));
     }
 
     // Firestore에 일괄 등록
@@ -2604,9 +2603,9 @@
     }
     // 모든 버튼 다시 활성화
     allBtns.forEach(b => { if (b) b.disabled = false; });
-    if (allBtns[0]) allBtns[0].textContent = '🎉 졸업생 자료실에만 등록 (64개)';
+    if (allBtns[0]) allBtns[0].textContent = '🎉 졸업생 자료실에만 등록 (50개)';
     if (allBtns[1]) allBtns[1].textContent = '🎓 재학생 자료실에만 등록 (64개)';
-    if (allBtns[2]) allBtns[2].textContent = '⚡ 재학생 + 졸업생 모두 등록 (128개)';
+    if (allBtns[2]) allBtns[2].textContent = '⚡ 재학생 + 졸업생 모두 등록 (114개)';
   }
 
   async function submitLibrary() {
