@@ -198,9 +198,9 @@
     if (resource.subCategory) return resource.subCategory;
     // 레거시: subCategory 없으면 desc/title로 추정
     const text = `${resource.title || ''} ${resource.desc || ''}`.toLowerCase();
-    if (text.includes('ncs')) return 'NCS 모듈';
-    if (text.includes('학습안내서') || text.includes('가이드')) return '학습안내서';
-    return '기타 자료';
+    if (text.includes('ncs') || text.includes('능력단위')) return 'NCS 모듈';
+    // subCategory 없는 옛 자료는 기본적으로 학습안내서로 분류 (NCS 외에는 대부분 학습안내서)
+    return '학습안내서';
   }
 
   window.showCategories = function() {
