@@ -727,18 +727,15 @@
       <div class="card-title">🎯 NCS 모듈 일괄 등록</div>
       <p style="font-size:13px;color:#78350f;margin-bottom:12px;line-height:1.6;">
         업로드된 NCS 학습모듈 PDF를 학과별로 한 번에 등록합니다.<br>
-        <strong>총 114개 항목 등록</strong> (재학생 64개 + 졸업생 50개)
+        <strong>총 128개 항목 등록</strong> (재학생 64개 + 졸업생 64개, 학과별 동일 구조)
       </p>
       <div style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#475569;">
-        📂 <b>등록 매핑:</b><br>
-        <b>[재학생]</b><br>
+        📂 <b>학과별 등록 매핑</b> (재학생/졸업생 동일):<br>
         • 세무회계정보관리_L3 (8개) → 회계세무학과<br>
         • 식음료서비스_L3 (12개) → 호텔관광학과<br>
         • 양식조리_L4 (8개) → 호텔조리학과<br>
         • 총무인사_L3 (8개) → 마케팅경영학과<br>
-        • 호텔식음료서비스_L3 (14개×2) → P-TECH 1학년 + 2학년<br>
-        <b>[졸업생]</b><br>
-        • 모든 NCS 모듈 50개 → 졸업생 자료실
+        • 호텔식음료서비스_L3 (14개×2) → P-TECH 1학년 + 2학년
       </div>
       <button class="send-btn" id="ncsBulkBtn" onclick="bulkRegisterNCS()" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🚀 NCS 모듈 일괄 등록 (재학생 + 졸업생)</button>
       <div class="result-box" id="ncsBulkResult"></div>
@@ -2406,16 +2403,14 @@
     const result = document.getElementById('ncsBulkResult');
     if (!await customConfirm({
       title: 'NCS 모듈 일괄 등록',
-      message: '<b>총 114개</b>의 NCS 모듈을 자료실에 등록할까요?<br><br>' +
-        '<b>[재학생] 64개</b><br>' +
+      message: '<b>총 128개</b>의 NCS 모듈을 자료실에 등록할까요?<br><br>' +
+        '<b>[재학생 + 졸업생 동일 구조] 각 64개</b><br>' +
         '• 회계세무학과: 8개 (세무회계정보관리)<br>' +
         '• 호텔관광학과: 12개 (식음료서비스)<br>' +
         '• 호텔조리학과: 8개 (양식조리)<br>' +
         '• 마케팅경영학과: 8개 (총무인사)<br>' +
         '• P-TECH 1학년: 14개 (호텔식음료서비스)<br>' +
         '• P-TECH 2학년: 14개 (호텔식음료서비스)<br><br>' +
-        '<b>[졸업생] 50개</b><br>' +
-        '• 모든 NCS 모듈 (5개 직무 전체)<br><br>' +
         '⚠️ 이미 등록된 경우 중복으로 추가될 수 있습니다.',
       confirmText: '🚀 등록',
       danger: false
@@ -2543,25 +2538,63 @@
     });
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 졸업생 자료실 (모든 NCS 모듈 50개)
+    // 졸업생 자료실 (재학생과 동일한 학과별 구조)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const graduateItems = [
-      { modules: accountingModules, folder: 'NCS_세무회계정보관리_L3', label: '세무회계정보관리' },
-      { modules: foodBeverageModules, folder: 'NCS_식음료서비스_L3', label: '식음료서비스' },
-      { modules: cookingModules, folder: 'NCS_양식조리_L4', label: '양식조리' },
-      { modules: hrModules, folder: 'NCS_총무인사_L3', label: '총무인사' },
-      { modules: hotelFBModules, folder: 'NCS_호텔식음료서비스_L3', label: '호텔식음료서비스' }
-    ];
-    graduateItems.forEach(({ modules, folder, label }) => {
-      modules.forEach(m => items.push({
-        title: `[${label}] ${m.title}`,
-        desc: `${label} NCS 능력단위`,
-        category: '자료',
+    // 6. 졸업생 회계세무학과 ← 세무회계정보관리
+    accountingModules.forEach(m => items.push({
+      title: m.title,
+      desc: '세무회계정보관리 L3 NCS 능력단위',
+      category: '전문대 회계세무학과',
+      subCategory: 'NCS 모듈',
+      fileName: m.file,
+      fileUrl: `${BASE}/NCS_세무회계정보관리_L3/${enc(m.file)}`,
+      fileType: 'application/pdf',
+      target: 'graduate'
+    }));
+    // 7. 졸업생 호텔관광학과 ← 식음료서비스
+    foodBeverageModules.forEach(m => items.push({
+      title: m.title,
+      desc: '식음료서비스 L3 NCS 능력단위',
+      category: '전문대 호텔관광학과',
+      subCategory: 'NCS 모듈',
+      fileName: m.file,
+      fileUrl: `${BASE}/NCS_식음료서비스_L3/${enc(m.file)}`,
+      fileType: 'application/pdf',
+      target: 'graduate'
+    }));
+    // 8. 졸업생 호텔조리학과 ← 양식조리
+    cookingModules.forEach(m => items.push({
+      title: m.title,
+      desc: '양식조리 L4 NCS 능력단위',
+      category: '전문대 호텔조리학과',
+      subCategory: 'NCS 모듈',
+      fileName: m.file,
+      fileUrl: `${BASE}/NCS_양식조리_L4/${enc(m.file)}`,
+      fileType: 'application/pdf',
+      target: 'graduate'
+    }));
+    // 9. 졸업생 마케팅경영학과 ← 총무인사
+    hrModules.forEach(m => items.push({
+      title: m.title,
+      desc: '총무인사 L3 NCS 능력단위',
+      category: '전문대 마케팅경영학과',
+      subCategory: 'NCS 모듈',
+      fileName: m.file,
+      fileUrl: `${BASE}/NCS_총무인사_L3/${enc(m.file)}`,
+      fileType: 'application/pdf',
+      target: 'graduate'
+    }));
+    // 10. 졸업생 P-TECH 1학년, 2학년 ← 호텔식음료서비스
+    ['P-TECH 1학년', 'P-TECH 2학년'].forEach(cat => {
+      hotelFBModules.forEach(m => items.push({
+        title: m.title,
+        desc: '호텔식음료서비스 L3 NCS 능력단위',
+        category: cat,
         subCategory: 'NCS 모듈',
         fileName: m.file,
-        fileUrl: `${BASE}/${folder}/${enc(m.file)}`,
+        fileUrl: `${BASE}/NCS_호텔식음료서비스_L3/${enc(m.file)}`,
         fileType: 'application/pdf',
-        target: 'graduate'  // ← 졸업생 타겟
+        target: 'graduate'
       }));
     });
 

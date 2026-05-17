@@ -96,6 +96,7 @@
     { name: '가이드 · 매뉴얼', icon: '📘' },
     { name: '공지 · 안내', icon: '📢' },
   ];
+  // 재학생과 졸업생 모두 동일한 학과 카테고리 사용
   const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES : STUDENT_CATEGORIES;
 
   let allResources = [];
@@ -134,8 +135,9 @@
         allResources = all.filter(r => r.target === 'student' || r.target === 'all');
       }
 
-      // 졸업생/예비신입생은 카테고리 생략하고 바로 파일 목록 표시
-      if (userCategory === 'prospect' || userCategory === 'graduate') {
+      // 예비신입생만 카테고리 생략 (단일 목록)
+      // 졸업생은 재학생과 동일한 학과별 분류 사용
+      if (userCategory === 'prospect') {
         showFlatList();
       } else {
         showCategories();
@@ -222,7 +224,7 @@
     }).join('');
   }
 
-  // 학과 클릭 시 → 서브 카테고리 표시 (재학생만)
+  // 학과 클릭 시 → 서브 카테고리 표시 (재학생/졸업생)
   window.showSubCategories = function(categoryName) {
     // 전담인력은 서브 카테고리 없이 바로 파일 목록
     if (userCategory === 'company') {
