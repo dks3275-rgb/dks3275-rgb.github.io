@@ -4,36 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>익명 의견함 - AU 일학습병행</title>
-<meta name="theme-color" content="#2196f3">
+<meta name="theme-color" content="#FFFFFF">
 <script src="device-check.js" data-auto-block></script>
 <script src="dark-mode.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-  :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --light: #f0f4f8; --gray: #8a9ab5; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); min-height: 100vh; }
-  .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
-  .back-btn { background: rgba(255,255,255,0.2); color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; }
-  .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
-  .header h1 { color: white; font-size: 18px; font-weight: 700; }
-  .container { max-width: 600px; margin: 0 auto; padding: 24px 16px 80px; }
-  .info-box { background: #e3f2fd; border-left: 4px solid var(--blue); padding: 14px 18px; border-radius: 12px; margin-bottom: 18px; font-size: 13px; line-height: 1.6; color: #0d47a1; }
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+  :root {
+    --tk-bg: #F2F4F6; --tk-surface: #FFFFFF; --tk-text: #191F28; --tk-text-sub: #4E5968; --tk-text-muted: #8B95A1;
+    --tk-border: #E5E8EB; --tk-border-strong: #D1D6DB;
+    --tk-primary: #3182F6; --tk-primary-dark: #1B64DA; --tk-primary-soft: #E8F2FF;
+    --tk-success: #00C896; --tk-danger: #F04452;
+    --tk-radius: 14px; --tk-radius-lg: 20px;
+    --navy: var(--tk-primary-dark); --blue: var(--tk-primary); --accent: #FF9F1C; --light: var(--tk-bg); --gray: var(--tk-text-muted);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--tk-bg); min-height: 100vh; color: var(--tk-text); -webkit-font-smoothing: antialiased; letter-spacing: -0.2px; }
+  .header { background: var(--tk-surface); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--tk-border); }
+  .back-btn { background: var(--tk-bg); color: var(--tk-text); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; font-weight: 600; transition: background 0.15s; }
+  .back-btn:hover { background: var(--tk-border); }
+  .header-badge { background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: -0.2px; }
+  .header h1 { color: var(--tk-text); font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
+  .container { max-width: 600px; margin: 0 auto; padding: 20px 16px 80px; }
+  .info-box { background: var(--tk-primary-soft); padding: 14px 18px; border-radius: var(--tk-radius); margin-bottom: 16px; font-size: 13px; line-height: 1.6; color: var(--tk-primary-dark); }
   .info-box strong { display: block; margin-bottom: 4px; }
-  .form-card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); }
-  .form-group { margin-bottom: 16px; }
-  .form-label { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 6px; display: block; }
-  .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e4eaf4; border-radius: 10px; font-size: 14px; font-family: inherit; box-sizing: border-box; }
-  .form-input:focus { outline: none; border-color: var(--blue); }
-  textarea.form-input { resize: vertical; min-height: 140px; }
+  .form-card { background: var(--tk-surface); border: 1px solid var(--tk-border); border-radius: var(--tk-radius-lg); padding: 22px; }
+  .form-group { margin-bottom: 18px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--tk-text); margin-bottom: 8px; display: block; letter-spacing: -0.2px; }
+  .form-input { width: 100%; padding: 13px 14px; border: 1px solid var(--tk-bg); border-radius: var(--tk-radius); font-size: 14px; font-family: inherit; box-sizing: border-box; background: var(--tk-bg); color: var(--tk-text); outline: none; transition: all 0.15s; }
+  .form-input:focus { border-color: var(--tk-primary); background: var(--tk-surface); box-shadow: 0 0 0 3px rgba(49,130,246,0.1); }
+  textarea.form-input { resize: vertical; min-height: 140px; line-height: 1.55; }
   .category-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .cat-btn { padding: 10px; border: 1.5px solid #e4eaf4; border-radius: 10px; background: white; cursor: pointer; font-family: inherit; font-size: 13px; transition: all 0.15s; }
-  .cat-btn.selected { background: var(--blue); color: white; border-color: var(--blue); }
-  .submit-btn { width: 100%; background: var(--blue); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
-  .submit-btn:disabled { background: var(--gray); }
-  .submit-btn:hover:not(:disabled) { background: var(--navy); }
-  .result-msg { margin-top: 14px; padding: 12px; border-radius: 10px; font-size: 13px; text-align: center; display: none; }
-  .result-msg.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; display: block; }
-  .result-msg.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; display: block; }
+  .cat-btn { padding: 12px; border: 1px solid var(--tk-bg); border-radius: var(--tk-radius); background: var(--tk-bg); color: var(--tk-text-sub); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+  .cat-btn:hover { background: var(--tk-primary-soft); color: var(--tk-primary); }
+  .cat-btn.selected { background: var(--tk-primary); color: white; border-color: var(--tk-primary); font-weight: 700; }
+  .submit-btn { width: 100%; background: var(--tk-primary); color: white; border: none; padding: 15px; border-radius: var(--tk-radius); font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; letter-spacing: -0.3px; transition: background 0.15s; }
+  .submit-btn:hover:not(:disabled) { background: var(--tk-primary-dark); }
+  .submit-btn:active:not(:disabled) { transform: scale(0.99); }
+  .submit-btn:disabled { background: var(--tk-text-muted); cursor: not-allowed; }
+  .result-msg { margin-top: 14px; padding: 12px; border-radius: var(--tk-radius); font-size: 13px; text-align: center; display: none; font-weight: 600; }
+  .result-msg.success { background: #DEFCEF; color: #007A5C; display: block; }
+  .result-msg.error { background: #FEE6E8; color: #C7242E; display: block; }
 </style>
 </head>
 <body>
