@@ -32,140 +32,185 @@
   <script src="inapp-redirect.js"></script>
   <script src="dark-mode.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
+    /* ═══════════════════════════════════════
+       토스 디자인 토큰 (2026-05 리뉴얼)
+       ═══════════════════════════════════════ */
     :root {
-      --navy: #1976d2; --blue: #2196f3; --accent: #e8a020;
-      --bg: #f4f6fb; --white: #ffffff; --text: #1a2a3a;
-      --text2: #5a7090; --border: #e4eaf4; --success: #2ecc71;
-      --danger: #e74c3c; --card-shadow: 0 2px 12px rgba(33,150,243,0.08);
+      /* 색상 — 토스 톤 */
+      --tk-bg: #F2F4F6;
+      --tk-surface: #FFFFFF;
+      --tk-surface-alt: #F9FAFB;
+      --tk-text: #191F28;
+      --tk-text-sub: #4E5968;
+      --tk-text-muted: #8B95A1;
+      --tk-border: #E5E8EB;
+      --tk-border-strong: #D1D6DB;
+      --tk-primary: #3182F6;
+      --tk-primary-dark: #1B64DA;
+      --tk-primary-soft: #E8F2FF;
+      --tk-success: #00C896;
+      --tk-warning: #FF9F1C;
+      --tk-danger: #F04452;
+      /* 카테고리 식별 색 (유지) */
+      --cat-student: #3182F6;
+      --cat-graduate: #FF9F1C;
+      --cat-prospect: #00C896;
+      --cat-company: #7C5CFA;
+      --cat-community: #D85A30;
+      /* radius / shadow */
+      --tk-radius-sm: 10px;
+      --tk-radius: 14px;
+      --tk-radius-lg: 20px;
+      --tk-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --tk-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      --tk-shadow-lg: 0 8px 24px rgba(33,130,246,0.12);
+      /* 레거시 호환 — 기존 코드는 그대로 사용 가능 */
+      --navy: var(--tk-primary-dark); --blue: var(--tk-primary); --accent: var(--tk-warning);
+      --bg: var(--tk-bg); --white: var(--tk-surface); --text: var(--tk-text);
+      --text2: var(--tk-text-sub); --border: var(--tk-border); --success: var(--tk-success);
+      --danger: var(--tk-danger); --card-shadow: var(--tk-shadow);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .top-header { background: var(--blue); padding: 52px 24px 28px; position: relative; overflow: hidden; }
-    .top-header::before { content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.12); }
-    .top-header::after { content: ''; position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.06); }
-    .top-header-inner { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; }
-    .logo-badge { display: inline-block; background: var(--accent); color: white; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; }
-    .top-header h1 { color: white; font-size: 22px; font-weight: 900; line-height: 1.3; margin-bottom: 6px; }
-    .top-header h1 span { color: #ffe082; }
-    .top-header p { color: rgba(255,255,255,0.7); font-size: 12px; }
+    body { font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--tk-bg); color: var(--tk-text); min-height: 100vh; -webkit-font-smoothing: antialiased; letter-spacing: -0.2px; }
+    .top-header { background: var(--tk-surface); padding: 36px 24px 24px; }
+    .top-header-inner { max-width: 480px; margin: 0 auto; }
+    .logo-badge { display: inline-block; background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; letter-spacing: -0.2px; padding: 5px 12px; border-radius: 100px; margin-bottom: 14px; }
+    .top-header h1 { color: var(--tk-text); font-size: 24px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; letter-spacing: -0.6px; }
+    .top-header h1 span { color: var(--tk-primary); }
+    .top-header p { color: var(--tk-text-sub); font-size: 13px; letter-spacing: -0.2px; }
     .user-float { max-width: 480px; margin: 0 auto; padding: 0 16px; }
-    .user-info-card { background: white; border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 20px rgba(33,150,243,0.15); }
-    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--blue); color: white; font-weight: 900; font-size: 17px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .user-name { font-size: 15px; font-weight: 700; color: var(--text); }
-    .user-grade { font-size: 11px; color: var(--blue); margin-top: 2px; font-weight: 500; }
-    .user-category-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; margin-right: 4px; vertical-align: middle; }
-    .badge-student { background: #e3f2fd; color: var(--blue); }
-    .badge-graduate { background: #fef3c7; color: #92400e; }
-    .badge-prospect { background: #d1fae5; color: #065f46; }
-    .badge-company { background: #ede9fe; color: #5b21b6; }
-    .badge-community { background: #FAECE7; color: #712B13; }
-    .edit-btn { margin-left: auto; background: var(--bg); border: 1.5px solid var(--border); color: var(--text2); font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; font-weight: 500; }
-    .container { max-width: 480px; margin: 0 auto; padding: 20px 16px 50px; }
-    .status-card { background: white; border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--card-shadow); display: flex; align-items: center; gap: 14px; }
-    .status-dot-wrap { width: 44px; height: 44px; border-radius: 50%; background: #e3f2fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .status-dot { width: 14px; height: 14px; border-radius: 50%; background: #b0c4d8; }
-    .status-dot.active { background: var(--success); box-shadow: 0 0 0 4px rgba(46,204,113,0.2); }
+    .user-info-card { background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 16px 18px; display: flex; align-items: center; gap: 12px; box-shadow: var(--tk-shadow); border: 1px solid var(--tk-border); }
+    .user-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--tk-primary); color: white; font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -0.4px; }
+    .user-name { font-size: 16px; font-weight: 700; color: var(--tk-text); letter-spacing: -0.3px; }
+    .user-grade { font-size: 12px; color: var(--tk-text-sub); margin-top: 2px; font-weight: 500; }
+    .user-category-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; margin-right: 5px; vertical-align: middle; letter-spacing: -0.2px; }
+    .badge-student { background: #E8F2FF; color: var(--cat-student); }
+    .badge-graduate { background: #FFF4E6; color: #B36500; }
+    .badge-prospect { background: #DEFCEF; color: #007A5C; }
+    .badge-company { background: #EFE9FE; color: #5A3FCE; }
+    .badge-community { background: #FCE9E1; color: #8F3915; }
+    .edit-btn { margin-left: auto; background: var(--tk-bg); border: 1px solid var(--tk-border); color: var(--tk-text-sub); font-size: 12px; padding: 7px 12px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 500; transition: all 0.15s; }
+    .edit-btn:hover { background: var(--tk-surface); border-color: var(--tk-border-strong); }
+    .container { max-width: 480px; margin: 0 auto; padding: 16px 16px 50px; }
+    .status-card { background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 18px 20px; margin-bottom: 12px; box-shadow: var(--tk-shadow); border: 1px solid var(--tk-border); display: flex; align-items: center; gap: 14px; }
+    .status-dot-wrap { width: 44px; height: 44px; border-radius: 50%; background: var(--tk-primary-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--tk-border-strong); }
+    .status-dot.active { background: var(--tk-success); box-shadow: 0 0 0 4px rgba(0,200,150,0.15); }
     .status-info { flex: 1; }
-    .status-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; color: var(--text2); text-transform: uppercase; margin-bottom: 4px; }
-    .status-text { font-size: 15px; font-weight: 700; color: var(--text); }
-    .status-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
-    .section-title { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin: 20px 0 10px; }
+    .status-label { font-size: 11px; font-weight: 500; color: var(--tk-text-muted); margin-bottom: 3px; letter-spacing: -0.1px; }
+    .status-text { font-size: 16px; font-weight: 700; color: var(--tk-text); letter-spacing: -0.3px; }
+    .status-sub { font-size: 12px; color: var(--tk-text-sub); margin-top: 2px; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--tk-text); margin: 22px 0 12px; letter-spacing: -0.3px; }
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    .info-card { background: white; border: 1.5px solid var(--border); border-radius: 16px; padding: 18px 14px; text-align: center; cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit; display: block; box-shadow: var(--card-shadow); }
-    .info-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(33,150,243,0.15); border-color: var(--blue); }
-    .info-card .icon { font-size: 28px; margin-bottom: 8px; }
-    .info-card .label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
-    .info-card .value { font-size: 13px; font-weight: 700; color: var(--blue); }
+    .info-card { background: var(--tk-surface); border: 1px solid var(--tk-border); border-radius: var(--tk-radius-lg); padding: 18px 16px; text-align: left; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: block; }
+    .info-card:hover { border-color: var(--tk-border-strong); transform: translateY(-1px); box-shadow: var(--tk-shadow); }
+    .info-card:active { transform: translateY(0); }
+    .info-card .icon { font-size: 26px; margin-bottom: 10px; display: block; }
+    .info-card .label { font-size: 13.5px; color: var(--tk-text); margin-bottom: 4px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.35; }
+    .info-card .value { font-size: 11.5px; font-weight: 500; color: var(--tk-text-muted); }
     .info-card.full { grid-column: 1 / -1; }
-    .info-card.survey-card { border-color: rgba(232,160,32,0.4); background: #fffbf0; }
-    .info-card.survey-card .value { color: var(--accent); }
-    .info-card.consulting-card { border-color: rgba(46,204,113,0.35); background: #f0fff6; }
-    .info-card.consulting-card .value { color: #27ae60; }
-    .info-card.calendar-card { border-color: rgba(33,150,243,0.35); background: #e3f2fd; }
-    .info-card.calendar-card .value { color: var(--blue); }
-    .info-card.exam-card { border-color: rgba(156,39,176,0.35); background: #f3e5f5; }
-    .info-card.exam-card .value { color: #7b1fa2; }
-    .info-card.dept-card { border-color: rgba(232,160,32,0.4); background: #fffbf0; }
-    .info-card.dept-card .value { color: var(--accent); }
-    .btn-main { width: 100%; padding: 18px; border: none; border-radius: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.25s ease; margin: 6px 0; }
-    .btn-subscribe { background: var(--blue); color: white; box-shadow: 0 4px 16px rgba(33,150,243,0.3); }
-    .btn-subscribe:hover { background: var(--navy); transform: translateY(-1px); }
-    .btn-unsubscribe { background: white; color: var(--danger); border: 1.5px solid #fca5a5; }
-    .notice { background: white; border: 1.5px solid var(--border); border-left: 4px solid var(--blue); border-radius: 12px; padding: 14px 16px; margin: 14px 0; font-size: 13px; line-height: 1.7; color: var(--text2); box-shadow: var(--card-shadow); }
-    .notice strong { color: var(--blue); display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; }
-    .steps { margin: 14px 0; }
-    .step-item { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .info-card.survey-card { background: var(--tk-surface); }
+    .info-card.survey-card .icon { color: var(--cat-graduate); }
+    .info-card.consulting-card { background: var(--tk-surface); }
+    .info-card.consulting-card .icon { color: var(--tk-success); }
+    .info-card.calendar-card { background: var(--tk-surface); }
+    .info-card.calendar-card .icon { color: var(--tk-primary); }
+    .info-card.exam-card { background: var(--tk-surface); }
+    .info-card.exam-card .icon { color: var(--cat-company); }
+    .info-card.dept-card { background: var(--tk-surface); }
+    .info-card.dept-card .icon { color: var(--cat-graduate); }
+    /* 익명 의견함 (옐로우 액센트) */
+    .info-card.feedback-card { background: #FFF8E6; border-color: #FFE7A8; }
+    .info-card.feedback-card:hover { background: #FFEFC2; border-color: #FFD978; }
+    .btn-main { width: 100%; padding: 17px; border: none; border-radius: var(--tk-radius); font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; margin: 8px 0; letter-spacing: -0.3px; }
+    .btn-subscribe { background: var(--tk-primary); color: white; }
+    .btn-subscribe:hover { background: var(--tk-primary-dark); }
+    .btn-subscribe:active { transform: scale(0.98); }
+    .btn-unsubscribe { background: var(--tk-surface); color: var(--tk-text-sub); border: 1px solid var(--tk-border); }
+    .btn-unsubscribe:hover { background: var(--tk-bg); }
+    .notice { background: var(--tk-primary-soft); border: none; border-radius: var(--tk-radius); padding: 14px 16px; margin: 14px 0; font-size: 13px; line-height: 1.7; color: var(--tk-text-sub); }
+    .notice strong { color: var(--tk-primary-dark); display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; }
+    .steps { margin: 14px 0; background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 8px 18px; border: 1px solid var(--tk-border); }
+    .step-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--tk-border); }
     .step-item:last-child { border-bottom: none; }
-    .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .step-text { font-size: 13px; line-height: 1.6; color: var(--text2); padding-top: 4px; }
-    .step-text strong { color: var(--text); }
-    .footer { padding-top: 24px; text-align: center; font-size: 11px; color: #b0bec5; }
-    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--text); color: white; padding: 13px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 999; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; }
+    .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-text { font-size: 13.5px; line-height: 1.6; color: var(--tk-text-sub); padding-top: 2px; }
+    .step-text strong { color: var(--tk-text); font-weight: 600; }
+    .footer { padding-top: 28px; text-align: center; font-size: 12px; color: var(--tk-text-muted); }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--tk-text); color: white; padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,0.25); z-index: 999; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; }
     .toast.show { transform: translateX(-50%) translateY(0); }
-    .toast.success { background: #27ae60; }
-    .toast.error { background: var(--danger); }
-    .toast.info { background: var(--blue); }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.7); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .modal { background: white; border-radius: 24px; padding: 32px 24px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
-    .modal-logo { display: inline-block; background: var(--blue); color: white; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 20px; margin-bottom: 14px; }
-    .modal h2 { font-size: 22px; font-weight: 900; margin-bottom: 6px; color: var(--text); }
-    .modal h2 span { color: var(--blue); }
-    .modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
-    .modal-label { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-    .modal-input { width: 100%; padding: 13px 16px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 15px; margin-bottom: 20px; outline: none; transition: border-color 0.2s; }
-    .modal-input:focus { border-color: var(--blue); background: white; }
-    .modal-input::placeholder { color: #b0bec5; }
-    .modal-select { width: 100%; padding: 13px 16px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 15px; margin-bottom: 20px; outline: none; cursor: pointer; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238a9ab5' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
-    .modal-select:focus { border-color: var(--blue); background-color: white; }
+    .toast.success { background: var(--tk-success); }
+    .toast.error { background: var(--tk-danger); }
+    .toast.info { background: var(--tk-primary); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(25,31,40,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--tk-surface); border-radius: 24px; padding: 30px 24px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+    .modal-logo { display: inline-block; background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 100px; margin-bottom: 14px; letter-spacing: -0.2px; }
+    .modal h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--tk-text); letter-spacing: -0.6px; }
+    .modal h2 span { color: var(--tk-primary); }
+    .modal-sub { font-size: 14px; color: var(--tk-text-sub); margin-bottom: 24px; line-height: 1.5; }
+    .modal-label { font-size: 13px; font-weight: 600; color: var(--tk-text); margin-bottom: 8px; letter-spacing: -0.2px; }
+    .modal-input { width: 100%; padding: 14px 16px; background: var(--tk-bg); border: 1px solid var(--tk-bg); border-radius: var(--tk-radius); color: var(--tk-text); font-family: inherit; font-size: 15px; margin-bottom: 20px; outline: none; transition: all 0.15s; letter-spacing: -0.2px; }
+    .modal-input:focus { border-color: var(--tk-primary); background: var(--tk-surface); box-shadow: 0 0 0 3px rgba(49,130,246,0.1); }
+    .modal-input::placeholder { color: var(--tk-text-muted); }
+    .modal-select { width: 100%; padding: 14px 16px; background: var(--tk-bg); border: 1px solid var(--tk-bg); border-radius: var(--tk-radius); color: var(--tk-text); font-family: inherit; font-size: 15px; margin-bottom: 20px; outline: none; cursor: pointer; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238B95A1' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+    .modal-select:focus { border-color: var(--tk-primary); background-color: var(--tk-surface); box-shadow: 0 0 0 3px rgba(49,130,246,0.1); }
     .grade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
-    .grade-btn { padding: 14px 8px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text2); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: center; }
-    .grade-btn .g-icon { font-size: 20px; display: block; margin-bottom: 5px; }
-    .grade-btn:hover { border-color: var(--blue); color: var(--blue); background: #e3f2fd; }
-    .grade-btn.selected { background: var(--blue); border-color: var(--blue); color: white; font-weight: 700; }
-    .modal-submit { width: 100%; padding: 16px; background: var(--blue); color: white; border: none; border-radius: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 16px rgba(33,150,243,0.3); }
-    .modal-submit:hover { background: var(--navy); transform: translateY(-1px); }
-    .modal-back { width: 100%; padding: 12px; background: transparent; color: var(--text2); border: none; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; cursor: pointer; margin-top: 8px; }
-    .modal-back:hover { color: var(--blue); }
-    .category-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }
-    .category-btn { padding: 20px 18px; background: var(--bg); border: 2px solid var(--border); border-radius: 16px; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; gap: 14px; font-family: 'Noto Sans KR', sans-serif; }
-    .category-btn:hover { border-color: var(--blue); background: #e3f2fd; }
-    .category-btn .cat-icon { font-size: 32px; flex-shrink: 0; }
+    .grade-btn { padding: 14px 8px; background: var(--tk-bg); border: 1px solid var(--tk-bg); border-radius: var(--tk-radius); color: var(--tk-text-sub); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .grade-btn .g-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+    .grade-btn:hover { background: var(--tk-primary-soft); color: var(--tk-primary); }
+    .grade-btn.selected { background: var(--tk-primary); border-color: var(--tk-primary); color: white; font-weight: 700; }
+    .modal-submit { width: 100%; padding: 16px; background: var(--tk-primary); color: white; border: none; border-radius: var(--tk-radius); font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: -0.3px; }
+    .modal-submit:hover { background: var(--tk-primary-dark); }
+    .modal-submit:active { transform: scale(0.98); }
+    .modal-back { width: 100%; padding: 12px; background: transparent; color: var(--tk-text-muted); border: none; font-family: inherit; font-size: 13px; cursor: pointer; margin-top: 8px; }
+    .modal-back:hover { color: var(--tk-text-sub); }
+    .category-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+    .category-btn { padding: 18px 18px; background: var(--tk-surface); border: 1px solid var(--tk-border); border-radius: var(--tk-radius-lg); cursor: pointer; transition: all 0.15s; text-align: left; display: flex; align-items: center; gap: 14px; font-family: inherit; }
+    .category-btn:hover { border-color: var(--tk-primary); background: var(--tk-primary-soft); }
+    .category-btn:active { transform: scale(0.99); }
+    /* 커뮤니티 체험 카테고리 (코랄 액센트) */
+    .category-btn.cat-community { border-color: var(--cat-community); background: #FCE9E1; }
+    .category-btn.cat-community:hover { border-color: #B14B25; background: #F8D8C8; }
+    .category-btn .cat-icon { font-size: 30px; flex-shrink: 0; }
     .category-btn .cat-info { flex: 1; }
-    .category-btn .cat-name { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
-    .category-btn .cat-desc { font-size: 11px; color: var(--text2); line-height: 1.4; }
-    .category-btn .cat-arrow { font-size: 20px; color: var(--text2); }
-    .install-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.75); backdrop-filter: blur(4px); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .category-btn .cat-name { font-size: 15.5px; font-weight: 700; color: var(--tk-text); margin-bottom: 3px; letter-spacing: -0.3px; }
+    .category-btn .cat-desc { font-size: 12px; color: var(--tk-text-muted); line-height: 1.4; }
+    .category-btn .cat-arrow { font-size: 18px; color: var(--tk-text-muted); }
+    .install-overlay { position: fixed; inset: 0; background: rgba(25,31,40,0.55); backdrop-filter: blur(4px); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
     .install-overlay.show { display: flex; }
-    .install-box { background: white; border-radius: 24px; padding: 32px 24px 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .install-icon { width: 72px; height: 72px; border-radius: 20px; background: var(--blue); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 38px; box-shadow: 0 8px 24px rgba(33,150,243,0.35); }
-    .install-title { text-align: center; font-size: 20px; font-weight: 900; color: var(--text); margin-bottom: 8px; }
-    .install-sub { text-align: center; font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
-    .install-steps { background: var(--bg); border-radius: 14px; padding: 16px 18px; margin-bottom: 20px; }
+    .install-box { background: var(--tk-surface); border-radius: 24px; padding: 30px 24px 22px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .install-icon { width: 68px; height: 68px; border-radius: 20px; background: var(--tk-primary-soft); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+    .install-title { text-align: center; font-size: 20px; font-weight: 700; color: var(--tk-text); margin-bottom: 8px; letter-spacing: -0.5px; }
+    .install-sub { text-align: center; font-size: 14px; color: var(--tk-text-sub); line-height: 1.5; margin-bottom: 24px; }
+    .install-steps { background: var(--tk-bg); border-radius: var(--tk-radius); padding: 14px 18px; margin-bottom: 18px; }
     .install-step { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
-    .install-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .install-step-text { font-size: 13px; line-height: 1.6; color: var(--text); padding-top: 1px; }
-    .install-step-text .hl { color: var(--blue); font-weight: 700; }
-    .install-icon-inline { display: inline-block; background: white; border: 1.5px solid var(--border); padding: 2px 6px; border-radius: 5px; margin: 0 2px; font-size: 12px; font-weight: 700; }
+    .install-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--tk-primary); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .install-step-text { font-size: 13px; line-height: 1.6; color: var(--tk-text); padding-top: 1px; }
+    .install-step-text .hl { color: var(--tk-primary); font-weight: 700; }
+    .install-icon-inline { display: inline-block; background: var(--tk-surface); border: 1px solid var(--tk-border); padding: 2px 6px; border-radius: 6px; margin: 0 2px; font-size: 12px; font-weight: 700; }
     .install-btns { display: flex; flex-direction: column; gap: 8px; }
-    .install-btn-main { background: var(--blue); color: white; border: none; border-radius: 12px; padding: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
-    .install-btn-skip { background: transparent; color: var(--text2); border: none; padding: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; cursor: pointer; }
-    .install-tip { background: #fffbf0; border: 1px solid rgba(232,160,32,0.3); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #92400e; line-height: 1.5; margin-bottom: 16px; }
-    .install-tip strong { color: #78350f; }
-    .install-banner-btn { width: 100%; background: linear-gradient(135deg, #2196f3, #1976d2); color: white; border: none; border-radius: 14px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; box-shadow: 0 4px 16px rgba(33,150,243,0.3); transition: all 0.2s; }
-    .install-banner-btn:hover { transform: translateY(-1px); }
-    .install-banner-icon { font-size: 28px; }
+    .install-btn-main { background: var(--tk-primary); color: white; border: none; border-radius: var(--tk-radius); padding: 14px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+    .install-btn-main:hover { background: var(--tk-primary-dark); }
+    .install-btn-skip { background: transparent; color: var(--tk-text-muted); border: none; padding: 8px; font-family: inherit; font-size: 12px; cursor: pointer; }
+    .install-tip { background: #FFF8E6; border: none; border-radius: 10px; padding: 11px 14px; font-size: 12px; color: #8F5C00; line-height: 1.5; margin-bottom: 14px; }
+    .install-tip strong { color: #6B4500; }
+    .install-banner-btn { width: 100%; background: var(--tk-primary); color: white; border: none; border-radius: var(--tk-radius); padding: 14px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .install-banner-btn:hover { background: var(--tk-primary-dark); }
+    .install-banner-btn:active { transform: scale(0.99); }
+    .install-banner-icon { font-size: 26px; }
     .install-banner-text { flex: 1; text-align: left; color: white; }
-    .install-banner-text strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; }
-    .install-banner-text small { display: block; font-size: 11px; color: rgba(255,255,255,0.85); }
-    .install-banner-arrow { font-size: 22px; color: rgba(255,255,255,0.85); }
-    /* 학교 홈페이지 칩 버튼 (각 카테고리 메뉴 하단) */
+    .install-banner-text strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; letter-spacing: -0.2px; }
+    .install-banner-text small { display: block; font-size: 11.5px; color: rgba(255,255,255,0.85); }
+    .install-banner-arrow { font-size: 20px; color: rgba(255,255,255,0.85); }
+    /* 학교 홈페이지 칩 버튼 */
     .school-pill-wrap {
       display: flex;
       justify-content: center;
       grid-column: 1 / -1;
-      margin-top: 6px;
+      margin-top: 8px;
       gap: 6px;
       flex-wrap: wrap;
     }
@@ -173,24 +218,31 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: white;
-      color: #1976d2;
-      padding: 8px 16px;
+      background: var(--tk-surface);
+      color: var(--tk-text-sub);
+      padding: 9px 14px;
       border-radius: 100px;
-      border: 1.5px solid #bbdefb;
+      border: 1px solid var(--tk-border);
       text-decoration: none;
-      font-size: 12px;
-      font-weight: 700;
-      box-shadow: 0 2px 6px rgba(33,150,243,0.1);
-      transition: all 0.2s;
+      font-size: 12.5px;
+      font-weight: 600;
+      transition: all 0.15s;
+      letter-spacing: -0.2px;
     }
     .school-pill:hover {
-      background: #e3f2fd;
-      border-color: #2196f3;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(33,150,243,0.15);
+      background: var(--tk-bg);
+      border-color: var(--tk-border-strong);
+      color: var(--tk-text);
     }
-    .school-pill:active { transform: translateY(0); }
+    .school-pill:active { transform: scale(0.98); }
+    /* 알림 진단 칩 (옐로우 액센트) */
+    .school-pill.diag-pill { background: #FFF8E6; border-color: #FFE7A8; color: #8F5C00; }
+    .school-pill.diag-pill:hover { background: #FFEFC2; border-color: #FFD978; color: #6B4500; }
+    /* 커뮤니티 가입 폼 안내 박스 */
+    .community-notice { background: #FCE9E1; border-left: 3px solid var(--cat-community); padding: 12px 14px; border-radius: 0 10px 10px 0; font-size: 13px; color: #8F3915; line-height: 1.55; margin: 14px 0 12px; }
+    /* 커뮤니티 등록 버튼 */
+    .modal-submit.community-submit { background: var(--cat-community); }
+    .modal-submit.community-submit:hover { background: #B14B25; }
   </style>
 </head>
 <body>
@@ -221,10 +273,10 @@
         <div class="cat-info"><div class="cat-name">학습기업 전담인력</div><div class="cat-desc">HRD담당자 · 기업현장교사</div></div>
         <div class="cat-arrow">›</div>
       </button>
-      <button class="category-btn" onclick="selectCategory('community')" style="border-color:#D85A30;background:#FAECE7;">
+      <button class="category-btn cat-community" onclick="selectCategory('community')">
         <div class="cat-icon">🎤</div>
         <div class="cat-info">
-          <div class="cat-name" style="display:flex;align-items:center;gap:6px;">커뮤니티용 <span style="background:#D85A30;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;">NEW</span></div>
+          <div class="cat-name" style="display:flex;align-items:center;gap:6px;">커뮤니티용 <span style="background:var(--cat-community);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:-0.2px;">NEW</span></div>
           <div class="cat-desc">발표 체험 · 시연용 계정</div>
         </div>
         <div class="cat-arrow">›</div>
@@ -337,10 +389,10 @@
       <button class="grade-btn" onclick="selectCommunityGrade('전문대 회계세무학과', this)"><span class="g-icon">📊</span>회계세무학과</button>
       <button class="grade-btn" onclick="selectCommunityGrade('전문대 호텔관광학과', this)"><span class="g-icon">🏨</span>호텔관광학과</button>
     </div>
-    <div style="background:#FAECE7;border-left:3px solid #D85A30;padding:10px 12px;border-radius:0 8px 8px 0;font-size:12px;color:#712B13;line-height:1.5;margin:14px 0 8px;">
+    <div class="community-notice">
       💡 발표 체험용 계정입니다.<br>실제 운영 알림은 자동으로 받지 않아요.
     </div>
-    <button class="modal-submit" onclick="submitCommunity()" style="background:linear-gradient(135deg,#D85A30,#A03D1C);">🎤 가입하고 둘러보기</button>
+    <button class="modal-submit community-submit" onclick="submitCommunity()">🎤 가입하고 둘러보기</button>
     <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
   </div>
 </div>
@@ -354,8 +406,8 @@
     <!-- 안드로이드: APK 옵션 (추천) -->
     <div id="installAndroidApk" style="display:none;">
       <a href="apk/AU일학습병행.apk" download
-         style="display:block;background:linear-gradient(135deg,#10b981,#059669);color:white;padding:16px 18px;border-radius:14px;text-decoration:none;margin-bottom:10px;text-align:center;position:relative;box-shadow:0 4px 16px rgba(16,185,129,0.3);">
-        <span style="position:absolute;top:-8px;left:14px;background:#f59e0b;color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;">⭐ 추천</span>
+         style="display:block;background:#00C896;color:white;padding:16px 18px;border-radius:14px;text-decoration:none;margin-bottom:10px;text-align:center;position:relative;">
+        <span style="position:absolute;top:-8px;left:14px;background:var(--cat-graduate);color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;letter-spacing:-0.2px;">⭐ 추천</span>
         <div style="font-size:24px;margin-bottom:4px;">📦</div>
         <div style="font-size:15px;font-weight:800;">APK 직접 설치 (1초)</div>
         <div style="font-size:11px;opacity:0.9;margin-top:2px;">정식 앱처럼 폰에 깔려요</div>
@@ -443,9 +495,9 @@
     <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">모의시험 풀기</div><div class="value">외부평가</div></a>
     <a class="info-card full survey-card" href="survey.html"><div class="icon">📋</div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></a>
     <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
-    <a class="info-card full" href="feedback.html" style="background:linear-gradient(135deg,#fef3c7,#fde68a);"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
+    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
     <div class="school-pill-wrap">
-      <a class="school-pill" href="notification-check.html" style="background:#fff3cd;border-color:#fcd34d;color:#92400e;margin-right:6px;">🔔 알림 진단</a>
+      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
       <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
     </div>
   </div>
@@ -458,9 +510,9 @@
     <a class="info-card" href="companies.html"><div class="icon">🏢</div><div class="label">학습기업 디렉토리</div><div class="value">바로가기</div></a>
     <a class="info-card" href="jobs.html"><div class="icon">💼</div><div class="label">취업 정보</div><div class="value">바로가기</div></a>
     <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
-    <a class="info-card full" href="feedback.html" style="background:linear-gradient(135deg,#fef3c7,#fde68a);"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
+    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
     <div class="school-pill-wrap">
-      <a class="school-pill" href="notification-check.html" style="background:#fff3cd;border-color:#fcd34d;color:#92400e;margin-right:6px;">🔔 알림 진단</a>
+      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
       <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
     </div>
   </div>
@@ -471,7 +523,7 @@
     <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
     <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이 있으시면 편하게 문의해주세요</div><div class="value">1:1 상담 신청하기</div></a>
     <div class="school-pill-wrap">
-      <a class="school-pill" href="notification-check.html" style="background:#fff3cd;border-color:#fcd34d;color:#92400e;margin-right:6px;">🔔 알림 진단</a>
+      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
       <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
     </div>
   </div>
@@ -483,9 +535,9 @@
     <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">모의시험 풀기</div><div class="value">외부평가</div></a>
     <a class="info-card full survey-card" href="survey.html"><div class="icon">📋</div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></a>
     <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
-    <a class="info-card full" href="feedback.html" style="background:linear-gradient(135deg,#fef3c7,#fde68a);"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
+    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
     <div class="school-pill-wrap">
-      <a class="school-pill" href="notification-check.html" style="background:#fff3cd;border-color:#fcd34d;color:#92400e;margin-right:6px;">🔔 알림 진단</a>
+      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
       <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
     </div>
   </div>
@@ -496,7 +548,7 @@
     <a class="info-card full calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학교일정 · 시험 · 보강 일정 확인</div><div class="value">캘린더 바로가기</div></a>
     <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">센터에 궁금한 점을 남겨주세요</div><div class="value">문의사항 남기기</div></a>
     <div class="school-pill-wrap">
-      <a class="school-pill" href="notification-check.html" style="background:#fff3cd;border-color:#fcd34d;color:#92400e;margin-right:6px;">🔔 알림 진단</a>
+      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
       <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
     </div>
   </div>
@@ -608,11 +660,16 @@
   // ============ 모달 표시/수정 ============
   function showModal() {
     selectedGrade = null;
+    selectedCommunityGrade = null;
     document.getElementById('modalOverlay').style.display = 'flex';
     document.getElementById('modalStep1').style.display = 'block';
     document.getElementById('modalStep2Student').style.display = 'none';
     document.getElementById('modalStep2Graduate').style.display = 'none';
     document.getElementById('modalStep2Prospect').style.display = 'none';
+    const stepCompany = document.getElementById('modalStep2Company');
+    if (stepCompany) stepCompany.style.display = 'none';
+    const stepCommunity = document.getElementById('modalStep2Community');
+    if (stepCommunity) stepCommunity.style.display = 'none';
     const saved = localStorage.getItem('userInfo');
     if (saved) {
       const info = JSON.parse(saved);
