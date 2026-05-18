@@ -103,10 +103,11 @@
     { name: '가이드 · 매뉴얼', icon: '📘' },
     { name: '공지 · 안내', icon: '📢' },
   ];
-  // 카테고리 선택: 전담인력 / 졸업생 / 재학생 (기본)
+  // 카테고리 선택: 전담인력 / 졸업생 / 재학생 (기본, 커뮤니티는 재학생과 동일)
   const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES
                    : userCategory === 'graduate' ? GRADUATE_CATEGORIES
                    : STUDENT_CATEGORIES;
+  // 커뮤니티 체험 모드: 재학생 화면을 그대로 보여줌
 
   let allResources = [];
 
@@ -122,6 +123,10 @@
   if (userCategory === 'graduate') {
     document.getElementById('pageTitle').textContent = '졸업생 자료실';
     document.querySelector('.header').style.background = 'linear-gradient(135deg, #f59e0b, #92400e)';
+  }
+  if (userCategory === 'community') {
+    document.getElementById('pageTitle').textContent = '🎤 체험 자료실';
+    document.querySelector('.header').style.background = '#D85A30';
   }
 
   async function loadResources() {
@@ -140,7 +145,7 @@
       } else if (userCategory === 'graduate') {
         allResources = all.filter(r => r.target === 'graduate');
       } else {
-        // student
+        // student + community (체험 모드는 재학생 자료를 그대로 봄)
         allResources = all.filter(r => r.target === 'student' || r.target === 'all');
       }
 

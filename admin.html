@@ -781,6 +781,7 @@
             <option value="graduate">🎉 졸업생</option>
             <option value="prospect">🌱 예비 신입생</option>
             <option value="company">🏢 전담인력</option>
+            <option value="community">🎤 커뮤니티 (체험)</option>
             <option value="trash">🗑️ 휴지통</option>
           </select>
           <select class="filter-select" id="memberSortBy" onchange="renderMembers()">
@@ -793,6 +794,23 @@
         </div>
       </div>
       <div id="memberList"><div class="c-loading">👥 가입자 목록을 불러오는 중...</div></div>
+    </div>
+
+    <!-- 커뮤니티 체험 사용자 일괄 관리 -->
+    <div class="card" style="background:linear-gradient(135deg,#FAECE7,#F5C4B3);border-left:4px solid #D85A30;">
+      <div class="card-title">🎤 커뮤니티 체험 사용자 관리</div>
+      <p style="font-size:13px;color:#712B13;margin-bottom:12px;line-height:1.6;">
+        발표 시연용으로 가입한 체험 계정을 한 번에 정리합니다.<br>
+        <strong>휴지통으로 이동</strong> 되며 실제 운영 사용자는 영향받지 않습니다.
+      </p>
+      <div id="communityCountBox" style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#475569;">
+        🔍 <b>현재 체험 계정 수</b>: <span id="communityCount">확인하려면 버튼 클릭</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="send-btn" id="communityCountBtn" onclick="countCommunityUsers()" style="background:linear-gradient(135deg,#fbbf24,#d97706);">🔍 체험 계정 수 확인</button>
+        <button class="send-btn" id="communityCleanBtn" onclick="cleanupCommunityUsers()" style="background:linear-gradient(135deg,#D85A30,#A03D1C);">🗑️ 모든 체험 계정 휴지통으로</button>
+      </div>
+      <div class="result-box" id="communityCleanResult"></div>
     </div>
   </div>
 </div>
@@ -889,7 +907,7 @@
       const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const snap = await getDocs(collection(db, 'users'));
-      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId && u.category !== 'community');
       let targets;
       if (selectedGroup === '전체') {
         targets = allUsers.map(u => u.oneSignalId);
@@ -1780,7 +1798,7 @@
         return t > sevenDaysAgo;
       }).length;
       // 카테고리 차트 함수
-      const categoryNames = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력', other: '❓ 기타' };
+      const categoryNames = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력', community: '🎤 커뮤니티(체험)', other: '❓ 기타' };
       const totalUsers = users.length;
       const catBars = Object.entries(cat).filter(([_, v]) => v > 0).map(([k, v]) => {
         const pct = totalUsers > 0 ? (v / totalUsers * 100).toFixed(1) : 0;
@@ -2004,7 +2022,7 @@
       const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const snap = await getDocs(collection(db, 'users'));
-      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId && u.category !== 'community');
       let targets;
       if (target === '전체') targets = allUsers.map(u => u.oneSignalId);
       else if (target === '재학생 전체') targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
@@ -2608,6 +2626,77 @@
     if (allBtns[2]) allBtns[2].textContent = '⚡ 재학생 + 졸업생 모두 등록 (114개)';
   }
 
+  // ═══════════════════════════════════════════
+  // ── 커뮤니티 체험 사용자 관리 ──
+  // ═══════════════════════════════════════════
+  async function countCommunityUsers() {
+    const countSpan = document.getElementById('communityCount');
+    countSpan.textContent = '확인 중...';
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const db = getFirestore(app);
+      const snap = await getDocs(collection(db, 'users'));
+      const active = snap.docs.map(d => d.data()).filter(u => u.category === 'community' && !u.deleted);
+      const deleted = snap.docs.map(d => d.data()).filter(u => u.category === 'community' && u.deleted);
+      countSpan.innerHTML = `<b style="color:#D85A30;font-size:14px;">${active.length}명</b> 활성 · ${deleted.length}명 휴지통`;
+    } catch(e) {
+      countSpan.textContent = '❌ ' + e.message;
+    }
+  }
+
+  async function cleanupCommunityUsers() {
+    if (!await customConfirm({
+      title: '🗑️ 커뮤니티 체험 계정 정리',
+      message: '발표 시연용으로 가입한 모든 <b>커뮤니티(체험)</b> 계정을 휴지통으로 이동할까요?<br><br>' +
+        '⚠️ 영구 삭제는 아니며, 휴지통에서 복원 가능합니다.<br>' +
+        '실제 운영 사용자(재학생/졸업생/예비신입생/전담인력)는 영향받지 않습니다.',
+      confirmText: '🗑️ 휴지통으로 이동',
+      danger: true
+    })) return;
+
+    const btn = document.getElementById('communityCleanBtn');
+    const result = document.getElementById('communityCleanResult');
+    btn.disabled = true;
+    btn.textContent = '정리 중...';
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const db = getFirestore(app);
+      const snap = await getDocs(collection(db, 'users'));
+      const targets = snap.docs.filter(d => {
+        const data = d.data();
+        return data.category === 'community' && !data.deleted;
+      });
+      let success = 0, fail = 0;
+      for (let i = 0; i < targets.length; i++) {
+        btn.textContent = `정리 중... (${i+1}/${targets.length})`;
+        try {
+          await updateDoc(doc(db, 'users', targets[i].id), {
+            deleted: true,
+            deletedAt: new Date().toISOString()
+          });
+          success++;
+        } catch(e) {
+          console.warn('삭제 실패:', targets[i].id, e);
+          fail++;
+        }
+      }
+      await writeLog('delete', 'member', null, `커뮤니티 체험 계정 일괄 정리: 성공 ${success}건${fail > 0 ? `, 실패 ${fail}건` : ''}`);
+      result.innerHTML = `<div class="result-box success">✅ 정리 완료! ${success}개 계정이 휴지통으로 이동${fail > 0 ? ` (실패 ${fail}건)` : ''}</div>`;
+      result.style.display = 'block';
+      await countCommunityUsers();
+      if (typeof loadMembers === 'function') loadMembers();
+    } catch(e) {
+      result.innerHTML = `<div class="result-box error">❌ 오류: ${e.message}</div>`;
+      result.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.textContent = '🗑️ 모든 체험 계정 휴지통으로';
+  }
+
   async function submitLibrary() {
     const title = document.getElementById('libTitle').value.trim();
     const desc = document.getElementById('libDesc').value.trim();
@@ -3152,7 +3241,7 @@
            ℹ️ 휴지통의 가입자는 30일 후 자동 영구 삭제됩니다. 알림 발송도 차단된 상태입니다.
          </div>` +
         filtered.map(m => {
-          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : '🌱 예비 신입생';
+          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'community' ? '🎤 커뮤니티(체험)' : '🌱 예비 신입생';
           const deletedDate = m.deletedAt ? new Date(m.deletedAt).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
           let daysLeft = 30;
           if (m.deletedAt) {
@@ -3181,7 +3270,7 @@
     }
 
     const html = filtered.map(m => {
-      const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : '🌱 예비 신입생';
+      const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'community' ? '🎤 커뮤니티(체험)' : '🌱 예비 신입생';
       const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : '#d1fae5';
       const catTextColor = m.category === 'student' ? '#1565c0' : m.category === 'graduate' ? '#92400e' : m.category === 'company' ? '#5b21b6' : '#065f46';
       const borderColor = m.category === 'student' ? '#2196f3' : m.category === 'graduate' ? '#f59e0b' : m.category === 'company' ? '#7c3aed' : '#10b981';
@@ -3232,7 +3321,7 @@
     const rows = getFilteredSortedMembers();
     if (rows.length === 0) { alert('다운로드할 가입자가 없습니다.'); return; }
     const headers = ['카테고리', '이름', '연락처', '학과/직책', '상세', '가입/수정일시'];
-    const catLabel = c => c === 'student' ? '재학생' : c === 'graduate' ? '졸업생' : c === 'company' ? '전담인력' : c === 'prospect' ? '예비 신입생' : (c || '');
+    const catLabel = c => c === 'student' ? '재학생' : c === 'graduate' ? '졸업생' : c === 'company' ? '전담인력' : c === 'prospect' ? '예비 신입생' : c === 'community' ? '커뮤니티(체험)' : (c || '');
     const esc = v => {
       const s = String(v == null ? '' : v).replace(/"/g, '""');
       return /[,"\n\r]/.test(s) ? `"${s}"` : s;
