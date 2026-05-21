@@ -574,10 +574,13 @@
   const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
 
   // ★ Firebase에 사용자 정보 저장 (누가 가입했는지 여기서 확실하게 관리)
+  // - 같은 deviceId는 덮어씀 (merge: true)
+  // - 카테고리 변경 시 옛 카테고리 필드는 deleteField()로 명시적 제거 (stale data 방지)
+  // - createdAt은 보존, updatedAt만 갱신 → "수정됨" 구분 가능
   async function saveUserToFirebase(userInfo, oneSignalId) {
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-      const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const { getFirestore, doc, setDoc, getDoc, deleteField } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       let deviceId = localStorage.getItem('deviceId');
@@ -597,14 +600,50 @@
           }
         }
       } catch(e) {}
+
+      // 기존 문서의 createdAt 보존 + 카테고리 변경 감지
+      const userRef = doc(db, 'users', deviceId);
+      let existingCreatedAt = null;
+      let existingCategory = null;
+      try {
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          existingCreatedAt = data.createdAt || data.updatedAt || null;
+          existingCategory = data.category || null;
+        }
+      } catch(e) {}
+
+      const nowIso = new Date().toISOString();
       const docData = {
         deviceId,
         oneSignalId: oneSignalId || '',
         category: userInfo.category,
         name: userInfo.name,
-        updatedAt: new Date().toISOString(),
+        createdAt: existingCreatedAt || nowIso,
+        updatedAt: nowIso,
       };
       if (qrSource) docData.signupSource = qrSource;
+
+      // 카테고리별 필드 정의
+      const CAT_FIELDS = {
+        student:   ['grade'],
+        graduate:  ['dept', 'graduateYear', 'workplace'],
+        prospect:  ['phone', 'school', 'interest'],
+        company:   ['firm', 'role', 'student'],
+        community: ['grade', 'isDemo']
+      };
+      const ALL_FIELDS = ['grade', 'dept', 'graduateYear', 'workplace', 'phone', 'school', 'interest', 'firm', 'role', 'student', 'isDemo'];
+      const currentFields = CAT_FIELDS[userInfo.category] || [];
+
+      // 현재 카테고리에 속하지 않는 필드는 삭제 (stale data 방지)
+      ALL_FIELDS.forEach(f => {
+        if (!currentFields.includes(f)) {
+          docData[f] = deleteField();
+        }
+      });
+
+      // 현재 카테고리의 새 값 세팅 (deleteField를 덮어씀)
       if (userInfo.category === 'student') {
         docData.grade = userInfo.grade || '';
       } else if (userInfo.category === 'graduate') {
@@ -623,7 +662,14 @@
         docData.grade = userInfo.grade || '';
         docData.isDemo = true;  // 발표 체험용 계정 표시 (알림 격리용)
       }
-      await setDoc(doc(db, 'users', deviceId), docData, { merge: true });
+
+      // 카테고리 변경 이력 (선택적 디버그 정보)
+      if (existingCategory && existingCategory !== userInfo.category) {
+        docData.categoryChangedFrom = existingCategory;
+        docData.categoryChangedAt = nowIso;
+      }
+
+      await setDoc(userRef, docData, { merge: true });
       console.log('[Firebase] ✅ 사용자 저장 완료:', docData);
     } catch(e) {
       console.error('[Firebase] ❌ 저장 실패:', e);

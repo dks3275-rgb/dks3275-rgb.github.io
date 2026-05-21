@@ -799,8 +799,10 @@
             <option value="trash">🗑️ 휴지통</option>
           </select>
           <select class="filter-select" id="memberSortBy" onchange="renderMembers()">
-            <option value="updatedDesc">최근 가입순</option>
-            <option value="updatedAsc">오래된순</option>
+            <option value="updatedDesc">최근 수정순</option>
+            <option value="updatedAsc">오래된 수정순</option>
+            <option value="createdDesc">최근 가입순</option>
+            <option value="createdAsc">처음 가입순</option>
             <option value="nameAsc">이름순 (ㄱ→ㅎ)</option>
             <option value="nameDesc">이름순 (ㅎ→ㄱ)</option>
           </select>
@@ -1833,7 +1835,12 @@
       const now = Date.now();
       const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
       const newUsers7d = users.filter(u => {
-        const t = u.createdAt?.seconds ? u.createdAt.seconds * 1000 : (u.createdAt || 0);
+        // createdAt 우선, 없으면 updatedAt 폴백
+        const raw = u.createdAt || u.updatedAt || 0;
+        let t = 0;
+        if (raw?.seconds) t = raw.seconds * 1000;           // Firestore Timestamp
+        else if (typeof raw === 'string') t = new Date(raw).getTime();  // ISO 문자열
+        else if (typeof raw === 'number') t = raw;            // 밀리초
         return t > sevenDaysAgo;
       }).length;
       // 카테고리 차트 함수
@@ -2948,19 +2955,30 @@
     const cat = editingMember.category;
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-      const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const { getFirestore, doc, updateDoc, deleteField } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
 
-      // 카테고리 변경 포함 전체 저장
+      // 카테고리 변경 포함 전체 저장 — 다른 카테고리 필드는 deleteField로 제거 (index.html의 saveUserToFirebase와 일관성)
+      const CAT_FIELDS = {
+        student:   ['grade'],
+        graduate:  ['dept', 'graduateYear', 'workplace'],
+        prospect:  ['phone', 'school', 'interest'],
+        company:   ['firm', 'role', 'student'],
+        community: ['grade', 'isDemo']
+      };
+      const ALL_FIELDS = ['grade', 'dept', 'graduateYear', 'workplace', 'phone', 'school', 'interest', 'firm', 'role', 'student', 'isDemo'];
+      const currentFields = CAT_FIELDS[cat] || [];
+
       let updateData = {
         category: cat,
         updatedAt: new Date().toISOString(),
         _needsTagSync: true,  // 사용자가 앱 열 때 강제 태그 동기화 트리거
-        // 다른 카테고리 필드 초기화
-        grade: '', dept: '', graduateYear: '', workplace: '',
-        phone: '', school: '', interest: ''
       };
+      // 현재 카테고리에 속하지 않은 필드는 삭제
+      ALL_FIELDS.forEach(f => {
+        if (!currentFields.includes(f)) updateData[f] = deleteField();
+      });
 
       if (cat === 'student') {
         updateData.name = document.getElementById('editName').value.trim();
@@ -2968,7 +2986,6 @@
       } else if (cat === 'graduate') {
         updateData.name = document.getElementById('editGradName').value.trim();
         updateData.dept = document.getElementById('editDept').value;
-        updateData.grade = document.getElementById('editDept').value;
         updateData.graduateYear = document.getElementById('editGradYear').value;
         updateData.workplace = document.getElementById('editWorkplace').value.trim();
       } else if (cat === 'prospect') {
@@ -2976,13 +2993,11 @@
         updateData.phone = document.getElementById('editPhone').value.trim();
         updateData.school = document.getElementById('editSchool').value.trim();
         updateData.interest = document.getElementById('editInterest').value.trim();
-        updateData.grade = '예비 신입생';
       } else if (cat === 'company') {
         updateData.name = document.getElementById('editCompanyName').value.trim();
         updateData.firm = document.getElementById('editFirm').value.trim();
         updateData.role = document.getElementById('editRole').value;
         updateData.student = document.getElementById('editStudent').value.trim();
-        updateData.grade = document.getElementById('editRole').value;
       }
 
       if (!updateData.name) { alert('이름을 입력해주세요!'); return; }
@@ -3312,6 +3327,8 @@
       if (sortBy === 'nameAsc')  return (a.name || '').localeCompare(b.name || '', 'ko');
       if (sortBy === 'nameDesc') return (b.name || '').localeCompare(a.name || '', 'ko');
       if (sortBy === 'updatedAsc')  return new Date(a.updatedAt || 0) - new Date(b.updatedAt || 0);
+      if (sortBy === 'createdDesc') return new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0);
+      if (sortBy === 'createdAsc')  return new Date(a.createdAt || a.updatedAt || 0) - new Date(b.createdAt || b.updatedAt || 0);
       return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
     });
     return list;
@@ -3412,20 +3429,36 @@
         : '';
 
       const updatedAt = m.updatedAt ? new Date(m.updatedAt).toLocaleString('ko-KR') : '-';
+      const createdAt = m.createdAt ? new Date(m.createdAt).toLocaleString('ko-KR') : null;
+      // createdAt이 있고 updatedAt과 다르면 "수정됨" 표시
+      const isModified = createdAt && m.createdAt !== m.updatedAt;
+      const catChangedFrom = m.categoryChangedFrom || null;
+      const catChangedLabel = catChangedFrom
+        ? (catChangedFrom === 'student' ? '재학생' : catChangedFrom === 'graduate' ? '졸업생' : catChangedFrom === 'prospect' ? '예비신입생' : catChangedFrom === 'company' ? '전담인력' : catChangedFrom === 'community' ? '커뮤니티' : catChangedFrom)
+        : null;
+      const modifiedBadge = isModified
+        ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;background:#fff4e0;color:#b36500;margin-left:4px;">✏️ 수정됨</span>`
+        : '';
+      const catChangedBadge = catChangedLabel
+        ? `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;background:#fce9e1;color:#8f3915;margin-left:4px;" title="이전 카테고리">⇆ 기존: ${catChangedLabel}</span>`
+        : '';
+      const timeLabel = isModified
+        ? `🕐 가입 ${createdAt} · ✏️ 수정 ${updatedAt}`
+        : `🕐 ${updatedAt}`;
 
       return `<div class="consulting-card" style="border-left-color:${borderColor};">
         <div class="c-top">
           <div class="c-person">
             <div class="c-avatar" style="background:${borderColor}">${(m.name||'?').charAt(0)}</div>
             <div>
-              <div class="c-name">${m.name || '-'} <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;background:${catColor};color:${catTextColor}">${catLabel}</span></div>
+              <div class="c-name">${m.name || '-'} <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;background:${catColor};color:${catTextColor}">${catLabel}</span>${modifiedBadge}${catChangedBadge}</div>
               ${subInfo}
             </div>
           </div>
           ${phoneBtn}
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
-          <div class="c-time">🕐 ${updatedAt}</div>
+          <div class="c-time" style="font-size:10.5px;">${timeLabel}</div>
           <div style="display:flex;gap:6px;">
             <button class="member-edit-btn" onclick="openMemberEditById('${m.deviceId}')">✏️ 수정</button>
             <button class="member-delete-btn" onclick="deleteMember('${m.deviceId}')">🗑️ 삭제</button>
