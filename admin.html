@@ -81,6 +81,18 @@
     .c-delete { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 5px 10px; border-radius: 6px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
     .c-delete:hover { background: #c53030; color: white; }
     .c-loading { text-align: center; padding: 40px; color: var(--gray); font-size: 14px; }
+    /* 페이지네이션 */
+    .pagination-wrap { display: flex; justify-content: space-between; align-items: center; padding: 14px 4px 4px; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+    .pagination-info { font-size: 12px; color: var(--gray); font-weight: 600; }
+    .pagination-controls { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+    .page-btn { min-width: 34px; height: 34px; padding: 0 10px; border: 1px solid #e4eaf4; background: white; border-radius: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #5a7090; font-family: inherit; transition: all 0.15s; }
+    .page-btn:hover:not(:disabled):not(.active) { background: #f4f6fb; border-color: #bbdefb; color: var(--blue); }
+    .page-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-dots { color: #8a9ab5; font-size: 12px; padding: 0 4px; }
+    .page-size-wrap { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray); margin-left: auto; }
+    .page-size-wrap select { padding: 6px 10px; border: 1px solid #e4eaf4; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; font-family: inherit; font-weight: 600; color: var(--gray); }
+    .toolbar-with-pagesize { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     /* 상담 채팅 (관리자 답변) */
     .c-chat-toggle { background: white; border: 1.5px solid var(--border); color: var(--blue); padding: 6px 14px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 8px; }
     .c-chat-toggle:hover { border-color: var(--blue); background: #e3f2fd; }
@@ -1292,11 +1304,24 @@
     const waiting = activeItems.filter(i => i.status === '대기중').length;
     document.getElementById('consultingCount').textContent =
       `총 ${activeItems.length}건 · 대기 ${waiting}건 · 🗑️ ${trashItems.length}건`;
+
+    // 필터/검색 변경 시 페이지 1로 리셋
+    const curConsultingKey = `${filter}|${searchTerm}`;
+    if (curConsultingKey !== lastConsultingFilterKey) {
+      consultingPage = 1;
+      lastConsultingFilterKey = curConsultingKey;
+    }
+
     if (items.length === 0) {
       const emptyMsg = filter === 'trash' ? '🗑️ 휴지통이 비어있어요' : '📭 상담 신청 내역이 없어요';
       document.getElementById('consultingList').innerHTML = `<div class="empty-history">${emptyMsg}</div>`;
       return;
     }
+
+    // 페이지네이션 적용
+    const pageItems = paginateItems(items, consultingPage, consultingPageSize);
+    const paginationHtml = renderPaginationBar(items.length, consultingPage, consultingPageSize, 'changeConsultingPage', 'changeConsultingPageSize');
+
     // 휴지통 모드
     if (filter === 'trash') {
       document.getElementById('consultingList').innerHTML =
@@ -1307,7 +1332,7 @@
            <button class="c-delete" style="background:#28a745;color:white;" onclick="restoreAllTrash()">♻️ 전체 복원 (${items.length}건)</button>
            <button class="c-delete" onclick="emptyTrash()">⛔ 휴지통 비우기 (${items.length}건)</button>
          </div>` +
-        items.map(item => {
+        pageItems.map(item => {
           const safeContent = (item.content || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
           const deletedDate = item.deletedAt ? new Date(item.deletedAt).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
           // D-day 계산
@@ -1336,11 +1361,11 @@
               <button class="c-delete" onclick="permanentDeleteConsulting('${item.id}')">⛔ 영구 삭제</button>
             </div>
           </div>`;
-        }).join('');
+        }).join('') + paginationHtml;
       return;
     }
     // 일반 모드
-    document.getElementById('consultingList').innerHTML = items.map(item => {
+    document.getElementById('consultingList').innerHTML = pageItems.map(item => {
       const cmtCount = (item.comments || []).length;
       const lastComment = (item.comments || [])[cmtCount - 1];
       const hasNewFromUser = lastComment && lastComment.author === 'user';
@@ -1368,7 +1393,7 @@
           <button class="c-delete" onclick="deleteConsulting('${item.id}')">🗑️ 삭제</button>
         </div>
       </div>`;
-    }).join('');
+    }).join('') + paginationHtml;
   }
 
   // ── 상담 채팅 (관리자 측) ──
@@ -1630,14 +1655,26 @@
   function renderLogs() {
     const filter = document.getElementById('logFilter')?.value || 'all';
     const items = filter === 'all' ? logsItems : logsItems.filter(l => l.action === filter || (filter === 'delete' && l.action === 'auto_delete'));
+
+    // 필터 변경 시 페이지 1로 리셋
+    if (filter !== lastLogFilterKey) {
+      logPage = 1;
+      lastLogFilterKey = filter;
+    }
+
     if (items.length === 0) {
       document.getElementById('logsList').innerHTML = '<div class="empty-history">📭 로그가 없어요</div>';
       return;
     }
+
+    // 페이지네이션 적용
+    const pageItems = paginateItems(items, logPage, logPageSize);
+    const paginationHtml = renderPaginationBar(items.length, logPage, logPageSize, 'changeLogPage', 'changeLogPageSize');
+
     const actionEmoji = { delete:'🗑️', auto_delete:'⏰', restore:'♻️', update:'✏️', create:'➕', send:'📤' };
     const actionColor = { delete:'#dc3545', auto_delete:'#fd7e14', restore:'#28a745', update:'#ffc107', create:'#17a2b8', send:'#7c3aed' };
     const targetLabel = { consulting:'상담', notice:'공지', calendar:'캘린더', library:'자료', member:'가입자', survey:'만족도', notification:'알림' };
-    document.getElementById('logsList').innerHTML = items.map(log => {
+    document.getElementById('logsList').innerHTML = pageItems.map(log => {
       const time = log.timestamp ? new Date(log.timestamp).toLocaleString('ko-KR') : '-';
       const emoji = actionEmoji[log.action] || '📝';
       const color = actionColor[log.action] || '#6c757d';
@@ -1648,7 +1685,7 @@
         </div>
         <div style="font-size:13px;color:#1a2a3a;">${(log.detail || '-').replace(/</g, '&lt;')}</div>
       </div>`;
-    }).join('');
+    }).join('') + paginationHtml;
   }
 
   // ═══════════════════════════════════════════
@@ -3171,6 +3208,73 @@
   // ── 가입자 현황 ──
   let allMembers = [];
 
+  // ═══════════════════════════════════════════
+  // ── 페이지네이션 공통 유틸리티 ──
+  // ═══════════════════════════════════════════
+  // 영역별 페이지 상태 (현재 페이지, 페이지 크기)
+  let memberPage = 1, memberPageSize = 30, lastMemberFilterKey = '';
+  let logPage = 1, logPageSize = 30, lastLogFilterKey = '';
+  let consultingPage = 1, consultingPageSize = 30, lastConsultingFilterKey = '';
+
+  function paginateItems(items, page, size) {
+    const sz = parseInt(size) || 0;
+    if (sz === 0) return items;
+    const start = (page - 1) * sz;
+    return items.slice(start, start + sz);
+  }
+
+  function renderPaginationBar(total, currentPage, pageSize, onPageFnName, onSizeFnName) {
+    const sz = parseInt(pageSize) || 0;
+    const sizeSelect = `
+      <div class="page-size-wrap">
+        <label>표시:</label>
+        <select onchange="${onSizeFnName}(this.value)">
+          <option value="10" ${sz === 10 ? 'selected' : ''}>10개씩</option>
+          <option value="30" ${sz === 30 ? 'selected' : ''}>30개씩</option>
+          <option value="50" ${sz === 50 ? 'selected' : ''}>50개씩</option>
+          <option value="100" ${sz === 100 ? 'selected' : ''}>100개씩</option>
+          <option value="0" ${sz === 0 ? 'selected' : ''}>전체</option>
+        </select>
+      </div>`;
+    if (sz === 0 || total <= sz) {
+      return `<div class="pagination-wrap"><div class="pagination-info">전체 ${total}건</div>${sizeSelect}</div>`;
+    }
+    const totalPages = Math.ceil(total / sz);
+    const curPage = Math.min(Math.max(1, currentPage), totalPages);
+    let pages = '';
+    const winStart = Math.max(1, curPage - 2);
+    const winEnd = Math.min(totalPages, curPage + 2);
+    if (winStart > 1) {
+      pages += `<button class="page-btn" onclick="${onPageFnName}(1)">1</button>`;
+      if (winStart > 2) pages += '<span class="page-dots">···</span>';
+    }
+    for (let i = winStart; i <= winEnd; i++) {
+      pages += `<button class="page-btn${i === curPage ? ' active' : ''}" onclick="${onPageFnName}(${i})">${i}</button>`;
+    }
+    if (winEnd < totalPages) {
+      if (winEnd < totalPages - 1) pages += '<span class="page-dots">···</span>';
+      pages += `<button class="page-btn" onclick="${onPageFnName}(${totalPages})">${totalPages}</button>`;
+    }
+    return `
+      <div class="pagination-wrap">
+        <div class="pagination-info">총 ${total}건 · ${curPage}/${totalPages} 페이지</div>
+        <div class="pagination-controls">
+          <button class="page-btn" ${curPage <= 1 ? 'disabled' : ''} onclick="${onPageFnName}(${curPage - 1})">‹</button>
+          ${pages}
+          <button class="page-btn" ${curPage >= totalPages ? 'disabled' : ''} onclick="${onPageFnName}(${curPage + 1})">›</button>
+        </div>
+        ${sizeSelect}
+      </div>`;
+  }
+
+  // 영역별 페이지 이동 함수 (인라인 onclick 에서 호출)
+  window.changeMemberPage = function(p) { memberPage = parseInt(p) || 1; renderMembers(); };
+  window.changeMemberPageSize = function(s) { memberPageSize = parseInt(s); memberPage = 1; renderMembers(); };
+  window.changeLogPage = function(p) { logPage = parseInt(p) || 1; renderLogs(); };
+  window.changeLogPageSize = function(s) { logPageSize = parseInt(s); logPage = 1; renderLogs(); };
+  window.changeConsultingPage = function(p) { consultingPage = parseInt(p) || 1; renderConsulting(); };
+  window.changeConsultingPageSize = function(s) { consultingPageSize = parseInt(s); consultingPage = 1; renderConsulting(); };
+
   async function loadMembers() {
     document.getElementById('memberList').innerHTML = '<div class="c-loading">👥 불러오는 중...</div>';
     document.getElementById('memberCountBadge').textContent = '불러오는 중...';
@@ -3216,14 +3320,23 @@
     const isTrashView = filter === 'trash';
     const filtered = getFilteredSortedMembers();
 
+    // 필터/검색/정렬 변경 시 페이지 1로 리셋
+    const searchVal = document.getElementById('memberSearchInput')?.value || '';
+    const sortVal = document.getElementById('memberSortBy')?.value || '';
+    const curFilterKey = `${filter}|${searchVal}|${sortVal}`;
+    if (curFilterKey !== lastMemberFilterKey) {
+      memberPage = 1;
+      lastMemberFilterKey = curFilterKey;
+    }
+
     // 활성/휴지통 카운트
     const activeMembers = allMembers.filter(m => !m.deleted);
     const trashMembers = allMembers.filter(m => m.deleted);
-    const counts = { student: 0, graduate: 0, prospect: 0, company: 0 };
+    const counts = { student: 0, graduate: 0, prospect: 0, company: 0, community: 0 };
     activeMembers.forEach(m => { if (counts[m.category] !== undefined) counts[m.category]++; });
     const badgeEl = document.getElementById('memberCountBadge');
     if (badgeEl) badgeEl.textContent =
-      `활성 ${activeMembers.length}명 · 🎓${counts.student} 🎉${counts.graduate} 🌱${counts.prospect} 🏢${counts.company} · 🗑️ ${trashMembers.length}명 · 표시 ${filtered.length}명`;
+      `활성 ${activeMembers.length}명 · 🎓${counts.student} 🎉${counts.graduate} 🌱${counts.prospect} 🏢${counts.company} 🎤${counts.community || 0} · 🗑️ ${trashMembers.length}명 · 표시 ${filtered.length}명`;
 
     // 30일 지난 휴지통 자동 영구 삭제
     autoCleanMemberTrash();
@@ -3234,13 +3347,17 @@
       return;
     }
 
+    // 페이지네이션 적용
+    const pageItems = paginateItems(filtered, memberPage, memberPageSize);
+    const paginationHtml = renderPaginationBar(filtered.length, memberPage, memberPageSize, 'changeMemberPage', 'changeMemberPageSize');
+
     // 휴지통 모드
     if (isTrashView) {
       document.getElementById('memberList').innerHTML =
         `<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;">
            ℹ️ 휴지통의 가입자는 30일 후 자동 영구 삭제됩니다. 알림 발송도 차단된 상태입니다.
          </div>` +
-        filtered.map(m => {
+        pageItems.map(m => {
           const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'community' ? '🎤 커뮤니티(체험)' : '🌱 예비 신입생';
           const deletedDate = m.deletedAt ? new Date(m.deletedAt).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
           let daysLeft = 30;
@@ -3265,11 +3382,11 @@
               <button class="member-delete-btn" onclick="permanentDeleteMember('${m.deviceId}')">⛔ 영구 삭제</button>
             </div>
           </div>`;
-        }).join('');
+        }).join('') + paginationHtml;
       return;
     }
 
-    const html = filtered.map(m => {
+    const html = pageItems.map(m => {
       const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'community' ? '🎤 커뮤니티(체험)' : '🌱 예비 신입생';
       const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : '#d1fae5';
       const catTextColor = m.category === 'student' ? '#1565c0' : m.category === 'graduate' ? '#92400e' : m.category === 'company' ? '#5b21b6' : '#065f46';
@@ -3313,7 +3430,7 @@
       </div>`;
     }).join('');
 
-    document.getElementById('memberList').innerHTML = html;
+    document.getElementById('memberList').innerHTML = html + paginationHtml;
   }
 
   // ── 가입자 CSV 다운로드 ──
