@@ -790,6 +790,7 @@
           <button class="notice-target-btn" id="libBtn-graduate" onclick="selectLibTarget('graduate',this)">🎉 졸업생</button>
           <button class="notice-target-btn" id="libBtn-prospect" onclick="selectLibTarget('prospect',this)">🌱 예비신입생</button>
           <button class="notice-target-btn" id="libBtn-company" onclick="selectLibTarget('company',this)">🏢 전담인력</button>
+          <button class="notice-target-btn" id="libBtn-all" onclick="selectLibTarget('all',this)">🛡️ 산업안전보건 (재학생+전담인력)</button>
         </div>
         <input type="hidden" id="libTarget" value="student" />
       </div>
@@ -808,6 +809,9 @@
           <option value="훈련 운영 서식">훈련 운영 서식</option>
           <option value="가이드 · 매뉴얼">가이드 · 매뉴얼</option>
           <option value="공지 · 안내">공지 · 안내</option>
+        </select>
+        <select class="form-input" id="libCategoryAll" style="display:none;">
+          <option value="산업안전보건">🛡️ 산업안전보건</option>
         </select>
         <div id="libCategoryProspect" style="display:none;background:#f0fff4;border:1.5px solid #68d391;border-radius:10px;padding:12px 14px;font-size:13px;color:#276749;line-height:1.6;">
           🌱 예비신입생 자료실은 하위 카테고리 없이 <strong>단일 목록</strong>으로 제공됩니다.<br>
@@ -906,6 +910,7 @@
             <option value="graduate">🎉 졸업생</option>
             <option value="prospect">🌱 예비신입생</option>
             <option value="company">🏢 전담인력</option>
+            <option value="shared">🛡️ 산업안전보건 (공유)</option>
           </select>
           <button class="refresh-btn" onclick="loadLibrary()">🔄 새로고침</button>
         </div>
@@ -2474,14 +2479,17 @@
     const companyCat = document.getElementById('libCategoryCompany');
     const prospectCat = document.getElementById('libCategoryProspect');
     const graduateCat = document.getElementById('libCategoryGraduate');
+    const allCat = document.getElementById('libCategoryAll');
     const subCatGroup = document.getElementById('libSubCategoryGroup');
     studentCat.style.display = 'none';
     companyCat.style.display = 'none';
     if (prospectCat) prospectCat.style.display = 'none';
     if (graduateCat) graduateCat.style.display = 'none';
+    if (allCat) allCat.style.display = 'none';
     if (target === 'company') companyCat.style.display = 'block';
     else if (target === 'prospect' && prospectCat) prospectCat.style.display = 'block';
     else if (target === 'graduate' && graduateCat) graduateCat.style.display = 'block';
+    else if (target === 'all' && allCat) allCat.style.display = 'block';
     else studentCat.style.display = 'block';
     // 서브 카테고리는 재학생만 표시
     if (subCatGroup) subCatGroup.style.display = (target === 'student') ? 'block' : 'none';
@@ -2909,6 +2917,7 @@
     const category = target === 'company' ? document.getElementById('libCategoryCompany').value
                    : target === 'prospect' ? '자료'
                    : target === 'graduate' ? '자료'
+                   : target === 'all' ? (document.getElementById('libCategoryAll')?.value || '산업안전보건')
                    : document.getElementById('libCategoryStudent').value;
     // 자동 업로드 URL이 있으면 우선, 없으면 수동 입력
     const manualUrl = document.getElementById('libFileUrl').value.trim();
@@ -2977,12 +2986,13 @@
       const q = query(collection(db, 'library'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (filter !== 'all') items = items.filter(i => i.target === filter);
+      if (filter === 'shared') items = items.filter(i => i.target === 'all');
+      else if (filter !== 'all') items = items.filter(i => i.target === filter);
 
       if (items.length === 0) { listEl.innerHTML = '<div class="empty-history">등록된 자료가 없어요</div>'; return; }
 
       listEl.innerHTML = items.map(item => {
-        const targetLabel = item.target === 'company' ? '🏢 전담인력' : item.target === 'student' ? '🎓 재학생' : item.target === 'graduate' ? '🎉 졸업생' : item.target === 'prospect' ? '🌱 예비신입생' : '📣 전체';
+        const targetLabel = item.target === 'company' ? '🏢 전담인력' : item.target === 'student' ? '🎓 재학생' : item.target === 'graduate' ? '🎉 졸업생' : item.target === 'prospect' ? '🌱 예비신입생' : item.target === 'all' ? '🛡️ 산업안전보건' : '📣 전체';
         const targetClass = item.target === 'company' ? 'company' : item.target === 'student' ? 'student' : item.target === 'graduate' ? 'graduate' : item.target === 'prospect' ? 'prospect' : 'all';
         const fileIcon = item.fileType?.includes('pdf') ? '📄' : item.fileType?.startsWith('image') ? '🖼️' : '📁';
         const sizeMB = item.fileSize ? (item.fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';

@@ -74,6 +74,7 @@
   .target-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; margin-left: 4px; letter-spacing: -0.2px; }
   .target-badge.company { background: #EFE9FE; color: #5A3FCE; }
   .target-badge.student { background: var(--tk-primary-soft); color: var(--tk-primary); }
+  .target-badge.shared { background: #FFF4E0; color: #B36500; }
   /* 검색 input */
   .resource-search-input { display: none; width: 100%; padding: 12px 14px; border: 1px solid var(--tk-border); border-radius: var(--tk-radius); font-size: 14px; margin-bottom: 12px; box-sizing: border-box; background: var(--tk-surface); outline: none; transition: all 0.15s; font-family: inherit; color: var(--tk-text); letter-spacing: -0.2px; }
   .resource-search-input:focus { border-color: var(--tk-primary); box-shadow: 0 0 0 3px rgba(49,130,246,0.1); }
@@ -107,6 +108,7 @@
     { name: 'P-TECH 1학년', icon: '🎓' }, { name: 'P-TECH 2학년', icon: '🎓' },
     { name: '전문대 마케팅경영학과', icon: '📚' }, { name: '전문대 호텔조리학과', icon: '🍳' },
     { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
+    { name: '산업안전보건', icon: '🛡️' },
     { name: '공통', icon: '📢' },
   ];
   // 졸업생은 P-TECH 1/2학년 구분 없이 단일 P-TECH 카테고리 사용
@@ -126,6 +128,7 @@
     { name: '훈련 운영 서식', icon: '📋' },
     { name: '가이드 · 매뉴얼', icon: '📘' },
     { name: '공지 · 안내', icon: '📢' },
+    { name: '산업안전보건', icon: '🛡️' },
   ];
   // 카테고리 선택: 전담인력 / 졸업생 / 재학생 (기본, 커뮤니티는 재학생과 동일)
   const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES
@@ -349,7 +352,8 @@
       const date = r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('ko-KR') : '-';
       const targetBadge = r.target === 'company'
         ? '<span class="target-badge company">전담인력</span>'
-        : r.target === 'student' ? '<span class="target-badge student">재학생</span>' : '';
+        : r.target === 'student' ? '<span class="target-badge student">재학생</span>'
+        : r.target === 'all' ? '<span class="target-badge shared">🛡️ 공유</span>' : '';
 
       return `<div class="resource-card">
         <div class="file-icon ${iconClass}">${icon}</div>
