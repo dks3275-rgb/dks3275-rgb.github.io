@@ -181,9 +181,147 @@
     .tpl-empty { font-size: 12px; color: #8a9ab5; padding: 4px 0; }
     .tpl-save-btn { background: #fffbf0; border: 1.5px solid #f6c453; color: #7c5c00; padding: 6px 12px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
     .tpl-save-btn:hover { background: #f6c453; color: white; }
+    /* ═══════════════════════════════════════
+       관리자 로그인 게이트
+       ═══════════════════════════════════════ */
+    .auth-overlay { position: fixed; inset: 0; background: #F2F4F6; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Pretendard', 'Noto Sans KR', sans-serif; }
+    .auth-box { background: #FFFFFF; border: 1px solid #E5E8EB; border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+    .auth-icon { width: 56px; height: 56px; border-radius: 16px; background: #E8F2FF; color: #3182F6; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 18px; }
+    .auth-title { text-align: center; font-size: 20px; font-weight: 700; color: #191F28; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .auth-sub { text-align: center; font-size: 13px; color: #4E5968; margin-bottom: 24px; line-height: 1.5; }
+    .auth-field { margin-bottom: 14px; }
+    .auth-label { font-size: 12px; font-weight: 600; color: #191F28; margin-bottom: 6px; display: block; letter-spacing: -0.2px; }
+    .auth-input { width: 100%; padding: 13px 14px; background: #F2F4F6; border: 1px solid #F2F4F6; border-radius: 12px; color: #191F28; font-family: inherit; font-size: 15px; outline: none; transition: all 0.15s; box-sizing: border-box; letter-spacing: -0.2px; }
+    .auth-input:focus { border-color: #3182F6; background: #FFFFFF; box-shadow: 0 0 0 3px rgba(49,130,246,0.12); }
+    .auth-error { background: #FEE6E8; color: #C7242E; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; margin-bottom: 12px; display: none; }
+    .auth-error.show { display: block; }
+    .auth-submit { width: 100%; padding: 14px; background: #3182F6; color: white; border: none; border-radius: 14px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s; letter-spacing: -0.3px; }
+    .auth-submit:hover:not(:disabled) { background: #1B64DA; }
+    .auth-submit:active:not(:disabled) { transform: scale(0.99); }
+    .auth-submit:disabled { background: #C8CED5; cursor: not-allowed; }
+    .auth-hint { text-align: center; font-size: 11px; color: #8B95A1; margin-top: 16px; line-height: 1.5; }
+    .auth-logout-btn { position: fixed; bottom: 20px; left: 20px; background: #FFFFFF; border: 1px solid #E5E8EB; color: #4E5968; padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.06); z-index: 9998; font-family: inherit; transition: all 0.15s; }
+    .auth-logout-btn:hover { background: #F2F4F6; border-color: #D1D6DB; color: #191F28; }
+    body.auth-locked { overflow: hidden; }
+    body.auth-locked .header,
+    body.auth-locked .tab-nav,
+    body.auth-locked .tab-content { display: none !important; }
   </style>
 </head>
-<body>
+<body class="auth-locked">
+<!-- 관리자 로그인 게이트 -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <div class="auth-icon">🔒</div>
+    <div class="auth-title">관리자 로그인</div>
+    <div class="auth-sub">AU 일학습병행 관리자 페이지</div>
+    <div class="auth-error" id="authError">아이디 또는 비밀번호가 일치하지 않습니다.</div>
+    <div class="auth-field">
+      <label class="auth-label" for="authId">아이디</label>
+      <input type="text" id="authId" class="auth-input" placeholder="admin" autocomplete="username" />
+    </div>
+    <div class="auth-field">
+      <label class="auth-label" for="authPw">비밀번호</label>
+      <input type="password" id="authPw" class="auth-input" placeholder="비밀번호" autocomplete="current-password" />
+    </div>
+    <button class="auth-submit" id="authSubmit">로그인</button>
+    <div class="auth-hint">⚠️ 이 페이지는 관리자 전용입니다.<br>가입자는 일반 사용자 화면을 이용해주세요.</div>
+  </div>
+</div>
+<button class="auth-logout-btn" id="authLogoutBtn" style="display:none;" onclick="adminLogout()">🚪 로그아웃</button>
+<script>
+  // ═══════════════════════════════════════════
+  // 관리자 로그인 게이트 (SHA-256 해시 비교)
+  // ⚠️ 클라이언트 사이드 검증 - 진짜 보안은 Firebase Auth + Security Rules 필요
+  // ⚠️ ID/PW 변경: 아래 helper로 새 해시 생성 후 ID_HASH / PW_HASH 교체
+  //    콘솔에서: await adminHashHelper("새비밀번호") 호출 → 결과를 PW_HASH에 붙여넣기
+  // ═══════════════════════════════════════════
+  (function(){
+    // 기본값: ID=admin / PW=au2026!
+    const ID_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
+    const PW_HASH = '706defbba41185adb8d6dff623dc4ba1fe43301c696e9b5d6ae8431aa4480174';
+    const TOKEN_KEY = 'au_admin_auth';
+    const TOKEN_VALUE = ID_HASH.substring(0, 16) + PW_HASH.substring(0, 16); // 토큰 = 해시 조합
+
+    async function sha256(text) {
+      const buf = new TextEncoder().encode(text);
+      const hash = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // 콘솔 헬퍼: 새 비밀번호 해시 생성용
+    window.adminHashHelper = async function(text) {
+      const h = await sha256(text);
+      console.log(`SHA-256("${text}") =\n${h}`);
+      return h;
+    };
+
+    function unlock() {
+      document.getElementById('authOverlay').style.display = 'none';
+      document.body.classList.remove('auth-locked');
+      const logoutBtn = document.getElementById('authLogoutBtn');
+      if (logoutBtn) logoutBtn.style.display = 'block';
+    }
+
+    function showError(msg) {
+      const errEl = document.getElementById('authError');
+      errEl.textContent = msg || '아이디 또는 비밀번호가 일치하지 않습니다.';
+      errEl.classList.add('show');
+      setTimeout(() => errEl.classList.remove('show'), 4000);
+    }
+
+    async function tryLogin() {
+      const btn = document.getElementById('authSubmit');
+      const id = document.getElementById('authId').value.trim();
+      const pw = document.getElementById('authPw').value;
+      if (!id || !pw) { showError('아이디와 비밀번호를 입력해주세요.'); return; }
+      btn.disabled = true; btn.textContent = '확인 중...';
+      try {
+        const [idH, pwH] = await Promise.all([sha256(id), sha256(pw)]);
+        if (idH === ID_HASH && pwH === PW_HASH) {
+          sessionStorage.setItem(TOKEN_KEY, TOKEN_VALUE);
+          unlock();
+        } else {
+          showError();
+          document.getElementById('authPw').value = '';
+          document.getElementById('authPw').focus();
+        }
+      } catch(e) {
+        showError('오류: ' + e.message);
+      }
+      btn.disabled = false; btn.textContent = '로그인';
+    }
+
+    // 이미 인증된 세션이면 바로 통과
+    if (sessionStorage.getItem(TOKEN_KEY) === TOKEN_VALUE) {
+      unlock();
+    } else {
+      // 자동 포커스
+      document.addEventListener('DOMContentLoaded', () => {
+        const idInput = document.getElementById('authId');
+        if (idInput) idInput.focus();
+      });
+    }
+
+    // 이벤트 바인딩
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('authSubmit').addEventListener('click', tryLogin);
+      ['authId', 'authPw'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') tryLogin();
+        });
+      });
+    });
+
+    // 로그아웃 전역 함수
+    window.adminLogout = function() {
+      if (!confirm('로그아웃 하시겠어요?')) return;
+      sessionStorage.removeItem(TOKEN_KEY);
+      location.reload();
+    };
+  })();
+</script>
 <!-- 커스텀 확인 모달 (confirm 대체) -->
 <div class="cc-overlay" id="customConfirmOverlay">
   <div class="cc-box">
@@ -861,19 +999,40 @@
     if (tab === 'library') loadLibrary();
     if (tab === 'logs') loadLogs();
   }
-  // 페이지 첫 진입 시 통계 자동 로드
-  setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);
-  // 페이지 첫 진입 시 예약 발송 자동 체크 (현재 시각 이전 예약이 있으면 즉시 발송)
-  setTimeout(async () => {
+  // 관리자 인증 가드 — 로그인 후에만 자동 로딩 실행
+  function isAdminAuthed() {
     try {
-      await loadScheduledItems();
-      console.log('[예약 발송] 자동 체크 완료');
-    } catch(e) { console.warn('[예약 발송] 자동 체크 실패:', e); }
-  }, 2000);
-  // 5분마다 예약 발송 체크 (관리자가 페이지 열어둔 채 있을 때)
-  setInterval(async () => {
-    try { await loadScheduledItems(); } catch(e) {}
-  }, 5 * 60 * 1000);
+      const v = sessionStorage.getItem('au_admin_auth');
+      return !!v && v.length === 32;  // ID_HASH(16) + PW_HASH(16) = 32자
+    } catch(e) { return false; }
+  }
+  // 인증 통과까지 대기 후 자동 실행
+  function runAfterAuth(fn) {
+    if (isAdminAuthed()) { fn(); return; }
+    const iv = setInterval(() => {
+      if (isAdminAuthed()) {
+        clearInterval(iv);
+        fn();
+      }
+    }, 500);
+  }
+  // 페이지 첫 진입 시 통계 자동 로드 (인증 후)
+  runAfterAuth(() => {
+    setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);
+  });
+  // 예약 발송 자동 체크 (인증 후)
+  runAfterAuth(() => {
+    setTimeout(async () => {
+      try {
+        await loadScheduledItems();
+        console.log('[예약 발송] 자동 체크 완료');
+      } catch(e) { console.warn('[예약 발송] 자동 체크 실패:', e); }
+    }, 2000);
+    // 5분마다 예약 발송 체크
+    setInterval(async () => {
+      try { await loadScheduledItems(); } catch(e) {}
+    }, 5 * 60 * 1000);
+  });
 
   // ── 알림 발송 ──
   function selectGroup(group, btn) {
