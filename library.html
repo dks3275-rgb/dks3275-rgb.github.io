@@ -266,9 +266,12 @@
   }
 
   // 학과 클릭 시 → 서브 카테고리 표시 (재학생/졸업생)
+  // 단, 서브 카테고리 없이 바로 파일 목록으로 가는 케이스:
+  //  - 전담인력(company): 학과 구분 자체가 없음
+  //  - 산업안전보건/공통: 학습안내서/NCS 모듈 구분이 무의미한 공유 카테고리
   window.showSubCategories = function(categoryName) {
-    // 전담인력은 서브 카테고리 없이 바로 파일 목록
-    if (userCategory === 'company') {
+    const FLAT_CATEGORIES = ['산업안전보건', '공통'];
+    if (userCategory === 'company' || FLAT_CATEGORIES.includes(categoryName)) {
       window.showFiles(categoryName);
       return;
     }
