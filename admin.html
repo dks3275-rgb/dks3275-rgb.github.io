@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AU 관리자</title>
+  <meta name="theme-color" content="#FFFFFF" />
   <script src="device-check.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
@@ -130,6 +131,7 @@
     .notice-target-badge.graduate { background:#fef3c7; color:#92400e; }
     .notice-target-badge.prospect { background:#d1fae5; color:#065f46; }
     .notice-target-badge.company { background:#ede9fe; color:#5b21b6; }
+    .notice-target-badge.community { background:#FCE9E1; color:#8F3915; }
     /* 가입자 편집 모달 */
     .member-modal-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.7); backdrop-filter: blur(4px); z-index: 500; display: none !important; align-items: center; justify-content: center; padding: 20px; pointer-events: none; }
     .member-modal-overlay.show { display: flex !important; pointer-events: auto; }
@@ -3388,9 +3390,9 @@
 
     const html = pageItems.map(m => {
       const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'community' ? '🎤 커뮤니티(체험)' : '🌱 예비 신입생';
-      const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : '#d1fae5';
-      const catTextColor = m.category === 'student' ? '#1565c0' : m.category === 'graduate' ? '#92400e' : m.category === 'company' ? '#5b21b6' : '#065f46';
-      const borderColor = m.category === 'student' ? '#2196f3' : m.category === 'graduate' ? '#f59e0b' : m.category === 'company' ? '#7c3aed' : '#10b981';
+      const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : m.category === 'community' ? '#FCE9E1' : '#d1fae5';
+      const catTextColor = m.category === 'student' ? '#1565c0' : m.category === 'graduate' ? '#92400e' : m.category === 'company' ? '#5b21b6' : m.category === 'community' ? '#8F3915' : '#065f46';
+      const borderColor = m.category === 'student' ? '#2196f3' : m.category === 'graduate' ? '#f59e0b' : m.category === 'company' ? '#7c3aed' : m.category === 'community' ? '#D85A30' : '#10b981';
 
       let subInfo = '';
       if (m.category === 'student') {
@@ -3401,6 +3403,8 @@
         subInfo = `<div class="c-dept">🏫 ${m.school || '-'} · 💡 ${m.interest || '-'}</div>`;
       } else if (m.category === 'company') {
         subInfo = `<div class="c-dept">🏢 ${m.firm || '-'} · ${m.role || '-'} · 👤 ${m.student || '-'}</div>`;
+      } else if (m.category === 'community') {
+        subInfo = `<div class="c-dept">🎤 체험 · 📚 ${m.grade || '-'}</div>`;
       }
 
       const phoneBtn = m.phone
