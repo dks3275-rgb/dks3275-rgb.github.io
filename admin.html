@@ -901,6 +901,28 @@
       <div class="result-box" id="ncsBulkResult"></div>
     </div>
 
+    <!-- 추가 자료 일괄 등록 카드 (산업안전보건 + 전담인력 + 학습근로자) -->
+    <div class="card" style="background:linear-gradient(135deg,#FFE8DC,#FFD4BA);border-left:4px solid #D85A30;">
+      <div class="card-title">📦 추가 자료 일괄 등록</div>
+      <p style="font-size:13px;color:#7a2f10;margin-bottom:12px;line-height:1.6;">
+        업로드된 산업안전보건 / 기업전담인력 / 학습근로자 자료를 한 번에 등록합니다.<br>
+        <strong>총 11개 항목</strong>
+      </p>
+      <div style="background:white;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#475569;">
+        📂 <b>등록 매핑</b>:<br>
+        • 🛡️ <b>산업안전보건 (4개)</b> → 재학생+전담인력 공유 (target: all)<br>
+        • 🏢 <b>기업전담인력 (5개)</b> → 가이드·매뉴얼 카테고리<br>
+        • 🎓 <b>학습근로자 (2개)</b> → 재학생 / 공통 / 기타 자료
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="send-btn" id="bulkExtraSafetyBtn" onclick="bulkRegisterExtra('safety')" style="background:linear-gradient(135deg,#D85A30,#B0421F);">🛡️ 산업안전보건만 등록 (4개)</button>
+        <button class="send-btn" id="bulkExtraCompanyBtn" onclick="bulkRegisterExtra('company')" style="background:linear-gradient(135deg,#7C3AED,#5B21B6);">🏢 기업전담인력만 등록 (5개)</button>
+        <button class="send-btn" id="bulkExtraStudentBtn" onclick="bulkRegisterExtra('student')" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">🎓 학습근로자만 등록 (2개)</button>
+        <button class="send-btn" id="bulkExtraAllBtn" onclick="bulkRegisterExtra('all')" style="background:linear-gradient(135deg,#10b981,#047857);font-size:13px;">⚡ 모두 등록 (11개)</button>
+      </div>
+      <div class="result-box" id="bulkExtraResult"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">📋 등록된 자료
         <div style="display:flex;gap:8px;align-items:center;">
@@ -2837,6 +2859,132 @@
     if (allBtns[0]) allBtns[0].textContent = '🎉 졸업생 자료실에만 등록 (50개)';
     if (allBtns[1]) allBtns[1].textContent = '🎓 재학생 자료실에만 등록 (64개)';
     if (allBtns[2]) allBtns[2].textContent = '⚡ 재학생 + 졸업생 모두 등록 (114개)';
+  }
+
+  // ═══════════════════════════════════════════
+  // ── 추가 자료 일괄 등록 (산업안전보건/전담인력/학습근로자) ──
+  // ═══════════════════════════════════════════
+  async function bulkRegisterExtra(mode) {
+    // mode: 'safety' | 'company' | 'student' | 'all'
+    const includeSafety = mode === 'safety' || mode === 'all';
+    const includeCompany = mode === 'company' || mode === 'all';
+    const includeStudent = mode === 'student' || mode === 'all';
+    const result = document.getElementById('bulkExtraResult');
+    const allBtns = ['bulkExtraSafetyBtn', 'bulkExtraCompanyBtn', 'bulkExtraStudentBtn', 'bulkExtraAllBtn']
+      .map(id => document.getElementById(id));
+    const modeLabel = mode === 'safety' ? '산업안전보건만'
+                    : mode === 'company' ? '전담인력만'
+                    : mode === 'student' ? '학습근로자만'
+                    : '모두 (11개)';
+    const totalCount = (includeSafety ? 4 : 0) + (includeCompany ? 5 : 0) + (includeStudent ? 2 : 0);
+
+    if (!await customConfirm({
+      title: `추가 자료 일괄 등록 (${modeLabel})`,
+      message: `<b>총 ${totalCount}개</b>의 자료를 자료실에 등록할까요?<br><br>` +
+        (includeSafety ? '• 🛡️ 산업안전보건 (4개) → 재학생+전담인력 공유<br>' : '') +
+        (includeCompany ? '• 🏢 기업전담인력 (5개) → 가이드·매뉴얼<br>' : '') +
+        (includeStudent ? '• 🎓 학습근로자 (2개) → 공통/기타 자료<br>' : '') +
+        '<br>⚠️ 이미 등록된 경우 중복으로 추가될 수 있습니다.',
+      confirmText: '🚀 등록',
+      danger: false
+    })) return;
+
+    allBtns.forEach(b => { if (b) b.disabled = true; });
+    const activeBtnIdx = mode === 'safety' ? 0 : mode === 'company' ? 1 : mode === 'student' ? 2 : 3;
+    const activeBtn = allBtns[activeBtnIdx];
+    if (activeBtn) activeBtn.textContent = '등록 중...';
+
+    const BASE = 'https://raw.githubusercontent.com/dks3275-rgb/dks3275-rgb.github.io/main/files';
+    const enc = (s) => encodeURIComponent(s);
+
+    // 등록할 자료 목록 생성
+    const items = [];
+
+    // 🛡️ 산업안전보건 (재학생+전담인력 공유, target='all', category='산업안전보건', subCategory 없음)
+    if (includeSafety) {
+      const safetyFiles = [
+        { title: '분야별 안전점검 체크리스트 (양식)', file: '분야별 안전점검 체크리스트(양식).pdf', desc: '현장 안전점검용 체크리스트 양식' },
+        { title: '산업안전보건 공식자료 안내', file: '산업안전보건_공식자료_안내.pdf', desc: '산업안전보건 관련 공식 자료 안내문' },
+        { title: '안전사고 보고체계도', file: '안전사고_보고체계도.pdf', desc: '안전사고 발생 시 보고체계 안내' },
+        { title: '안전점검 체크리스트', file: '안전점검_체크리스트.pdf', desc: '일일/주간 안전점검 체크리스트' }
+      ];
+      safetyFiles.forEach(m => items.push({
+        title: m.title, desc: m.desc,
+        target: 'all', category: '산업안전보건', subCategory: null,
+        fileName: m.file, fileUrl: `${BASE}/안전보건/${enc(m.file)}`,
+        fileType: 'application/pdf'
+      }));
+    }
+
+    // 🏢 기업전담인력 (target='company', category='가이드 · 매뉴얼')
+    if (includeCompany) {
+      const companyFiles = [
+        { title: '비콘 출결 매뉴얼 (훈련기관)', file: '03. 비콘 출결 매뉴얼(훈련기관)_20250811.pdf', desc: '훈련기관용 비콘 출결 시스템 매뉴얼 (2025.08.11)', type: 'application/pdf' },
+        { title: 'AU일학습병행 훈련준비 사항 안내', file: 'AU일학습병행 훈련준비 사항 배포용.pdf', desc: '훈련 시작 전 준비 사항 안내', type: 'application/pdf' },
+        { title: 'HRD담당자 및 기업현장교사 안내사항', file: 'HRD담당자 및 기업현장교사 안내사항_안산대학교.pdf', desc: '안산대학교 일학습병행 - HRD담당자/기업현장교사용 안내', type: 'application/pdf' },
+        { title: '전담인력교육 안내 자료', file: '전담인력교육 안내 자료.zip', desc: '전담인력 교육 자료 모음 (압축파일)', type: 'application/zip' },
+        { title: '학습기업 전산(고용24 웹) 활용 가이드', file: '학습기업 전산(고용24 웹) 활용 가이드.pdf', desc: '학습기업용 고용24 웹 활용 안내', type: 'application/pdf' }
+      ];
+      companyFiles.forEach(m => items.push({
+        title: m.title, desc: m.desc,
+        target: 'company', category: '가이드 · 매뉴얼', subCategory: null,
+        fileName: m.file, fileUrl: `${BASE}/전담인력/${enc(m.file)}`,
+        fileType: m.type
+      }));
+    }
+
+    // 🎓 학습근로자 (재학생, target='student', category='공통', subCategory='기타 자료')
+    if (includeStudent) {
+      const studentFiles = [
+        { title: '학습활동서 작성법', file: '1. 학습활동서 작성법.pdf', desc: '학습활동서 작성 가이드' },
+        { title: '출석결과 확인하기', file: '2. 출석결과 확인하기.pdf', desc: '출석 결과 조회 방법 안내' }
+      ];
+      studentFiles.forEach(m => items.push({
+        title: m.title, desc: m.desc,
+        target: 'student', category: '공통', subCategory: '기타 자료',
+        fileName: m.file, fileUrl: `${BASE}/학습근로자/${enc(m.file)}`,
+        fileType: 'application/pdf'
+      }));
+    }
+
+    // Firestore 일괄 등록
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
+      const db = getFirestore(app);
+
+      let success = 0, fail = 0;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (activeBtn) activeBtn.textContent = `등록 중... (${i+1}/${items.length})`;
+        try {
+          await addDoc(collection(db, 'library'), {
+            ...item,
+            resourceType: 'github',
+            createdAt: serverTimestamp(),
+            updatedAt: new Date().toISOString()
+          });
+          success++;
+        } catch(e) {
+          console.warn('등록 실패:', item.title, e);
+          fail++;
+        }
+      }
+      await writeLog('create', 'library', null, `추가 자료 일괄 등록 (${modeLabel}): 성공 ${success}건, 실패 ${fail}건`);
+      result.innerHTML = `<div class="result-box success">✅ 등록 완료! 성공 ${success}건${fail > 0 ? ` · 실패 ${fail}건` : ''}</div>`;
+      result.style.display = 'block';
+      loadLibrary();
+    } catch(e) {
+      result.innerHTML = `<div class="result-box error">❌ 오류: ${e.message}</div>`;
+      result.style.display = 'block';
+    }
+    // 버튼 복구
+    allBtns.forEach(b => { if (b) b.disabled = false; });
+    if (allBtns[0]) allBtns[0].textContent = '🛡️ 산업안전보건만 등록 (4개)';
+    if (allBtns[1]) allBtns[1].textContent = '🏢 기업전담인력만 등록 (5개)';
+    if (allBtns[2]) allBtns[2].textContent = '🎓 학습근로자만 등록 (2개)';
+    if (allBtns[3]) allBtns[3].textContent = '⚡ 모두 등록 (11개)';
   }
 
   // ═══════════════════════════════════════════
