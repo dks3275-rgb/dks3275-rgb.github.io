@@ -117,12 +117,10 @@
 
       // 카테고리에 맞는 공지만 필터링 (각 그룹 엄격 분리)
       const allDocs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      // 커뮤니티 체험 모드는 재학생 공지를 그대로 봄
-      const effectiveCategory = userCategory === 'community' ? 'student' : userCategory;
       allNotices = allDocs.filter(d => {
         const t = d.target || 'all';
         if (t === 'all') return true;
-        return t === effectiveCategory;
+        return t === userCategory;
       });
       // 핀 고정 우선 정렬
       allNotices.sort((a, b) => {

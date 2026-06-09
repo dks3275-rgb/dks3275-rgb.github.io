@@ -58,7 +58,6 @@
       --cat-graduate: #FF9F1C;
       --cat-prospect: #00C896;
       --cat-company: #7C5CFA;
-      --cat-community: #D85A30;
       /* radius / shadow */
       --tk-radius-sm: 10px;
       --tk-radius: 14px;
@@ -92,7 +91,6 @@
     .badge-graduate { background: #FFF4E6; color: #B36500; }
     .badge-prospect { background: #DEFCEF; color: #007A5C; }
     .badge-company { background: #EFE9FE; color: #5A3FCE; }
-    .badge-community { background: #FCE9E1; color: #8F3915; }
     .edit-btn { margin-left: auto; background: var(--tk-bg); border: 1px solid var(--tk-border); color: var(--tk-text-sub); font-size: 12px; padding: 7px 12px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 500; transition: all 0.15s; }
     .edit-btn:hover { background: var(--tk-surface); border-color: var(--tk-border-strong); }
     .container { max-width: 480px; margin: 0 auto; padding: 16px 16px 50px; }
@@ -172,9 +170,6 @@
     .category-btn { padding: 18px 18px; background: var(--tk-surface); border: 1px solid var(--tk-border); border-radius: var(--tk-radius-lg); cursor: pointer; transition: all 0.15s; text-align: left; display: flex; align-items: center; gap: 14px; font-family: inherit; }
     .category-btn:hover { border-color: var(--tk-primary); background: var(--tk-primary-soft); }
     .category-btn:active { transform: scale(0.99); }
-    /* 커뮤니티 체험 카테고리 (코랄 액센트) */
-    .category-btn.cat-community { border-color: var(--cat-community); background: #FCE9E1; }
-    .category-btn.cat-community:hover { border-color: #B14B25; background: #F8D8C8; }
     .category-btn .cat-icon { font-size: 30px; flex-shrink: 0; }
     .category-btn .cat-info { flex: 1; }
     .category-btn .cat-name { font-size: 15.5px; font-weight: 700; color: var(--tk-text); margin-bottom: 3px; letter-spacing: -0.3px; }
@@ -240,11 +235,6 @@
     /* 알림 진단 칩 (옐로우 액센트) */
     .school-pill.diag-pill { background: #FFF8E6; border-color: #FFE7A8; color: #8F5C00; }
     .school-pill.diag-pill:hover { background: #FFEFC2; border-color: #FFD978; color: #6B4500; }
-    /* 커뮤니티 가입 폼 안내 박스 */
-    .community-notice { background: #FCE9E1; border-left: 3px solid var(--cat-community); padding: 12px 14px; border-radius: 0 10px 10px 0; font-size: 13px; color: #8F3915; line-height: 1.55; margin: 14px 0 12px; }
-    /* 커뮤니티 등록 버튼 */
-    .modal-submit.community-submit { background: var(--cat-community); }
-    .modal-submit.community-submit:hover { background: #B14B25; }
   </style>
 </head>
 <body>
@@ -273,14 +263,6 @@
       <button class="category-btn" onclick="selectCategory('company')">
         <div class="cat-icon">🏢</div>
         <div class="cat-info"><div class="cat-name">학습기업 전담인력</div><div class="cat-desc">HRD담당자 · 기업현장교사</div></div>
-        <div class="cat-arrow">›</div>
-      </button>
-      <button class="category-btn cat-community" onclick="selectCategory('community')">
-        <div class="cat-icon">🎤</div>
-        <div class="cat-info">
-          <div class="cat-name" style="display:flex;align-items:center;gap:6px;">커뮤니티용 <span style="background:var(--cat-community);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:-0.2px;">NEW</span></div>
-          <div class="cat-desc">발표 체험 · 시연용 계정</div>
-        </div>
         <div class="cat-arrow">›</div>
       </button>
     </div>
@@ -373,28 +355,6 @@
       </optgroup>
     </select>
     <button class="modal-submit" onclick="submitProspect()">✅ 등록하기</button>
-    <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
-  </div>
-  <!-- 커뮤니티용 (발표 체험) -->
-  <div class="modal" id="modalStep2Community" style="display:none;">
-    <div class="modal-logo">🎤 커뮤니티 체험 가입</div>
-    <h2>닉네임과 <span>관심 학과</span>를 알려주세요</h2>
-    <p class="modal-sub">발표 체험용 계정입니다 · 약 30초면 끝나요</p>
-    <div class="modal-label">닉네임</div>
-    <input class="modal-input" type="text" id="communityName" placeholder="원하는 닉네임을 입력해주세요" maxlength="10" />
-    <div class="modal-label">관심 학과 (자료실 진입용)</div>
-    <div class="grade-grid">
-      <button class="grade-btn" onclick="selectCommunityGrade('P-TECH 1학년', this)"><span class="g-icon">🎓</span>P-TECH 1학년</button>
-      <button class="grade-btn" onclick="selectCommunityGrade('P-TECH 2학년', this)"><span class="g-icon">🎓</span>P-TECH 2학년</button>
-      <button class="grade-btn" onclick="selectCommunityGrade('전문대 마케팅경영학과', this)"><span class="g-icon">📚</span>마케팅경영학과</button>
-      <button class="grade-btn" onclick="selectCommunityGrade('전문대 호텔조리학과', this)"><span class="g-icon">🍳</span>호텔조리학과</button>
-      <button class="grade-btn" onclick="selectCommunityGrade('전문대 회계세무학과', this)"><span class="g-icon">📊</span>회계세무학과</button>
-      <button class="grade-btn" onclick="selectCommunityGrade('전문대 호텔관광학과', this)"><span class="g-icon">🏨</span>호텔관광학과</button>
-    </div>
-    <div class="community-notice">
-      💡 발표 체험용 계정입니다.<br>실제 운영 알림은 자동으로 받지 않아요.
-    </div>
-    <button class="modal-submit community-submit" onclick="submitCommunity()">🎤 가입하고 둘러보기</button>
     <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
   </div>
 </div>
@@ -529,20 +489,6 @@
       <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
     </div>
   </div>
-  <!-- 커뮤니티 (발표 체험) 메뉴 - 재학생과 동일 -->
-  <div class="info-grid" id="menuCommunity" style="display:none;">
-    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
-    <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
-    <a class="info-card full calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학교일정 · 시험 · 보강 일정 확인</div><div class="value">캘린더 바로가기</div></a>
-    <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">모의시험 풀기</div><div class="value">외부평가</div></a>
-    <a class="info-card full survey-card" href="survey.html"><div class="icon">📋</div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></a>
-    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
-    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
-    <div class="school-pill-wrap">
-      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
-      <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
-    </div>
-  </div>
   <!-- 학습기업 전담인력 메뉴 -->
   <div class="info-grid" id="menuCompany" style="display:none;">
     <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
@@ -568,7 +514,6 @@
 <div class="toast" id="toast"></div>
 <script>
   let selectedGrade = null;
-  let selectedCommunityGrade = null;
 
   // ============ Firebase 설정 ============
   const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
@@ -630,10 +575,9 @@
         student:   ['grade'],
         graduate:  ['dept', 'graduateYear', 'workplace'],
         prospect:  ['phone', 'school', 'interest'],
-        company:   ['firm', 'role', 'student'],
-        community: ['grade', 'isDemo']
+        company:   ['firm', 'role', 'student']
       };
-      const ALL_FIELDS = ['grade', 'dept', 'graduateYear', 'workplace', 'phone', 'school', 'interest', 'firm', 'role', 'student', 'isDemo'];
+      const ALL_FIELDS = ['grade', 'dept', 'graduateYear', 'workplace', 'phone', 'school', 'interest', 'firm', 'role', 'student'];
       const currentFields = CAT_FIELDS[userInfo.category] || [];
 
       // 현재 카테고리에 속하지 않는 필드는 삭제 (stale data 방지)
@@ -658,9 +602,6 @@
         docData.firm = userInfo.firm || '';
         docData.role = userInfo.role || '';
         docData.student = userInfo.student || '';
-      } else if (userInfo.category === 'community') {
-        docData.grade = userInfo.grade || '';
-        docData.isDemo = true;  // 발표 체험용 계정 표시 (알림 격리용)
       }
 
       // 카테고리 변경 이력 (선택적 디버그 정보)
@@ -683,7 +624,6 @@
     else if (category === 'graduate') document.getElementById('modalStep2Graduate').style.display = 'block';
     else if (category === 'prospect') document.getElementById('modalStep2Prospect').style.display = 'block';
     else if (category === 'company') document.getElementById('modalStep2Company').style.display = 'block';
-    else if (category === 'community') document.getElementById('modalStep2Community').style.display = 'block';
   }
   function goBackToStep1() {
     document.getElementById('modalStep2Student').style.display = 'none';
@@ -699,16 +639,9 @@
     btn.classList.add('selected');
     selectedGrade = grade;
   }
-  function selectCommunityGrade(grade, btn) {
-    document.querySelectorAll('#modalStep2Community .grade-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedCommunityGrade = grade;
-  }
-
   // ============ 모달 표시/수정 ============
   function showModal() {
     selectedGrade = null;
-    selectedCommunityGrade = null;
     document.getElementById('modalOverlay').style.display = 'flex';
     document.getElementById('modalStep1').style.display = 'block';
     document.getElementById('modalStep2Student').style.display = 'none';
@@ -751,15 +684,6 @@
         document.getElementById('companyFirm').value = info.firm || '';
         document.getElementById('companyRole').value = info.role || '';
         document.getElementById('companyStudent').value = info.student || '';
-      } else if (info.category === 'community') {
-        document.getElementById('modalStep1').style.display = 'none';
-        document.getElementById('modalStep2Community').style.display = 'block';
-        document.getElementById('communityName').value = info.name || '';
-        selectedCommunityGrade = info.grade || null;
-        document.querySelectorAll('#modalStep2Community .grade-btn').forEach(b => {
-          b.classList.remove('selected');
-          if (selectedCommunityGrade && b.textContent.includes(selectedCommunityGrade.replace('전문대 ', ''))) b.classList.add('selected');
-        });
       }
     }
   }
@@ -796,15 +720,6 @@
     if (!school) { showToast('현재 학교 이름을 입력해주세요!', 'error'); return; }
     if (!interest) { showToast('관심 학과를 선택해주세요!', 'error'); return; }
     const userInfo = { category: 'prospect', name, phone, school, interest, grade: '예비 신입생' };
-    localStorage.setItem('userInfo', JSON.stringify(userInfo));
-    finalizeRegistration(userInfo);
-  }
-
-  async function submitCommunity() {
-    const name = document.getElementById('communityName').value.trim();
-    if (!name) { showToast('닉네임을 입력해주세요!', 'error'); return; }
-    if (!selectedCommunityGrade) { showToast('관심 학과를 선택해주세요!', 'error'); return; }
-    const userInfo = { category: 'community', name, grade: selectedCommunityGrade };
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
     finalizeRegistration(userInfo);
   }
@@ -1002,9 +917,6 @@
     } else if (userInfo.category === 'company') {
       badgeHtml = '<span class="user-category-badge badge-company">전담인력</span>';
       gradeText = `${userInfo.firm} · ${userInfo.role}`;
-    } else if (userInfo.category === 'community') {
-      badgeHtml = '<span class="user-category-badge badge-community">🎤 체험</span>';
-      gradeText = `커뮤니티 체험 모드 · ${userInfo.grade || ''}`;
     }
     document.getElementById('userGradeDisplay').innerHTML = badgeHtml + gradeText;
   }
@@ -1015,19 +927,10 @@
     document.getElementById('menuGraduate').style.display = 'none';
     document.getElementById('menuProspect').style.display = 'none';
     document.getElementById('menuCompany').style.display = 'none';
-    const menuCommunity = document.getElementById('menuCommunity');
-    if (menuCommunity) menuCommunity.style.display = 'none';
     if (category === 'student') document.getElementById('menuStudent').style.display = 'grid';
     else if (category === 'graduate') document.getElementById('menuGraduate').style.display = 'grid';
     else if (category === 'prospect') document.getElementById('menuProspect').style.display = 'grid';
     else if (category === 'company') document.getElementById('menuCompany').style.display = 'grid';
-    else if (category === 'community' && menuCommunity) menuCommunity.style.display = 'grid';
-    // 커뮤니티 체험 모드: 헤더를 코랄 색상으로 표시
-    const topHeader = document.querySelector('.top-header');
-    if (topHeader) {
-      if (category === 'community') topHeader.style.background = '#D85A30';
-      else topHeader.style.background = '';
-    }
   }
 
   function showToast(msg, type = 'info') {
@@ -1178,7 +1081,7 @@
     // URL 파라미터로 카테고리 지정 (onboarding에서 넘어온 경우)
     const urlParams = new URLSearchParams(window.location.search);
     const paramCategory = urlParams.get('category');
-    if (paramCategory === 'student' || paramCategory === 'graduate' || paramCategory === 'prospect' || paramCategory === 'company' || paramCategory === 'community') {
+    if (paramCategory === 'student' || paramCategory === 'graduate' || paramCategory === 'prospect' || paramCategory === 'company') {
       setTimeout(() => selectCategory(paramCategory), 100);
     }
   });

@@ -45,7 +45,6 @@ function getUserCategory() {
 // 사용자에게 보일 알림인지 판단 (target 매칭)
 function matchesUser(target, userCategory) {
   if (!userCategory) return false;          // 카테고리 미설정 → 안 보임
-  if (userCategory === 'community') return false; // 커뮤니티 회원은 알림 비대상
   if (!target || target === 'all') return true;
   return target === userCategory;
 }
@@ -322,10 +321,6 @@ async function init() {
   console.log('[notif-bell] userCategory:', userCategory);
   if (!userCategory) {
     console.log('[notif-bell] userInfo 없음 → 위젯 비표시');
-    return;
-  }
-  if (userCategory === 'community') {
-    console.log('[notif-bell] community 카테고리 → 위젯 비표시');
     return;
   }
   injectStyles();

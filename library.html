@@ -22,7 +22,7 @@
     --tk-shadow: 0 2px 8px rgba(0,0,0,0.06);
     /* 카테고리 색상 (유지) */
     --cat-student: #3182F6; --cat-graduate: #FF9F1C; --cat-prospect: #00C896;
-    --cat-company: #7C5CFA; --cat-community: #D85A30;
+    --cat-company: #7C5CFA;
     /* 레거시 호환 */
     --navy: var(--tk-primary-dark); --blue: var(--tk-primary); --accent: var(--tk-warning);
     --light: var(--tk-bg); --gray: var(--tk-text-muted); --purple: var(--cat-company);
@@ -130,11 +130,10 @@
     { name: '공지 · 안내', icon: '📢' },
     { name: '산업안전보건', icon: '🛡️' },
   ];
-  // 카테고리 선택: 전담인력 / 졸업생 / 재학생 (기본, 커뮤니티는 재학생과 동일)
+  // 카테고리 선택: 전담인력 / 졸업생 / 재학생 (기본)
   const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES
                    : userCategory === 'graduate' ? GRADUATE_CATEGORIES
                    : STUDENT_CATEGORIES;
-  // 커뮤니티 체험 모드: 재학생 화면을 그대로 보여줌
 
   let allResources = [];
 
@@ -150,10 +149,6 @@
   if (userCategory === 'graduate') {
     document.getElementById('pageTitle').textContent = '졸업생 자료실';
     document.querySelector('.header').style.background = '#FFF4E0';
-  }
-  if (userCategory === 'community') {
-    document.getElementById('pageTitle').textContent = '🎤 체험 자료실';
-    document.querySelector('.header').style.background = '#FCE9E1';
   }
 
   async function loadResources() {
@@ -172,7 +167,7 @@
       } else if (userCategory === 'graduate') {
         allResources = all.filter(r => r.target === 'graduate');
       } else {
-        // student + community (체험 모드는 재학생 자료를 그대로 봄)
+        // student (재학생)
         allResources = all.filter(r => r.target === 'student' || r.target === 'all');
       }
 
