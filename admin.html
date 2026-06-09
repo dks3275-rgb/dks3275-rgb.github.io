@@ -273,7 +273,7 @@
     async function tryLogin() {
       const btn = document.getElementById('authSubmit');
       const id = document.getElementById('authId').value.trim();
-      const pw = document.getElementById('authPw').value;
+      const pw = document.getElementById('authPw').value.trim();
       if (!id || !pw) { showError('아이디와 비밀번호를 입력해주세요.'); return; }
       btn.disabled = true; btn.textContent = '확인 중...';
       try {
@@ -1062,6 +1062,35 @@
   });
 
   // ── 알림 발송 ──
+  // 사용자 알림 히스토리(notifications 컬렉션) 저장 — 발송 후에 별도 try로 호출, 실패해도 발송엔 영향 없음
+  function _mapGroupToTarget(group) {
+    if (group === '전체') return 'all';
+    if (group === '재학생 전체') return 'student';
+    if (group === '졸업생 전체') return 'graduate';
+    if (group === '예비 신입생 전체') return 'prospect';
+    if (group === 'company') return 'company';
+    // 학년/학과별(예: 'P-TECH 1학년')은 재학생으로 분류
+    return 'student';
+  }
+  async function _saveNotificationHistory(title, message, group, displayAtMs) {
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().find(a => a.name === 'notif-hist') || initializeApp(FB_CFG, 'notif-hist');
+      const db = getFirestore(app);
+      await addDoc(collection(db, 'notifications'), {
+        title, message,
+        target: _mapGroupToTarget(group),
+        type: 'push',
+        createdAt: Date.now(),
+        displayAt: displayAtMs || Date.now(),
+        serverCreatedAt: serverTimestamp()
+      });
+    } catch(e) {
+      console.warn('[알림 히스토리 저장 실패 - 무시됨]', e);
+    }
+  }
+
   function selectGroup(group, btn) {
     document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected'); selectedGroup = group;
@@ -1179,6 +1208,8 @@
         showResult(`⏰ 예약 완료! (${timeStr} 발송 · OneSignal 서버 처리 · 관리자 페이지 닫아도 OK)`, 'success');
         addHistory(selectedGroup, title, message, scheduleVal);
         await writeLog('create', 'notification', ref.id, `예약 등록 (OneSignal 위임): "${title}" (${selectedGroup}) - ${timeStr} → ${body.include_aliases?.onesignal_id?.length || 0}명`);
+        // 사용자 알림 히스토리에 저장 (예약 시간이 되면 보이도록 displayAt = sendAt)
+        _saveNotificationHistory(title, message, selectedGroup, new Date(scheduleVal).getTime());
         document.getElementById('title').value = '';
         document.getElementById('message').value = '';
         document.getElementById('scheduleTime').value = '';
@@ -1191,6 +1222,8 @@
           showResult(`✅ 발송 완료! (${recipients}명 도달)`, 'success');
           addHistory(selectedGroup, title, message, null);
           await writeLog('send', 'notification', data.id || 'unknown', `즉시 발송: "${title}" (${selectedGroup}) → ${recipients}명`);
+          // 사용자 알림 히스토리에 저장 (지금 보이도록)
+          _saveNotificationHistory(title, message, selectedGroup, Date.now());
           document.getElementById('title').value = '';
           document.getElementById('message').value = '';
           document.getElementById('scheduleTime').value = '';
