@@ -151,16 +151,18 @@ function injectStyles() {
       position: fixed;
       top: calc(env(safe-area-inset-top, 0px) + 12px);
       right: calc(env(safe-area-inset-right, 0px) + 12px);
-      z-index: 9998; font-family: 'Noto Sans KR', sans-serif;
+      z-index: 2147483000; font-family: 'Noto Sans KR', sans-serif;
     }
     .notif-bell-btn {
-      width: 40px; height: 40px; border-radius: 50%; border: none;
-      background: rgba(255,255,255,0.92); box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-      font-size: 19px; cursor: pointer; position: relative;
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 1.5px solid rgba(49,130,246,0.25);
+      background: #ffffff;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.04);
+      font-size: 20px; cursor: pointer; position: relative;
       transition: transform 0.15s, box-shadow 0.15s;
+      padding: 0; line-height: 1;
     }
-    .notif-bell-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+    .notif-bell-btn:hover { transform: scale(1.05); box-shadow: 0 5px 14px rgba(0,0,0,0.22); }
     .notif-bell-btn:active { transform: scale(0.95); }
     .notif-bell-badge {
       position: absolute; top: -2px; right: -2px;
@@ -315,7 +317,9 @@ function updateBadge(count) {
 
 // 초기화
 async function init() {
+  console.log('[notif-bell] init 시작 — page:', location.pathname);
   const userCategory = getUserCategory();
+  console.log('[notif-bell] userCategory:', userCategory);
   if (!userCategory) {
     console.log('[notif-bell] userInfo 없음 → 위젯 비표시');
     return;
@@ -326,7 +330,11 @@ async function init() {
   }
   injectStyles();
   const wrap = createWidget();
-  if (!wrap) return;
+  if (!wrap) {
+    console.log('[notif-bell] 위젯이 이미 존재함 → 새로 안 만듦');
+    return;
+  }
+  console.log('[notif-bell] 위젯 DOM 생성 완료', wrap);
 
   let items = [];
   let loaded = false;
