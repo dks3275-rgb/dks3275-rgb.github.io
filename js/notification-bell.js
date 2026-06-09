@@ -316,20 +316,11 @@ function updateBadge(count) {
 
 // 초기화
 async function init() {
-  console.log('[notif-bell] init 시작 — page:', location.pathname);
   const userCategory = getUserCategory();
-  console.log('[notif-bell] userCategory:', userCategory);
-  if (!userCategory) {
-    console.log('[notif-bell] userInfo 없음 → 위젯 비표시');
-    return;
-  }
+  if (!userCategory) return;  // userInfo 없으면 위젯 비표시
   injectStyles();
   const wrap = createWidget();
-  if (!wrap) {
-    console.log('[notif-bell] 위젯이 이미 존재함 → 새로 안 만듦');
-    return;
-  }
-  console.log('[notif-bell] 위젯 DOM 생성 완료', wrap);
+  if (!wrap) return;  // 이미 존재하면 새로 안 만듦
 
   let items = [];
   let loaded = false;
