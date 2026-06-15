@@ -6,6 +6,20 @@
   <title>AU 관리자</title>
   <meta name="theme-color" content="#FFFFFF" />
   <script src="device-check.js"></script>
+  <!-- OneSignal SDK (관리자 페이지 알림 구독용) -->
+  <script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "6bed6730-b167-48a8-a98d-83cdcb1cbc10",
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "OneSignalSDKWorker.js",
+        notifyButton: { enable: false },
+        allowLocalhostAsSecureOrigin: true,
+      });
+    });
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
     :root { --navy: #1976d2; --blue: #2196f3; --accent: #e8a020; --gray: #8a9ab5; --light: #f0f4f8; --border: #e2e8f0; }
@@ -988,7 +1002,8 @@
       <div class="card-title">🔔 새 신청 알림 받기</div>
       <div style="font-size:12.5px;color:#7A5800;line-height:1.6;margin-bottom:12px;">
         새 신청서가 접수되면 <b>이 기기로 푸시 알림</b>이 와요.<br>
-        관리자가 직접 등록해야 알림이 가니까, 한 번만 등록해두세요.
+        아래 버튼을 누르면 알림 권한을 요청하고 자동으로 등록됩니다.<br>
+        <b>📱 아이폰</b>은 사파리에서 "홈 화면에 추가"로 앱 설치 후에만 알림을 받을 수 있어요.
       </div>
       <div id="adminTargetStatus" style="background:white;border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:12.5px;color:#475569;">
         🔍 상태 확인 중...
@@ -3990,22 +4005,46 @@
   // ═══════════════════════════════════════════
 
   // 관리자 OneSignal ID 등록 (app_config/admin_targets)
-  // 진단 가능하도록 구체적인 상태 반환: { state: 'ok'|'no-device'|'no-user-doc'|'no-onesignal', oneSignalId }
+  // admin 페이지에서 직접 OneSignal SDK를 통해 ID 조회/구독
+  // 반환: { state: 'ok'|'sdk-not-loaded'|'not-subscribed'|'no-id'|'error', oneSignalId }
   async function _getMyOneSignalId() {
-    const deviceId = localStorage.getItem('deviceId');
-    if (!deviceId) return { state: 'no-device' };
-    try {
-      const { db } = await _applyDb();
-      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const snap = await getDoc(doc(db, 'users', deviceId));
-      if (!snap.exists()) return { state: 'no-user-doc' };
-      const oneSignalId = snap.data().oneSignalId;
-      if (!oneSignalId) return { state: 'no-onesignal' };
-      return { state: 'ok', oneSignalId };
-    } catch(e) {
-      console.warn('내 OneSignal ID 조회 실패', e);
-      return { state: 'error', error: e.message };
-    }
+    return new Promise((resolve) => {
+      if (!window.OneSignalDeferred) { resolve({ state: 'sdk-not-loaded' }); return; }
+      // SDK 초기화 대기 (최대 5초)
+      let timer = setTimeout(() => resolve({ state: 'sdk-not-loaded' }), 5000);
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        clearTimeout(timer);
+        try {
+          let optedIn = false;
+          try { optedIn = OneSignal.User.PushSubscription.optedIn; } catch(e) {}
+          if (!optedIn) { resolve({ state: 'not-subscribed' }); return; }
+          let oneSignalId = '';
+          try { oneSignalId = OneSignal.User.onesignalId || ''; } catch(e) {}
+          if (!oneSignalId) { resolve({ state: 'no-id' }); return; }
+          resolve({ state: 'ok', oneSignalId });
+        } catch(e) {
+          resolve({ state: 'error', error: e.message });
+        }
+      });
+    });
+  }
+
+  // 알림 권한 요청 (OneSignal)
+  async function _requestAdminPushPermission() {
+    return new Promise((resolve) => {
+      if (!window.OneSignalDeferred) { resolve(false); return; }
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          await OneSignal.Notifications.requestPermission();
+          // 권한 허용 후 OneSignal이 ID 발급할 시간 잠시 대기
+          await new Promise(r => setTimeout(r, 1500));
+          resolve(true);
+        } catch(e) {
+          console.warn('권한 요청 실패', e);
+          resolve(false);
+        }
+      });
+    });
   }
 
   // iOS 판별
@@ -4024,28 +4063,37 @@
     statusEl.innerHTML = '🔍 상태 확인 중...';
     const result = await _getMyOneSignalId();
 
-    if (result.state !== 'ok') {
-      let msg = '';
-      const ios = _isIOS();
-      const standalone = _isStandalone();
-      if (result.state === 'no-device') {
-        msg = '⚠️ <b>이 기기에 가입 정보가 없어요</b><br>메인 페이지에서 먼저 가입해주세요.';
-      } else if (result.state === 'no-user-doc') {
-        msg = '⚠️ <b>가입 정보를 찾을 수 없어요</b><br>메인 페이지에서 다시 가입해주세요.';
-      } else if (result.state === 'no-onesignal') {
-        msg = '⚠️ <b>알림 권한이 허용되지 않았어요</b><br>메인 페이지에서 "🔔 알림 받기 시작" 버튼을 눌러주세요.';
-        if (ios && !standalone) {
-          msg += '<br><br>📱 <b>아이폰은 추가로:</b><br>① 사파리에서 공유 버튼(↑) → "홈 화면에 추가"로 앱 설치<br>② 설치된 앱을 열고 가입 + 알림 허용';
-        }
-      } else if (result.state === 'error') {
-        msg = '❌ 상태 확인 실패: ' + (result.error || '알 수 없는 오류');
-      }
-      statusEl.innerHTML = msg;
-      btnEl.disabled = true;
-      btnEl.textContent = '❌ 알림 받기 불가';
-      btnEl.style.background = 'linear-gradient(135deg,#9ca3af,#6b7280)';
+    const ios = _isIOS();
+    const standalone = _isStandalone();
+
+    if (result.state === 'sdk-not-loaded') {
+      statusEl.innerHTML = '⏳ OneSignal SDK 로드 중... 잠시 후 다시 시도해주세요.';
+      btnEl.disabled = false;
+      btnEl.textContent = '🔄 다시 시도';
+      btnEl.style.background = 'linear-gradient(135deg,#3182F6,#1B64DA)';
       return;
     }
+
+    if (result.state === 'not-subscribed' || result.state === 'no-id') {
+      let msg = '⚠️ <b>이 기기는 알림 권한이 없어요</b><br>아래 버튼으로 알림을 허용해주세요.';
+      if (ios && !standalone) {
+        msg += '<br><br>📱 <b>아이폰 사용자는 먼저:</b><br>① 사파리 공유 버튼(↑) → "홈 화면에 추가"<br>② 홈 화면의 앱 아이콘으로 다시 진입<br>③ 다시 이 페이지에서 권한 허용';
+      }
+      statusEl.innerHTML = msg;
+      btnEl.disabled = false;
+      btnEl.textContent = '🔔 알림 권한 허용하기';
+      btnEl.style.background = 'linear-gradient(135deg,#F59E0B,#D97706)';
+      return;
+    }
+
+    if (result.state !== 'ok') {
+      statusEl.innerHTML = '❌ 상태 확인 실패: ' + (result.error || result.state);
+      btnEl.disabled = false;
+      btnEl.textContent = '🔄 다시 시도';
+      btnEl.style.background = 'linear-gradient(135deg,#3182F6,#1B64DA)';
+      return;
+    }
+
     const myId = result.oneSignalId;
     try {
       const { db } = await _applyDb();
@@ -4074,8 +4122,33 @@
     btnEl.disabled = true;
     btnEl.textContent = '처리 중...';
     try {
-      const result = await _getMyOneSignalId();
-      if (result.state !== 'ok') { alert('OneSignal ID 조회 실패: ' + result.state); return; }
+      let result = await _getMyOneSignalId();
+
+      // 미구독 상태면 권한 요청부터
+      if (result.state === 'not-subscribed' || result.state === 'no-id') {
+        btnEl.textContent = '권한 요청 중...';
+        await _requestAdminPushPermission();
+        // 다시 확인
+        result = await _getMyOneSignalId();
+        if (result.state !== 'ok') {
+          // 권한 거부됐거나 iOS 사파리(PWA 미설치)
+          await checkAdminTargetStatus();
+          return;
+        }
+      }
+
+      // SDK 로드 안 됨 / 에러 케이스
+      if (result.state === 'sdk-not-loaded') {
+        alert('OneSignal SDK가 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.');
+        await checkAdminTargetStatus();
+        return;
+      }
+      if (result.state !== 'ok') {
+        alert('OneSignal ID 조회 실패: ' + (result.error || result.state));
+        await checkAdminTargetStatus();
+        return;
+      }
+
       const myId = result.oneSignalId;
       const { db } = await _applyDb();
       const { doc, getDoc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
