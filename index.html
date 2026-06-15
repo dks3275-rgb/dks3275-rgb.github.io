@@ -124,6 +124,11 @@
     /* 익명 의견함 (옐로우 액센트) */
     .info-card.feedback-card { background: #FFF8E6; border-color: #FFE7A8; }
     .info-card.feedback-card:hover { background: #FFEFC2; border-color: #FFD978; }
+    .info-card.apply-card { background: linear-gradient(135deg, #E8F2FF, #C9DFFF); border-color: #3182F6; }
+    .info-card.apply-card:hover { background: linear-gradient(135deg, #D6E8FF, #A3CDFF); border-color: #1B64DA; }
+    .info-card.apply-card .icon { color: #1B64DA; }
+    .info-card.apply-card .label { color: #0D4A9C; font-weight: 600; }
+    .info-card.apply-card .value { color: #1B64DA; font-weight: 700; }
     .btn-main { width: 100%; padding: 17px; border: none; border-radius: var(--tk-radius); font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; margin: 8px 0; letter-spacing: -0.3px; }
     .btn-subscribe { background: var(--tk-primary); color: white; }
     .btn-subscribe:hover { background: var(--tk-primary-dark); }
@@ -480,6 +485,7 @@
   </div>
   <!-- 예비 신입생 메뉴 -->
   <div class="info-grid" id="menuProspect" style="display:none;">
+    <a class="info-card full apply-card" href="apply.html"><div class="icon">📝</div><div class="label">일학습병행 참여 신청서를 온라인으로 제출하세요</div><div class="value">신청 접수 바로가기</div></a>
     <a class="info-card full dept-card" href="departments.html"><div class="icon">🏫</div><div class="label">어떤 학과가 있는지 알아보세요</div><div class="value">학과 소개 보기</div></a>
     <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
     <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>

@@ -487,6 +487,7 @@
   <button onclick="switchTab('consulting', this)">💬 상담</button>
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
+  <button onclick="switchTab('apply', this)">📝 신청</button>
   <button onclick="switchTab('library', this)">📚 자료실</button>
   <button onclick="switchTab('logs', this)">📜 로그</button>
 </div>
@@ -978,6 +979,94 @@
   </div>
 </div>
 
+<!-- 신청 접수 탭 -->
+<div class="tab-content" id="tab-apply">
+  <div class="container">
+
+    <!-- 관리자 알림 등록 카드 -->
+    <div class="card" style="background:linear-gradient(135deg,#FFF8E6,#FFE7A8);border-left:4px solid #F59E0B;">
+      <div class="card-title">🔔 새 신청 알림 받기</div>
+      <div style="font-size:12.5px;color:#7A5800;line-height:1.6;margin-bottom:12px;">
+        새 신청서가 접수되면 <b>이 기기로 푸시 알림</b>이 와요.<br>
+        관리자가 직접 등록해야 알림이 가니까, 한 번만 등록해두세요.
+      </div>
+      <div id="adminTargetStatus" style="background:white;border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:12.5px;color:#475569;">
+        🔍 상태 확인 중...
+      </div>
+      <button class="send-btn" id="adminTargetBtn" onclick="toggleAdminTarget()" style="background:linear-gradient(135deg,#F59E0B,#D97706);">🔔 내 기기로 알림 받기 등록</button>
+    </div>
+
+    <!-- 학습기업 관리 카드 -->
+    <div class="card">
+      <div class="card-title">
+        🏢 학습기업 관리
+        <button class="refresh-btn" onclick="loadCompanies()">🔄 새로고침</button>
+      </div>
+      <div style="font-size:12.5px;color:#555;line-height:1.6;margin-bottom:14px;">
+        예비신입생 신청 폼에 보여줄 학과별 학습기업 목록을 관리합니다.<br>
+        학생은 학과를 선택하면 여기 등록된 기업 중에서 1·2·3순위를 고를 수 있어요.
+      </div>
+
+      <!-- 초기 학과 5개 일괄 등록 (한 번만 누르면 됨) -->
+      <div id="initDeptBox" style="background:#FFF8E6;border-left:3px solid #FFB800;border-radius:0 10px 10px 0;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#7A5800;">
+        💡 <b>처음 한 번만</b>: 학과 5개(P-TECH 2개 + 전문대 3개)를 자동 등록합니다.<br>
+        이미 등록되어 있다면 누르지 마세요.<br>
+        <button class="send-btn" onclick="initDepartments()" style="margin-top:10px;background:linear-gradient(135deg,#FFB800,#E69500);font-size:12.5px;padding:9px 14px;">🚀 학과 5개 초기 등록</button>
+      </div>
+
+      <!-- 새 학습기업 추가 폼 -->
+      <div style="background:#F8F9FA;border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:#191F28;margin-bottom:10px;">➕ 학습기업 추가</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <select class="filter-select" id="newCoTrack" onchange="updateNewCoDeptOptions()">
+            <option value="">트랙 선택</option>
+            <option value="ptech">P-TECH</option>
+            <option value="college">전문대</option>
+          </select>
+          <select class="filter-select" id="newCoDept">
+            <option value="">학과 선택</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <input class="form-input" id="newCoRegion" placeholder="지역 (예: 서울)" />
+          <input class="form-input" id="newCoLocation" placeholder="위치 (예: 강남)" />
+        </div>
+        <input class="form-input" id="newCoName" placeholder="기업명 (예: 그랜드 인터컨티넨탈 서울 파르나스)" style="margin-bottom:8px;" />
+        <input class="form-input" id="newCoNote" placeholder="비고 (선택)" style="margin-bottom:10px;" />
+        <button class="send-btn" onclick="addCompany()" style="background:linear-gradient(135deg,#3182F6,#1B64DA);">➕ 추가</button>
+      </div>
+
+      <!-- 학습기업 목록 -->
+      <div class="consulting-toolbar">
+        <div class="count-badge" id="companyCountBadge">불러오는 중...</div>
+        <select class="filter-select" id="companyDeptFilter" onchange="renderCompanies()">
+          <option value="all">전체 학과</option>
+        </select>
+      </div>
+      <div id="companyList"><div class="c-loading">🏢 학습기업 목록을 불러오는 중...</div></div>
+    </div>
+
+    <!-- 신청 목록 카드 (다음 단계에서 구현) -->
+    <div class="card">
+      <div class="card-title">
+        📝 신청 목록
+        <button class="refresh-btn" onclick="loadApplications()">🔄 새로고침</button>
+      </div>
+      <div class="consulting-toolbar">
+        <div class="count-badge" id="applicationCountBadge">불러오는 중...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="filter-select" id="applicationDeptFilter" onchange="renderApplications()">
+            <option value="all">전체 학과</option>
+          </select>
+          <button class="csv-btn" onclick="downloadApplicationsCSV()">📥 CSV 다운로드</button>
+        </div>
+      </div>
+      <div id="applicationList"><div class="c-loading">📝 신청 목록을 불러오는 중...</div></div>
+    </div>
+
+  </div>
+</div>
+
 <script>
   const CLOUDINARY_CLOUD = 'dfu06qits';
   const CLOUDINARY_PRESET = 'au_notices';
@@ -1005,6 +1094,7 @@
     if (tab === 'consulting') loadConsulting();
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
+    if (tab === 'apply') { loadCompanies(); loadApplications(); checkAdminTargetStatus(); }
     if (tab === 'library') loadLibrary();
     if (tab === 'logs') loadLogs();
   }
@@ -3943,6 +4033,442 @@
       closeCalEdit();
       loadCalendarEvents();
     } catch(e) { alert('저장 실패: ' + e.message); }
+  }
+
+  // ═══════════════════════════════════════════
+  // ── 신청 접수: 학습기업 관리 + 신청 목록 ──
+  // ═══════════════════════════════════════════
+
+  // 관리자 OneSignal ID 등록 (app_config/admin_targets)
+  async function _getMyOneSignalId() {
+    // localStorage에서 deviceId → users 컬렉션 조회
+    const deviceId = localStorage.getItem('deviceId');
+    if (!deviceId) return null;
+    try {
+      const { db } = await _applyDb();
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(db, 'users', deviceId));
+      if (!snap.exists()) return null;
+      return snap.data().oneSignalId || null;
+    } catch(e) {
+      console.warn('내 OneSignal ID 조회 실패', e);
+      return null;
+    }
+  }
+
+  async function checkAdminTargetStatus() {
+    const statusEl = document.getElementById('adminTargetStatus');
+    const btnEl = document.getElementById('adminTargetBtn');
+    statusEl.innerHTML = '🔍 상태 확인 중...';
+    const myId = await _getMyOneSignalId();
+    if (!myId) {
+      statusEl.innerHTML = '⚠️ 이 기기에 가입 정보가 없어요.<br>먼저 메인 페이지에서 가입하고 알림을 허용해주세요.';
+      btnEl.disabled = true;
+      btnEl.textContent = '❌ 가입/알림 허용 필요';
+      return;
+    }
+    try {
+      const { db } = await _applyDb();
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(db, 'app_config', 'admin_targets'));
+      const targets = snap.exists() ? (snap.data().oneSignalIds || []) : [];
+      const registered = targets.includes(myId);
+      if (registered) {
+        statusEl.innerHTML = `✅ <b style="color:#059669;">알림 받는 중</b> (등록된 관리자 ${targets.length}명)`;
+        btnEl.style.background = 'linear-gradient(135deg,#dc2626,#991b1b)';
+        btnEl.textContent = '🔕 알림 받기 해제';
+        btnEl.disabled = false;
+      } else {
+        statusEl.innerHTML = `📵 알림 미등록 상태 (현재 등록된 관리자 ${targets.length}명)`;
+        btnEl.style.background = 'linear-gradient(135deg,#F59E0B,#D97706)';
+        btnEl.textContent = '🔔 내 기기로 알림 받기 등록';
+        btnEl.disabled = false;
+      }
+    } catch(e) {
+      statusEl.innerHTML = '❌ 상태 확인 실패: ' + e.message;
+    }
+  }
+
+  async function toggleAdminTarget() {
+    const btnEl = document.getElementById('adminTargetBtn');
+    btnEl.disabled = true;
+    btnEl.textContent = '처리 중...';
+    try {
+      const myId = await _getMyOneSignalId();
+      if (!myId) { alert('OneSignal ID 조회 실패'); return; }
+      const { db } = await _applyDb();
+      const { doc, getDoc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const ref = doc(db, 'app_config', 'admin_targets');
+      const snap = await getDoc(ref);
+      let targets = snap.exists() ? (snap.data().oneSignalIds || []) : [];
+      let action = '';
+      if (targets.includes(myId)) {
+        targets = targets.filter(t => t !== myId);
+        action = '해제';
+      } else {
+        targets.push(myId);
+        action = '등록';
+      }
+      await setDoc(ref, { oneSignalIds: targets, updatedAt: Date.now() }, { merge: true });
+      await writeLog('update', 'admin_target', null, `관리자 알림 ${action}: ${myId.slice(0,8)}...`);
+      await checkAdminTargetStatus();
+    } catch(e) {
+      alert('처리 실패: ' + e.message);
+      await checkAdminTargetStatus();
+    }
+  }
+
+
+  // 학과 마스터 (코드 상수)
+  const APPLY_DEPARTMENTS = {
+    ptech: [
+      { code: 'ptech-tourism', name: '글로벌호텔관광학과' },
+      { code: 'ptech-cooking', name: '글로벌호텔조리학과' }
+    ],
+    college: [
+      { code: 'college-tourism', name: '호텔관광학과' },
+      { code: 'college-marketing', name: '마케팅경영학과' },
+      { code: 'college-tax', name: '회계세무학과' }
+    ]
+  };
+  const APPLY_TRACK_NAME = { ptech: 'P-TECH', college: '전문대' };
+  function applyDeptName(code) {
+    for (const t in APPLY_DEPARTMENTS) {
+      const d = APPLY_DEPARTMENTS[t].find(x => x.code === code);
+      if (d) return d.name;
+    }
+    return code;
+  }
+  function applyDeptTrack(code) {
+    for (const t in APPLY_DEPARTMENTS) {
+      if (APPLY_DEPARTMENTS[t].find(x => x.code === code)) return t;
+    }
+    return '';
+  }
+
+  // 새 학습기업 폼: 트랙 선택 시 학과 옵션 업데이트
+  function updateNewCoDeptOptions() {
+    const track = document.getElementById('newCoTrack').value;
+    const sel = document.getElementById('newCoDept');
+    sel.innerHTML = '<option value="">학과 선택</option>';
+    if (track && APPLY_DEPARTMENTS[track]) {
+      APPLY_DEPARTMENTS[track].forEach(d => {
+        sel.innerHTML += `<option value="${d.code}">${d.name}</option>`;
+      });
+    }
+  }
+
+  // 학습기업 캐시
+  let _companies = [];
+
+  async function _applyDb() {
+    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy }
+      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+    return { db: getFirestore(app), collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy };
+  }
+
+  async function loadCompanies() {
+    const listEl = document.getElementById('companyList');
+    const badge = document.getElementById('companyCountBadge');
+    const filter = document.getElementById('companyDeptFilter');
+    listEl.innerHTML = '<div class="c-loading">🏢 학습기업 목록을 불러오는 중...</div>';
+    try {
+      const { db, collection, getDocs, query, orderBy } = await _applyDb();
+      const snap = await getDocs(query(collection(db, 'learning_companies'), orderBy('createdAt', 'asc')));
+      _companies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 학과 필터 옵션 채우기
+      const opts = ['<option value="all">전체 학과</option>'];
+      ['ptech', 'college'].forEach(track => {
+        APPLY_DEPARTMENTS[track].forEach(d => {
+          opts.push(`<option value="${d.code}">${APPLY_TRACK_NAME[track]} ${d.name}</option>`);
+        });
+      });
+      filter.innerHTML = opts.join('');
+      renderCompanies();
+    } catch(e) {
+      listEl.innerHTML = `<div class="c-loading" style="color:#c0392b">❌ 로드 실패: ${e.message}</div>`;
+      badge.textContent = '오류';
+    }
+  }
+
+  function renderCompanies() {
+    const listEl = document.getElementById('companyList');
+    const badge = document.getElementById('companyCountBadge');
+    const filter = document.getElementById('companyDeptFilter').value;
+    let list = _companies;
+    if (filter !== 'all') list = list.filter(c => c.department === filter);
+    badge.textContent = `${list.length}개 학습기업 (전체 ${_companies.length}개)`;
+    if (list.length === 0) {
+      listEl.innerHTML = '<div class="c-loading">📭 등록된 학습기업이 없어요</div>';
+      return;
+    }
+    // 학과별 그룹핑
+    const grouped = {};
+    list.forEach(c => {
+      const key = c.department || '미지정';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(c);
+    });
+    let html = '';
+    Object.keys(grouped).forEach(deptCode => {
+      const items = grouped[deptCode];
+      const track = applyDeptTrack(deptCode);
+      const deptName = applyDeptName(deptCode);
+      html += `<div style="margin-bottom:18px;">
+        <div style="font-size:13px;font-weight:700;color:#1B64DA;margin-bottom:8px;letter-spacing:-0.2px;">
+          📚 ${APPLY_TRACK_NAME[track] || ''} ${deptName} <span style="color:#999;font-weight:500;">(${items.length}개)</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">`;
+      items.forEach(c => {
+        html += `<div style="background:white;border:1px solid #E5E8EB;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:#191F28;">${escapeHtmlSafe(c.companyName || '-')}</div>
+            <div style="font-size:11.5px;color:#666;margin-top:2px;">📍 ${escapeHtmlSafe(c.region || '')} ${escapeHtmlSafe(c.location || '')}${c.note ? ' · ' + escapeHtmlSafe(c.note) : ''}</div>
+          </div>
+          <button onclick="editCompany('${c.id}')" style="background:#E8F2FF;color:#1B64DA;border:none;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">✏️</button>
+          <button onclick="deleteCompany('${c.id}')" style="background:#FFE5E5;color:#c0392b;border:none;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">🗑️</button>
+        </div>`;
+      });
+      html += `</div></div>`;
+    });
+    listEl.innerHTML = html;
+  }
+
+  function escapeHtmlSafe(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  async function addCompany() {
+    const track = document.getElementById('newCoTrack').value;
+    const dept = document.getElementById('newCoDept').value;
+    const region = document.getElementById('newCoRegion').value.trim();
+    const location = document.getElementById('newCoLocation').value.trim();
+    const name = document.getElementById('newCoName').value.trim();
+    const note = document.getElementById('newCoNote').value.trim();
+    if (!track || !dept) { alert('트랙·학과를 선택해주세요'); return; }
+    if (!name) { alert('기업명을 입력해주세요'); return; }
+    try {
+      const { db, collection, addDoc } = await _applyDb();
+      await addDoc(collection(db, 'learning_companies'), {
+        track, department: dept, region, location, companyName: name, note,
+        createdAt: Date.now()
+      });
+      // 폼 초기화 (트랙/학과는 유지해서 연속 입력 편하게)
+      document.getElementById('newCoRegion').value = '';
+      document.getElementById('newCoLocation').value = '';
+      document.getElementById('newCoName').value = '';
+      document.getElementById('newCoNote').value = '';
+      await writeLog('create', 'learning_company', null, `${APPLY_TRACK_NAME[track]} ${applyDeptName(dept)} - "${name}"`);
+      loadCompanies();
+    } catch(e) { alert('추가 실패: ' + e.message); }
+  }
+
+  async function editCompany(id) {
+    const c = _companies.find(x => x.id === id);
+    if (!c) return;
+    const newName = prompt('기업명 수정:', c.companyName);
+    if (newName === null) return;
+    const newRegion = prompt('지역 수정:', c.region || '');
+    if (newRegion === null) return;
+    const newLocation = prompt('위치 수정:', c.location || '');
+    if (newLocation === null) return;
+    const newNote = prompt('비고 수정:', c.note || '');
+    if (newNote === null) return;
+    try {
+      const { db, doc, updateDoc } = await _applyDb();
+      await updateDoc(doc(db, 'learning_companies', id), {
+        companyName: newName.trim(),
+        region: newRegion.trim(),
+        location: newLocation.trim(),
+        note: newNote.trim(),
+        updatedAt: Date.now()
+      });
+      await writeLog('update', 'learning_company', id, `"${c.companyName}" → "${newName.trim()}"`);
+      loadCompanies();
+    } catch(e) { alert('수정 실패: ' + e.message); }
+  }
+
+  async function deleteCompany(id) {
+    const c = _companies.find(x => x.id === id);
+    if (!c) return;
+    if (!confirm(`"${c.companyName}" 학습기업을 삭제할까요?`)) return;
+    try {
+      const { db, doc, deleteDoc } = await _applyDb();
+      await deleteDoc(doc(db, 'learning_companies', id));
+      await writeLog('delete', 'learning_company', id, `"${c.companyName}"`);
+      loadCompanies();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  // 샘플 학습기업 일괄 등록 (마케팅경영 + 글로벌호텔관광)
+  async function initDepartments() {
+    if (!confirm('샘플 학습기업을 일괄 등록할까요?\n\n• 마케팅경영학과: 8개\n• 글로벌호텔관광학과: 21개\n\n총 29개가 등록됩니다.\n(이미 등록된 경우 중복 등록되니 주의)')) return;
+    const SAMPLES = [
+      // 마케팅경영학과 (8개) - 신청서 PDF 기반
+      { dept: 'college-marketing', region: '서울', location: '강남', name: '세무법인 택스홈앤아웃' },
+      { dept: 'college-marketing', region: '서울', location: '성수', name: '세무법인 택스홈앤아웃 에스에스지점' },
+      { dept: 'college-marketing', region: '서울', location: '금천', name: '세무법인 해안플러스 금천지점' },
+      { dept: 'college-marketing', region: '서울', location: '강남', name: '㈜이펙스' },
+      { dept: 'college-marketing', region: '서울', location: '영등포', name: '㈜조은시스템' },
+      { dept: 'college-marketing', region: '서울', location: '영등포', name: '㈜세이프원' },
+      { dept: 'college-marketing', region: '경기', location: '안산', name: '㈜선우하이테크' },
+      { dept: 'college-marketing', region: '경기', location: '김포', name: '조은플러스' },
+      // 글로벌호텔관광학과 (21개) - P-TECH 사전조사 PDF 기반
+      { dept: 'ptech-tourism', region: '서울', location: '강남', name: '그랜드 인터컨티넨탈 서울 파르나스' },
+      { dept: 'ptech-tourism', region: '서울', location: '여의도', name: '콘래드 서울' },
+      { dept: 'ptech-tourism', region: '서울', location: '강남', name: '파크 하얏트 서울' },
+      { dept: 'ptech-tourism', region: '서울', location: '강남', name: '안다즈 서울 강남' },
+      { dept: 'ptech-tourism', region: '서울', location: '용산', name: '몬드리안 서울 이태원' },
+      { dept: 'ptech-tourism', region: '서울', location: '용산', name: '노보텔 앰배서더 서울 용산 (서울 드래곤시티)' },
+      { dept: 'ptech-tourism', region: '서울', location: '용산', name: '노보텔 스위트 앰배서더 서울 용산 (서울 드래곤시티)' },
+      { dept: 'ptech-tourism', region: '서울', location: '용산', name: '그랜드 머큐어 앰배서더 호텔 & 레지던스 서울 용산 (서울 드래곤시티)' },
+      { dept: 'ptech-tourism', region: '서울', location: '용산', name: '이비스 스타일 앰배서더 서울 용산 (서울 드래곤시티)' },
+      { dept: 'ptech-tourism', region: '서울', location: '홍대', name: '라이즈 오토그래프 컬렉션 바이 메리어트' },
+      { dept: 'ptech-tourism', region: '서울', location: '강남', name: '노보텔 앰배서더 서울 강남' },
+      { dept: 'ptech-tourism', region: '서울', location: '동대문', name: '노보텔 앰배서더 서울 동대문 호텔 & 레지던스' },
+      { dept: 'ptech-tourism', region: '서울', location: '용산', name: '나인트리 프리미어 로카우스 호텔 서울 용산' },
+      { dept: 'ptech-tourism', region: '서울', location: '광화문', name: '디라이프스타일키친 광화문' },
+      { dept: 'ptech-tourism', region: '서울', location: '잠실', name: '디라이프스타일키친 잠실' },
+      { dept: 'ptech-tourism', region: '서울', location: '강남', name: '오크우드 프리미어 코엑스' },
+      { dept: 'ptech-tourism', region: '서울', location: '강서', name: '메이필드 호텔' },
+      { dept: 'ptech-tourism', region: '서울', location: '여의도', name: '메리어트 이그제큐티브 아파트먼트 서울' },
+      { dept: 'ptech-tourism', region: '서울', location: '동대문', name: 'JW 메리어트 동대문 스퀘어 서울' },
+      { dept: 'ptech-tourism', region: '인천', location: '송도', name: '경원재 앰배서더 인천' },
+      { dept: 'ptech-tourism', region: '인천', location: '송도', name: '오라카이 송도파크 호텔' },
+      { dept: 'ptech-tourism', region: '인천', location: '송도', name: '홀리데이인 인천 송도' },
+      { dept: 'ptech-tourism', region: '경기', location: '수원', name: '앙코르 이비스 앰배서더 수원' },
+      { dept: 'ptech-tourism', region: '경기', location: '동탄', name: '디라이프스타일키친 동탄' }
+    ];
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '등록 중...';
+    try {
+      const { db, collection, addDoc } = await _applyDb();
+      let ok = 0, fail = 0;
+      for (let i = 0; i < SAMPLES.length; i++) {
+        btn.textContent = `등록 중... (${i+1}/${SAMPLES.length})`;
+        try {
+          const s = SAMPLES[i];
+          const track = applyDeptTrack(s.dept);
+          await addDoc(collection(db, 'learning_companies'), {
+            track, department: s.dept, region: s.region, location: s.location,
+            companyName: s.name, note: '', createdAt: Date.now() + i  // 순서 유지를 위해 미세 오프셋
+          });
+          ok++;
+        } catch(e) { console.warn('등록 실패:', e); fail++; }
+      }
+      await writeLog('create', 'learning_company', null, `샘플 일괄 등록: 성공 ${ok}건${fail > 0 ? `, 실패 ${fail}건` : ''}`);
+      alert(`✅ 샘플 등록 완료!\n성공 ${ok}건${fail > 0 ? `, 실패 ${fail}건` : ''}`);
+      loadCompanies();
+    } catch(e) {
+      alert('등록 실패: ' + e.message);
+    }
+    btn.disabled = false;
+    btn.textContent = '🚀 학과 5개 초기 등록';
+  }
+
+  // 신청 목록 (Step 4에서 구현)
+  let _applications = [];
+  async function loadApplications() {
+    const listEl = document.getElementById('applicationList');
+    const badge = document.getElementById('applicationCountBadge');
+    listEl.innerHTML = '<div class="c-loading">📝 신청 목록을 불러오는 중...</div>';
+    try {
+      const { db, collection, getDocs, query, orderBy } = await _applyDb();
+      const snap = await getDocs(query(collection(db, 'applications'), orderBy('createdAt', 'desc')));
+      _applications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 학과 필터 옵션
+      const filter = document.getElementById('applicationDeptFilter');
+      const opts = ['<option value="all">전체 학과</option>'];
+      ['ptech', 'college'].forEach(track => {
+        APPLY_DEPARTMENTS[track].forEach(d => {
+          opts.push(`<option value="${d.code}">${APPLY_TRACK_NAME[track]} ${d.name}</option>`);
+        });
+      });
+      filter.innerHTML = opts.join('');
+      renderApplications();
+    } catch(e) {
+      listEl.innerHTML = `<div class="c-loading" style="color:#c0392b">❌ 로드 실패: ${e.message}</div>`;
+      badge.textContent = '오류';
+    }
+  }
+
+  function renderApplications() {
+    const listEl = document.getElementById('applicationList');
+    const badge = document.getElementById('applicationCountBadge');
+    const filter = document.getElementById('applicationDeptFilter').value;
+    let list = _applications;
+    if (filter !== 'all') list = list.filter(a => a.department === filter);
+    badge.textContent = `${list.length}건 신청 (전체 ${_applications.length}건)`;
+    if (list.length === 0) {
+      listEl.innerHTML = '<div class="c-loading">📭 신청서가 없어요</div>';
+      return;
+    }
+    let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+    list.forEach(a => {
+      const track = APPLY_TRACK_NAME[a.track] || '';
+      const dept = applyDeptName(a.department);
+      const choices = (a.choices || []).filter(Boolean);
+      const dt = a.createdAt ? new Date(a.createdAt).toLocaleString('ko-KR') : '-';
+      html += `<div style="background:white;border:1px solid #E5E8EB;border-radius:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#191F28;">${escapeHtmlSafe(a.name || '-')}</div>
+            <div style="font-size:11.5px;color:#1B64DA;margin-top:2px;">${track} ${escapeHtmlSafe(dept)}</div>
+          </div>
+          <div style="font-size:11px;color:#999;text-align:right;">${dt}</div>
+        </div>
+        <div style="font-size:12px;color:#555;line-height:1.7;">
+          📞 ${escapeHtmlSafe(a.phone || '-')}${a.email ? ' · ✉️ ' + escapeHtmlSafe(a.email) : ''}<br>
+          ${a.studentId ? '🎓 학번: ' + escapeHtmlSafe(a.studentId) + '<br>' : ''}
+          ${a.highSchool ? '🏫 ' + escapeHtmlSafe(a.highSchool) + (a.highMajor ? ' · ' + escapeHtmlSafe(a.highMajor) : '') + '<br>' : ''}
+          🏠 ${escapeHtmlSafe(a.address || '-')}<br>
+          ${a.residencePlan ? '🏘️ 거주계획: ' + escapeHtmlSafe(a.residencePlan) + '<br>' : ''}
+        </div>
+        <div style="background:#F8F9FA;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#191F28;">
+          <div style="font-weight:600;margin-bottom:4px;">희망 학습기업</div>
+          ${choices.map((c, i) => `<div>${i+1}순위. ${escapeHtmlSafe(c)}</div>`).join('')}
+          ${a.extraWish ? `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #ddd;color:#666;"><b>기타 희망:</b> ${escapeHtmlSafe(a.extraWish)}</div>` : ''}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    listEl.innerHTML = html;
+  }
+
+  function downloadApplicationsCSV() {
+    if (_applications.length === 0) { alert('신청서가 없어요'); return; }
+    const rows = [['신청일','트랙','학과','이름','연락처','이메일','학번','고등학교','전공과','주소','거주계획','1순위','2순위','3순위','기타 희망']];
+    _applications.forEach(a => {
+      const choices = a.choices || ['','',''];
+      rows.push([
+        a.createdAt ? new Date(a.createdAt).toLocaleString('ko-KR') : '',
+        APPLY_TRACK_NAME[a.track] || '',
+        applyDeptName(a.department),
+        a.name || '',
+        a.phone || '',
+        a.email || '',
+        a.studentId || '',
+        a.highSchool || '',
+        a.highMajor || '',
+        a.address || '',
+        a.residencePlan || '',
+        choices[0] || '',
+        choices[1] || '',
+        choices[2] || '',
+        a.extraWish || ''
+      ]);
+    });
+    const csv = '﻿' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `applications_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
 </script>

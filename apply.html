@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신청 접수 - AU 일학습병행</title>
+<meta name="theme-color" content="#FFFFFF">
+<script src="device-check.js" data-auto-block></script>
+<script src="dark-mode.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue:#3182F6; --navy:#1B64DA; --bg:#F2F4F6;
+  --card:#FFFFFF; --border:#E5E8EB; --text:#191F28;
+  --text2:#4E5968; --text3:#8B95A1;
+  --shadow:0 2px 8px rgba(0,0,0,0.06); --radius:14px;
+  --tk-primary-soft:#E8F2FF; --tk-border-strong:#D1D6DB;
+  --green:#00C896; --red:#F04452;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; letter-spacing:-0.2px; padding-bottom:60px; }
+
+.header { background:var(--card); padding:14px 16px 0; border-bottom:1px solid var(--border); }
+.header-top { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.back-btn { background:var(--bg); border:none; color:var(--text); width:36px; height:36px; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; flex-shrink:0; font-weight:600; transition:background 0.15s; }
+.back-btn:hover { background:var(--border); }
+.header-badge { background:var(--tk-primary-soft); color:var(--blue); font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; letter-spacing:-0.2px; }
+.header h1 { color:var(--text); font-size:16px; font-weight:700; letter-spacing:-0.4px; }
+.header-sub { font-size:12px; color:var(--text2); padding-bottom:12px; line-height:1.5; }
+
+.container { max-width:600px; margin:0 auto; padding:16px; }
+.card { background:var(--card); border-radius:var(--radius); padding:18px; margin-bottom:14px; border:1px solid var(--border); box-shadow:var(--shadow); }
+.card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:6px; letter-spacing:-0.3px; }
+
+/* 정보 박스 */
+.info-box { background:#FFF8E6; border-left:3px solid #FFB800; padding:12px 14px; border-radius:0 10px 10px 0; font-size:13px; color:#7A5800; line-height:1.6; margin-bottom:14px; }
+.info-box.blue { background:var(--tk-primary-soft); border-color:var(--blue); color:#0D4A9C; }
+.info-box.success { background:#E6FAF3; border-color:var(--green); color:#005C44; }
+
+/* 폼 */
+.form-group { margin-bottom:14px; }
+.form-label { display:block; font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px; letter-spacing:-0.2px; }
+.form-label .required { color:var(--red); margin-left:2px; }
+.form-input, .form-select, .form-textarea {
+  width:100%; padding:11px 13px; border:1px solid var(--border); border-radius:10px;
+  font-family:inherit; font-size:14px; color:var(--text); background:var(--card);
+  outline:none; transition:all 0.15s; -webkit-appearance:none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color:var(--blue); box-shadow:0 0 0 3px rgba(49,130,246,0.1);
+}
+.form-input:disabled, .form-select:disabled { background:#F8F9FA; color:var(--text2); cursor:not-allowed; }
+.form-input::placeholder, .form-textarea::placeholder { color:var(--text3); }
+.form-textarea { min-height:90px; resize:vertical; line-height:1.5; }
+
+/* 트랙 선택 카드 */
+.track-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.track-card {
+  padding:18px 14px; border:2px solid var(--border); border-radius:14px; background:var(--card);
+  cursor:pointer; transition:all 0.15s; text-align:center;
+}
+.track-card:hover { border-color:var(--tk-border-strong); }
+.track-card.selected { border-color:var(--blue); background:var(--tk-primary-soft); }
+.track-card .icon { font-size:30px; margin-bottom:8px; }
+.track-card .name { font-size:14px; font-weight:700; color:var(--text); }
+.track-card .desc { font-size:11px; color:var(--text2); margin-top:3px; }
+
+/* 안내 메시지 */
+.guard {
+  background:var(--card); border-radius:var(--radius); padding:30px 20px; text-align:center;
+  border:1px solid var(--border); margin-top:30px;
+}
+.guard .icon { font-size:48px; margin-bottom:12px; }
+.guard .title { font-size:16px; font-weight:700; color:var(--text); margin-bottom:8px; }
+.guard .desc { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:18px; }
+.guard a { display:inline-block; background:var(--blue); color:white; padding:12px 22px; border-radius:10px; text-decoration:none; font-weight:700; font-size:14px; }
+
+/* 제출 버튼 */
+.submit-btn {
+  width:100%; padding:15px; background:var(--blue); color:white; border:none; border-radius:12px;
+  font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.15s;
+  letter-spacing:-0.3px;
+}
+.submit-btn:hover { background:var(--navy); }
+.submit-btn:disabled { background:var(--text3); cursor:not-allowed; }
+
+.note { font-size:11.5px; color:var(--text3); line-height:1.5; margin-top:4px; }
+
+.loading { text-align:center; padding:40px; color:var(--text3); font-size:14px; }
+
+/* 토스트 */
+.toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--text); color:white; padding:14px 22px; border-radius:12px; font-size:14px; font-weight:600; box-shadow:0 8px 30px rgba(0,0,0,0.25); z-index:999; transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap; opacity:0; }
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+.toast.error { background:var(--red); }
+.toast.success { background:var(--green); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <a href="index.html" class="back-btn">←</a>
+    <span class="header-badge">예비 신입생</span>
+    <h1>📝 신청 접수</h1>
+  </div>
+  <div class="header-sub">
+    안산대학교 일학습병행 참여 신청서를 온라인으로 제출해주세요.
+  </div>
+</div>
+
+<div class="container" id="mainContainer">
+  <div class="loading">불러오는 중...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 알림 종 위젯 -->
+<script type="module" src="./js/notification-bell.js"></script>
+
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, query, where, orderBy, getDocs, doc, getDoc, setDoc, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const FB_CFG = {
+  apiKey: 'AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc',
+  authDomain: 'au-ilhaksub.firebaseapp.com',
+  projectId: 'au-ilhaksub',
+  storageBucket: 'au-ilhaksub.firebasestorage.app',
+  messagingSenderId: '407960160823',
+  appId: '1:407960160823:web:1e830d6b0d69e4a7b84db2'
+};
+
+// OneSignal Worker (관리자 알림용)
+const WORKER_URL = "https://damp-leaf-0c5c.dks3275.workers.dev";
+const APP_ID = "6bed6730-b167-48a8-a98d-83cdcb1cbc10";
+
+// 학과 마스터 (admin과 동일)
+const DEPARTMENTS = {
+  ptech: [
+    { code: 'ptech-tourism', name: '글로벌호텔관광학과' },
+    { code: 'ptech-cooking', name: '글로벌호텔조리학과' }
+  ],
+  college: [
+    { code: 'college-tourism', name: '호텔관광학과' },
+    { code: 'college-marketing', name: '마케팅경영학과' },
+    { code: 'college-tax', name: '회계세무학과' }
+  ]
+};
+const TRACK_NAME = { ptech: 'P-TECH', college: '전문대 재학생단계' };
+
+// === 토스트 ===
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => { t.classList.remove('show'); }, 2500);
+}
+
+// === 사용자 정보 가져오기 ===
+function getUserInfo() {
+  try { return JSON.parse(localStorage.getItem('userInfo') || '{}'); } catch { return {}; }
+}
+function getDeviceId() {
+  return localStorage.getItem('deviceId') || '';
+}
+
+// === 메인 ===
+const userInfo = getUserInfo();
+const deviceId = getDeviceId();
+const mainEl = document.getElementById('mainContainer');
+
+// 가드 1: 가입 안 됨
+if (!userInfo.category || !deviceId) {
+  mainEl.innerHTML = `
+    <div class="guard">
+      <div class="icon">🔐</div>
+      <div class="title">먼저 가입이 필요해요</div>
+      <div class="desc">신청서를 제출하려면<br>예비 신입생으로 가입해주세요.</div>
+      <a href="index.html">메인으로 가기</a>
+    </div>`;
+} else if (userInfo.category !== 'prospect') {
+  // 가드 2: prospect 아님
+  mainEl.innerHTML = `
+    <div class="guard">
+      <div class="icon">🚫</div>
+      <div class="title">예비 신입생 전용 기능</div>
+      <div class="desc">신청 접수는 <b>예비 신입생</b> 카테고리로 가입한 경우만<br>사용할 수 있어요.</div>
+      <a href="index.html">메인으로 가기</a>
+    </div>`;
+} else {
+  // 정상 경로: Firebase 로드 + 폼 렌더
+  init();
+}
+
+async function init() {
+  const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+  const db = getFirestore(app);
+
+  // 학습기업 로드
+  let companies = [];
+  try {
+    const snap = await getDocs(query(collection(db, 'learning_companies'), orderBy('createdAt', 'asc')));
+    companies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) {
+    console.warn('학습기업 로드 실패', e);
+  }
+
+  // 기존 신청서 로드 (deviceId 기준)
+  let existing = null;
+  try {
+    const ref = doc(db, 'applications', deviceId);
+    const snap = await getDoc(ref);
+    if (snap.exists()) existing = snap.data();
+  } catch(e) {
+    console.warn('기존 신청서 로드 실패', e);
+  }
+
+  renderForm(companies, existing);
+
+  // 폼 이벤트 연결
+  attachHandlers(db, companies, existing, app);
+}
+
+function renderForm(companies, existing) {
+  const ex = existing || {};
+  const selectedTrack = ex.track || '';
+  const selectedDept = ex.department || '';
+
+  let html = '';
+
+  if (existing) {
+    html += `<div class="info-box success">✅ <b>이미 신청한 내역이 있어요</b><br>제출일: ${new Date(existing.createdAt).toLocaleString('ko-KR')}<br>아래에서 수정 후 다시 제출하면 덮어씁니다.</div>`;
+  } else {
+    html += `<div class="info-box blue">💡 입력하신 정보는 일학습병행 운영을 위해서만 사용돼요.<br>제출 후에도 언제든 다시 들어와 <b>수정</b> 가능합니다.</div>`;
+  }
+
+  // === 트랙 선택 ===
+  html += `<div class="card">
+    <div class="card-title">1️⃣ 어떤 과정에 신청하실 건가요? <span style="color:#F04452;">*</span></div>
+    <div class="track-grid">
+      <div class="track-card ${selectedTrack === 'ptech' ? 'selected' : ''}" data-track="ptech">
+        <div class="icon">🎓</div>
+        <div class="name">P-TECH</div>
+        <div class="desc">고숙련 일학습병행</div>
+      </div>
+      <div class="track-card ${selectedTrack === 'college' ? 'selected' : ''}" data-track="college">
+        <div class="icon">📚</div>
+        <div class="name">전문대 재학생단계</div>
+        <div class="desc">일학습병행</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">학과 <span class="required">*</span></label>
+      <select class="form-select" id="deptSelect">
+        <option value="">트랙을 먼저 선택해주세요</option>
+      </select>
+    </div>
+  </div>`;
+
+  // === 기본 정보 ===
+  html += `<div class="card">
+    <div class="card-title">2️⃣ 기본 정보</div>
+
+    <div class="form-group">
+      <label class="form-label">이름 <span class="required">*</span></label>
+      <input class="form-input" id="fName" placeholder="이름" value="${escapeAttr(ex.name || userInfo.name || '')}" maxlength="20" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">연락처 <span class="required">*</span></label>
+      <input class="form-input" id="fPhone" placeholder="010-0000-0000" value="${escapeAttr(ex.phone || userInfo.phone || '')}" maxlength="20" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">주소 <span class="required">*</span></label>
+      <input class="form-input" id="fAddress" placeholder="현재 거주 주소" value="${escapeAttr(ex.address || '')}" maxlength="100" />
+    </div>
+
+    <!-- 트랙별 추가 필드 -->
+    <div id="trackExtra"></div>
+  </div>`;
+
+  // === 희망 학습기업 ===
+  html += `<div class="card">
+    <div class="card-title">3️⃣ 희망 학습기업</div>
+    <div class="info-box" style="margin-bottom:14px;">
+      💡 학과를 먼저 선택하면 그 학과의 학습기업 리스트가 나타나요.<br>
+      1·2·3순위를 선택해주세요. 리스트에 원하는 기업이 없다면 아래 <b>기타 희망</b>에 자유롭게 적어주세요.
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">1순위 <span class="required">*</span></label>
+      <select class="form-select" id="fChoice1"><option value="">학과를 먼저 선택해주세요</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">2순위</label>
+      <select class="form-select" id="fChoice2"><option value="">학과를 먼저 선택해주세요</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">3순위</label>
+      <select class="form-select" id="fChoice3"><option value="">학과를 먼저 선택해주세요</option></select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">기타 희망 기업 / 자유 의견</label>
+      <textarea class="form-textarea" id="fExtraWish" placeholder="리스트에 없지만 가고 싶은 기업이나 추가 의견을 자유롭게 적어주세요">${escapeAttr(ex.extraWish || '')}</textarea>
+      <div class="note">(선택) 기업명을 정확히 적어주시면 더 좋아요</div>
+    </div>
+  </div>`;
+
+  // === 제출 버튼 ===
+  html += `<button class="submit-btn" id="submitBtn">${existing ? '✏️ 수정해서 다시 제출' : '📝 제출하기'}</button>`;
+
+  document.getElementById('mainContainer').innerHTML = html;
+}
+
+function escapeAttr(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function attachHandlers(db, companies, existing, app) {
+  let selectedTrack = existing?.track || '';
+  let selectedDept = existing?.department || '';
+
+  // 트랙 카드 클릭
+  document.querySelectorAll('.track-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.track-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedTrack = card.getAttribute('data-track');
+      // 학과 옵션 업데이트
+      updateDeptOptions(selectedTrack, existing?.department === '' || !DEPARTMENTS[selectedTrack]?.some(d => d.code === existing?.department) ? '' : existing?.department);
+      // 트랙별 추가 필드 렌더
+      renderTrackExtra(selectedTrack, existing);
+      // 학과 변경 시 학습기업 목록도 업데이트
+      const deptSel = document.getElementById('deptSelect');
+      deptSel.dispatchEvent(new Event('change'));
+    });
+  });
+
+  // 학과 변경 시 학습기업 목록 업데이트
+  document.getElementById('deptSelect').addEventListener('change', (e) => {
+    selectedDept = e.target.value;
+    updateCompanyOptions(selectedDept, companies, existing);
+  });
+
+  // 초기 상태: 기존 데이터 있으면 그대로 채움
+  if (selectedTrack) {
+    updateDeptOptions(selectedTrack, selectedDept);
+    renderTrackExtra(selectedTrack, existing);
+    updateCompanyOptions(selectedDept, companies, existing);
+  }
+
+  // 제출 핸들러
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    submitApplication(db, companies, existing, app, selectedTrack, selectedDept);
+  });
+}
+
+function updateDeptOptions(track, currentDept) {
+  const sel = document.getElementById('deptSelect');
+  let html = '<option value="">학과 선택</option>';
+  if (track && DEPARTMENTS[track]) {
+    DEPARTMENTS[track].forEach(d => {
+      html += `<option value="${d.code}" ${d.code === currentDept ? 'selected' : ''}>${d.name}</option>`;
+    });
+  }
+  sel.innerHTML = html;
+}
+
+function renderTrackExtra(track, existing) {
+  const ex = existing || {};
+  const wrap = document.getElementById('trackExtra');
+  if (track === 'college') {
+    wrap.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">학번 <span class="required">*</span></label>
+        <input class="form-input" id="fStudentId" placeholder="예: 2024xxxxx" value="${escapeAttr(ex.studentId || '')}" maxlength="20" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">이메일 <span class="required">*</span></label>
+        <input class="form-input" id="fEmail" placeholder="email@example.com" value="${escapeAttr(ex.email || '')}" maxlength="60" type="email" />
+      </div>
+    `;
+  } else if (track === 'ptech') {
+    wrap.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">고등학교 <span class="required">*</span></label>
+        <input class="form-input" id="fHighSchool" placeholder="예: 부천정보산업고등학교" value="${escapeAttr(ex.highSchool || userInfo.school || '')}" maxlength="40" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">전공과 <span class="required">*</span></label>
+        <input class="form-input" id="fHighMajor" placeholder="예: 호텔관광과" value="${escapeAttr(ex.highMajor || '')}" maxlength="30" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">거주계획 <span class="required">*</span></label>
+        <input class="form-input" id="fResidencePlan" placeholder="훈련기간 동안 거주 예정 주소" value="${escapeAttr(ex.residencePlan || '')}" maxlength="100" />
+      </div>
+    `;
+  } else {
+    wrap.innerHTML = '';
+  }
+}
+
+function updateCompanyOptions(deptCode, companies, existing) {
+  const filtered = companies.filter(c => c.department === deptCode);
+  const ex = existing || {};
+  const exChoices = ex.choices || [];
+  ['fChoice1', 'fChoice2', 'fChoice3'].forEach((id, idx) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    if (!deptCode) {
+      sel.innerHTML = '<option value="">학과를 먼저 선택해주세요</option>';
+      return;
+    }
+    if (filtered.length === 0) {
+      sel.innerHTML = '<option value="">(아직 등록된 학습기업이 없어요)</option>';
+      return;
+    }
+    let html = '<option value="">선택해주세요</option>';
+    filtered.forEach(c => {
+      const label = `${c.region || ''} ${c.location || ''} | ${c.companyName}`.trim();
+      const isSel = exChoices[idx] === c.companyName ? 'selected' : '';
+      html += `<option value="${escapeAttr(c.companyName)}" ${isSel}>${escapeAttr(label)}</option>`;
+    });
+    sel.innerHTML = html;
+  });
+}
+
+async function submitApplication(db, companies, existing, app, selectedTrack, selectedDept) {
+  // 검증
+  if (!selectedTrack) { showToast('과정(트랙)을 선택해주세요', 'error'); return; }
+  if (!selectedDept) { showToast('학과를 선택해주세요', 'error'); return; }
+
+  const name = document.getElementById('fName').value.trim();
+  const phone = document.getElementById('fPhone').value.trim();
+  const address = document.getElementById('fAddress').value.trim();
+  if (!name) { showToast('이름을 입력해주세요', 'error'); return; }
+  if (!phone) { showToast('연락처를 입력해주세요', 'error'); return; }
+  if (!address) { showToast('주소를 입력해주세요', 'error'); return; }
+
+  // 트랙별 필드
+  let extraFields = {};
+  if (selectedTrack === 'college') {
+    const studentId = document.getElementById('fStudentId').value.trim();
+    const email = document.getElementById('fEmail').value.trim();
+    if (!studentId) { showToast('학번을 입력해주세요', 'error'); return; }
+    if (!email) { showToast('이메일을 입력해주세요', 'error'); return; }
+    extraFields = { studentId, email };
+  } else if (selectedTrack === 'ptech') {
+    const highSchool = document.getElementById('fHighSchool').value.trim();
+    const highMajor = document.getElementById('fHighMajor').value.trim();
+    const residencePlan = document.getElementById('fResidencePlan').value.trim();
+    if (!highSchool) { showToast('고등학교를 입력해주세요', 'error'); return; }
+    if (!highMajor) { showToast('전공과를 입력해주세요', 'error'); return; }
+    if (!residencePlan) { showToast('거주계획을 입력해주세요', 'error'); return; }
+    extraFields = { highSchool, highMajor, residencePlan };
+  }
+
+  // 희망 기업
+  const c1 = document.getElementById('fChoice1').value.trim();
+  const c2 = document.getElementById('fChoice2').value.trim();
+  const c3 = document.getElementById('fChoice3').value.trim();
+  const extraWish = document.getElementById('fExtraWish').value.trim();
+  if (!c1 && !extraWish) {
+    showToast('1순위 기업을 선택하거나 기타 희망 기업을 적어주세요', 'error');
+    return;
+  }
+  if (c1 && c2 && c1 === c2) { showToast('1·2순위 기업이 같아요', 'error'); return; }
+  if (c1 && c3 && c1 === c3) { showToast('1·3순위 기업이 같아요', 'error'); return; }
+  if (c2 && c3 && c2 === c3) { showToast('2·3순위 기업이 같아요', 'error'); return; }
+
+  // 제출
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '제출 중...';
+
+  const data = {
+    deviceId,
+    userId: deviceId,
+    track: selectedTrack,
+    department: selectedDept,
+    name, phone, address,
+    ...extraFields,
+    choices: [c1, c2, c3],
+    extraWish,
+    createdAt: existing?.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    serverUpdatedAt: serverTimestamp()
+  };
+
+  try {
+    await setDoc(doc(db, 'applications', deviceId), data, { merge: true });
+    // 관리자에게 푸시 알림 발송 (Step 3에서 정의)
+    notifyAdmins(data, !!existing);
+
+    showToast(existing ? '✅ 신청서를 수정했어요' : '✅ 신청서를 제출했어요', 'success');
+    submitBtn.textContent = '✅ 완료';
+    setTimeout(() => { location.reload(); }, 1500);
+  } catch(e) {
+    showToast('제출 실패: ' + e.message, 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = existing ? '✏️ 수정해서 다시 제출' : '📝 제출하기';
+  }
+}
+
+// 관리자에게 OneSignal 푸시 발송
+async function notifyAdmins(data, isUpdate) {
+  try {
+    const db = getFirestore();
+    // app_config/admin_targets에서 OneSignal ID 목록 가져옴
+    const ref = doc(db, 'app_config', 'admin_targets');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      console.log('[apply] admin_targets 미설정, 알림 미발송');
+      return;
+    }
+    const targets = snap.data().oneSignalIds || [];
+    if (targets.length === 0) {
+      console.log('[apply] admin OneSignal ID 없음, 알림 미발송');
+      return;
+    }
+    const deptName = DEPARTMENTS[data.track]?.find(d => d.code === data.department)?.name || data.department;
+    const title = isUpdate ? '✏️ 신청서 수정' : '📝 새 신청서 접수';
+    const message = `${data.name} (${TRACK_NAME[data.track]} ${deptName})`;
+    const body = {
+      app_id: APP_ID,
+      headings: { en: title, ko: title },
+      contents: { en: message, ko: message },
+      include_aliases: { onesignal_id: targets },
+      target_channel: 'push',
+      priority: 10,
+      web_url: 'https://dks3275-rgb.github.io/admin.html'
+    };
+    await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    console.log('[apply] 관리자 알림 발송 시도 완료');
+  } catch(e) {
+    console.warn('[apply] 관리자 알림 발송 실패 (무시):', e);
+  }
+}
+</script>
+</body>
+</html>
