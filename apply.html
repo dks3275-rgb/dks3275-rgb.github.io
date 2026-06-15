@@ -120,7 +120,7 @@ body { font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,
 
 <script type="module">
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, query, where, orderBy, getDocs, doc, getDoc, setDoc, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const FB_CFG = {
@@ -198,14 +198,8 @@ async function init() {
   const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
   const db = getFirestore(app);
 
-  // 학습기업 로드
-  let companies = [];
-  try {
-    const snap = await getDocs(query(collection(db, 'learning_companies'), orderBy('createdAt', 'asc')));
-    companies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch(e) {
-    console.warn('학습기업 로드 실패', e);
-  }
+  // ⚠️ 학습기업 리스트는 학교 내부 자료라서 학생 페이지에서 로드하지 않음
+  // 학생은 희망 기업명을 직접 작성
 
   // 기존 신청서 로드 (deviceId 기준)
   let existing = null;
@@ -217,16 +211,17 @@ async function init() {
     console.warn('기존 신청서 로드 실패', e);
   }
 
-  renderForm(companies, existing);
+  renderForm(existing);
 
   // 폼 이벤트 연결
-  attachHandlers(db, companies, existing, app);
+  attachHandlers(db, existing, app);
 }
 
-function renderForm(companies, existing) {
+function renderForm(existing) {
   const ex = existing || {};
   const selectedTrack = ex.track || '';
   const selectedDept = ex.department || '';
+  const exChoices = ex.choices || ['', '', ''];
 
   let html = '';
 
@@ -287,27 +282,27 @@ function renderForm(companies, existing) {
   html += `<div class="card">
     <div class="card-title">3️⃣ 희망 학습기업</div>
     <div class="info-box" style="margin-bottom:14px;">
-      💡 학과를 먼저 선택하면 그 학과의 학습기업 리스트가 나타나요.<br>
-      1·2·3순위를 선택해주세요. 리스트에 원하는 기업이 없다면 아래 <b>기타 희망</b>에 자유롭게 적어주세요.
+      💡 평소 가고 싶었던 기업이나 관심 있는 곳을 자유롭게 적어주세요.<br>
+      1순위는 꼭 작성해주시고, 2·3순위는 원하실 때만 적으셔도 됩니다.
     </div>
 
     <div class="form-group">
       <label class="form-label">1순위 <span class="required">*</span></label>
-      <select class="form-select" id="fChoice1"><option value="">학과를 먼저 선택해주세요</option></select>
+      <input class="form-input" id="fChoice1" placeholder="가고 싶은 기업명을 작성해주세요" value="${escapeAttr(exChoices[0] || '')}" maxlength="80" />
     </div>
     <div class="form-group">
       <label class="form-label">2순위</label>
-      <select class="form-select" id="fChoice2"><option value="">학과를 먼저 선택해주세요</option></select>
+      <input class="form-input" id="fChoice2" placeholder="(선택) 두 번째로 가고 싶은 기업" value="${escapeAttr(exChoices[1] || '')}" maxlength="80" />
     </div>
     <div class="form-group">
       <label class="form-label">3순위</label>
-      <select class="form-select" id="fChoice3"><option value="">학과를 먼저 선택해주세요</option></select>
+      <input class="form-input" id="fChoice3" placeholder="(선택) 세 번째로 가고 싶은 기업" value="${escapeAttr(exChoices[2] || '')}" maxlength="80" />
     </div>
 
     <div class="form-group">
-      <label class="form-label">기타 희망 기업 / 자유 의견</label>
-      <textarea class="form-textarea" id="fExtraWish" placeholder="리스트에 없지만 가고 싶은 기업이나 추가 의견을 자유롭게 적어주세요">${escapeAttr(ex.extraWish || '')}</textarea>
-      <div class="note">(선택) 기업명을 정확히 적어주시면 더 좋아요</div>
+      <label class="form-label">기타 희망 / 자유 의견</label>
+      <textarea class="form-textarea" id="fExtraWish" placeholder="추가로 가고 싶은 기업이나 직무, 자유로운 의견을 적어주세요">${escapeAttr(ex.extraWish || '')}</textarea>
+      <div class="note">(선택) 기업명·직무·지역 등 자유롭게 적으셔도 돼요</div>
     </div>
   </div>`;
 
@@ -321,7 +316,7 @@ function escapeAttr(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function attachHandlers(db, companies, existing, app) {
+function attachHandlers(db, existing, app) {
   let selectedTrack = existing?.track || '';
   let selectedDept = existing?.department || '';
 
@@ -332,31 +327,29 @@ function attachHandlers(db, companies, existing, app) {
       card.classList.add('selected');
       selectedTrack = card.getAttribute('data-track');
       // 학과 옵션 업데이트
-      updateDeptOptions(selectedTrack, existing?.department === '' || !DEPARTMENTS[selectedTrack]?.some(d => d.code === existing?.department) ? '' : existing?.department);
+      const keepDept = DEPARTMENTS[selectedTrack]?.some(d => d.code === existing?.department) ? existing?.department : '';
+      updateDeptOptions(selectedTrack, keepDept);
       // 트랙별 추가 필드 렌더
       renderTrackExtra(selectedTrack, existing);
-      // 학과 변경 시 학습기업 목록도 업데이트
-      const deptSel = document.getElementById('deptSelect');
-      deptSel.dispatchEvent(new Event('change'));
     });
   });
 
-  // 학과 변경 시 학습기업 목록 업데이트
+  // 학과 변경 추적
   document.getElementById('deptSelect').addEventListener('change', (e) => {
     selectedDept = e.target.value;
-    updateCompanyOptions(selectedDept, companies, existing);
   });
 
   // 초기 상태: 기존 데이터 있으면 그대로 채움
   if (selectedTrack) {
     updateDeptOptions(selectedTrack, selectedDept);
     renderTrackExtra(selectedTrack, existing);
-    updateCompanyOptions(selectedDept, companies, existing);
   }
 
   // 제출 핸들러
   document.getElementById('submitBtn').addEventListener('click', () => {
-    submitApplication(db, companies, existing, app, selectedTrack, selectedDept);
+    // 최신 학과 값 반영
+    selectedDept = document.getElementById('deptSelect').value;
+    submitApplication(db, existing, app, selectedTrack, selectedDept);
   });
 }
 
@@ -405,32 +398,7 @@ function renderTrackExtra(track, existing) {
   }
 }
 
-function updateCompanyOptions(deptCode, companies, existing) {
-  const filtered = companies.filter(c => c.department === deptCode);
-  const ex = existing || {};
-  const exChoices = ex.choices || [];
-  ['fChoice1', 'fChoice2', 'fChoice3'].forEach((id, idx) => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    if (!deptCode) {
-      sel.innerHTML = '<option value="">학과를 먼저 선택해주세요</option>';
-      return;
-    }
-    if (filtered.length === 0) {
-      sel.innerHTML = '<option value="">(아직 등록된 학습기업이 없어요)</option>';
-      return;
-    }
-    let html = '<option value="">선택해주세요</option>';
-    filtered.forEach(c => {
-      const label = `${c.region || ''} ${c.location || ''} | ${c.companyName}`.trim();
-      const isSel = exChoices[idx] === c.companyName ? 'selected' : '';
-      html += `<option value="${escapeAttr(c.companyName)}" ${isSel}>${escapeAttr(label)}</option>`;
-    });
-    sel.innerHTML = html;
-  });
-}
-
-async function submitApplication(db, companies, existing, app, selectedTrack, selectedDept) {
+async function submitApplication(db, existing, app, selectedTrack, selectedDept) {
   // 검증
   if (!selectedTrack) { showToast('과정(트랙)을 선택해주세요', 'error'); return; }
   if (!selectedDept) { showToast('학과를 선택해주세요', 'error'); return; }
