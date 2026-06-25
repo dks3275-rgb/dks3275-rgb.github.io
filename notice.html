@@ -115,12 +115,23 @@
       const snapshot = await getDocs(q);
       if (snapshot.empty) { list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>등록된 공지사항이 없어요</div></div>'; return; }
 
-      // 카테고리에 맞는 공지만 필터링 (각 그룹 엄격 분리)
+      // 카테고리 + 학과/학년(subTarget) 매칭
       const allDocs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 사용자 학과/학년 키
+      const userSubKey = userCategory === 'student' ? (userInfo.grade || '')
+                       : userCategory === 'graduate' ? (userInfo.dept || '')
+                       : userCategory === 'prospect' ? (userInfo.interest || '')
+                       : '';
       allNotices = allDocs.filter(d => {
         const t = d.target || 'all';
-        if (t === 'all') return true;
-        return t === userCategory;
+        // 1차: 카테고리
+        const targetOk = t === 'all' || t === userCategory;
+        if (!targetOk) return false;
+        // 2차: subTarget (비어있으면 카테고리 전체 통과)
+        const sub = Array.isArray(d.subTarget) ? d.subTarget : [];
+        if (sub.length === 0) return true;
+        if (userCategory === 'company') return true; // 전담인력은 학과 매칭 안 함
+        return userSubKey && sub.includes(userSubKey);
       });
       // 핀 고정 우선 정렬
       allNotices.sort((a, b) => {

@@ -143,6 +143,10 @@
     .date-range-hint { font-size: 12px; color: var(--blue); background: #e3f2fd; border-radius: 8px; padding: 8px 12px; margin-top: 8px; }
     .notice-target-btn { flex:1; padding:10px 8px; border:2px solid var(--border); border-radius:10px; background:white; font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:600; cursor:pointer; color:#4a5568; transition:all 0.2s; }
     .notice-target-btn.selected { border-color:var(--blue); background:var(--blue); color:white; }
+    .subt-chip { display:inline-flex; align-items:center; gap:5px; padding:6px 11px; background:white; border:1.5px solid var(--border); border-radius:8px; font-size:12px; font-weight:500; color:#4a5568; cursor:pointer; transition:all 0.15s; }
+    .subt-chip input { margin:0; cursor:pointer; }
+    .subt-chip:hover { border-color:var(--blue); background:#f0f7ff; }
+    .subt-chip:has(input:checked) { border-color:var(--blue); background:#e3f2fd; color:var(--navy); font-weight:700; }
     .notice-target-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; margin-right:4px; }
     .notice-target-badge.all { background:#e3f2fd; color:#1565c0; }
     .notice-target-badge.student { background:#e3f2fd; color:#1565c0; }
@@ -658,6 +662,14 @@
       </div>
       <input type="hidden" id="noticeTarget" value="all" />
     </div>
+    <!-- Phase 1-3: 학과/학년 다중 선택 (target이 student/graduate/prospect일 때만 표시) -->
+    <div class="form-group" id="noticeSubTargetWrap" style="display:none;">
+      <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>학과/학년 (선택)</span>
+        <span style="font-size:11px;color:#718096;font-weight:500;">아무것도 선택 안 하면 그 카테고리 전체</span>
+      </label>
+      <div id="noticeSubTargetOptions" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
     <div class="form-group"><label class="form-label">제목</label><input type="text" class="form-input" id="noticeTitle" placeholder="공지사항 제목을 입력해주세요" /></div>
     <div class="form-group"><label class="form-label">내용</label><textarea class="form-input" id="noticeContent" style="min-height:200px;" placeholder="공지사항 내용을 입력해주세요"></textarea></div>
     <div class="form-group">
@@ -832,6 +844,14 @@
           <button class="notice-target-btn" id="libBtn-all" onclick="selectLibTarget('all',this)">🛡️ 산업안전보건 (재학생+전담인력)</button>
         </div>
         <input type="hidden" id="libTarget" value="student" />
+      </div>
+      <!-- Phase 1-4: 학과/학년 다중 선택 -->
+      <div class="form-group" id="librarySubTargetWrap" style="display:none;">
+        <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>학과/학년 (선택)</span>
+          <span style="font-size:11px;color:#718096;font-weight:500;">아무것도 선택 안 하면 그 카테고리 전체</span>
+        </label>
+        <div id="librarySubTargetOptions" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
       </div>
       <div class="form-group">
         <label class="form-label">카테고리</label>
@@ -1422,6 +1442,53 @@
     document.querySelectorAll('.notice-target-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     document.getElementById('noticeTarget').value = target;
+    // Phase 1-3: 학과/학년 옵션 동적 생성 (student/graduate/prospect만)
+    updateNoticeSubTargetOptions(target);
+  }
+  function updateNoticeSubTargetOptions(target) {
+    const wrap = document.getElementById('noticeSubTargetWrap');
+    const box = document.getElementById('noticeSubTargetOptions');
+    if (!wrap || !box) return;
+    let opts = [];
+    if (target === 'student') opts = STUDENT_DEPTS;
+    else if (target === 'graduate') opts = GRADUATE_DEPTS;
+    else if (target === 'prospect') opts = PROSPECT_INTERESTS;
+    if (opts.length === 0) {
+      wrap.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+    wrap.style.display = 'block';
+    box.innerHTML = opts.map(d =>
+      `<label class="subt-chip"><input type="checkbox" value="${d}"><span>${d}</span></label>`
+    ).join('');
+  }
+  function getNoticeSubTargets() {
+    const checks = document.querySelectorAll('#noticeSubTargetOptions input[type="checkbox"]:checked');
+    return Array.from(checks).map(c => c.value);
+  }
+  // Phase 1-4: 자료실용 학과/학년 다중 선택
+  function updateLibrarySubTargetOptions(target) {
+    const wrap = document.getElementById('librarySubTargetWrap');
+    const box = document.getElementById('librarySubTargetOptions');
+    if (!wrap || !box) return;
+    let opts = [];
+    if (target === 'student') opts = STUDENT_DEPTS;
+    else if (target === 'graduate') opts = GRADUATE_DEPTS;
+    else if (target === 'prospect') opts = PROSPECT_INTERESTS;
+    if (opts.length === 0) {
+      wrap.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+    wrap.style.display = 'block';
+    box.innerHTML = opts.map(d =>
+      `<label class="subt-chip"><input type="checkbox" value="${d}"><span>${d}</span></label>`
+    ).join('');
+  }
+  function getLibrarySubTargets() {
+    const checks = document.querySelectorAll('#librarySubTargetOptions input[type="checkbox"]:checked');
+    return Array.from(checks).map(c => c.value);
   }
 
   async function loadNotices() {
@@ -1532,11 +1599,13 @@
           await addDoc(collection(db, 'notices'), { ...data, createdAt: serverTimestamp() });
         };
       }
-      await window.addNoticeToFirestore({ title, content, images: imageUrls, target });
+      const subTarget = getNoticeSubTargets();  // Phase 1-3: 학과/학년 체크박스 값
+      await window.addNoticeToFirestore({ title, content, images: imageUrls, target, subTarget });
       showNoticeResult('✅ 공지사항이 등록됐어요!', 'success');
-      // 알림 대상 분기
+      // 알림 대상 분기 — subTarget이 있으면 학과/학년까지 좁힘
       const targetLabel = target === 'company' ? '전담인력' : target === 'student' ? '재학생' : target === 'graduate' ? '졸업생' : target === 'prospect' ? '예비신입생' : '전체';
-      if (confirm(`📢 ${targetLabel}에게 알림도 보낼까요?`)) {
+      const subLabel = subTarget.length > 0 ? ` · ${subTarget.join(', ')}` : '';
+      if (confirm(`📢 ${targetLabel}${subLabel}에게 알림도 보낼까요?`)) {
         // Firestore 기반 발송 (휴지통 사용자 자동 제외)
         try {
           const { collection: col, getDocs: gDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -1545,6 +1614,11 @@
           let recipients = target === 'all' ? allUsers
             : target === 'company' ? allUsers.filter(u => u.category === 'company' || u.category === '회사')
             : allUsers.filter(u => u.category === target);
+          // subTarget 있으면 학과/학년까지 추가 필터
+          if (subTarget.length > 0 && target !== 'all' && target !== 'company') {
+            const keyField = target === 'student' ? 'grade' : target === 'graduate' ? 'dept' : 'interest';
+            recipients = recipients.filter(u => subTarget.includes(u[keyField]));
+          }
           const targetIds = [...new Set(recipients.map(u => u.oneSignalId))].filter(id => id);
           if (targetIds.length > 0) {
             const notifBody = {
@@ -2631,6 +2705,8 @@
     document.querySelectorAll('.notice-target-btn[id^="libBtn"]').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     document.getElementById('libTarget').value = target;
+    // Phase 1-4: 학과/학년 옵션 동적 생성
+    updateLibrarySubTargetOptions(target);
     const studentCat = document.getElementById('libCategoryStudent');
     const companyCat = document.getElementById('libCategoryCompany');
     const prospectCat = document.getElementById('libCategoryProspect');
@@ -3152,15 +3228,17 @@
       const subCategory = target === 'student'
         ? (document.getElementById('libSubCategory')?.value || '기타 자료')
         : null;
+      const subTarget = getLibrarySubTargets();  // Phase 1-4
       await addDoc(collection(db, 'library'), {
-        title, desc, target, category,
+        title, desc, target, subTarget, category,
         subCategory,  // NCS 모듈 / 학습안내서 / 기타 자료
         fileUrl, fileName, fileType,
         resourceType,
         createdAt: serverTimestamp(),
         updatedAt: new Date().toISOString()
       });
-      await writeLog('create', 'library', null, `자료 등록: ${title} (${target}/${category}${subCategory ? '/' + subCategory : ''})`);
+      const subLog = subTarget.length > 0 ? ` · ${subTarget.join(',')}` : '';
+      await writeLog('create', 'library', null, `자료 등록: ${title} (${target}${subLog}/${category}${subCategory ? '/' + subCategory : ''})`);
       showLibResult('✅ 자료가 등록됐어요!', 'success');
       // 폼 초기화
       document.getElementById('libTitle').value = '';

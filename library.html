@@ -170,6 +170,17 @@
         // student (재학생)
         allResources = all.filter(r => r.target === 'student' || r.target === 'all');
       }
+      // Phase 1-6: subTarget(학과/학년) 추가 필터링
+      const userSubKey = userCategory === 'student' ? (userInfo.grade || '')
+                       : userCategory === 'graduate' ? (userInfo.dept || '')
+                       : userCategory === 'prospect' ? (userInfo.interest || '')
+                       : '';
+      allResources = allResources.filter(r => {
+        const sub = Array.isArray(r.subTarget) ? r.subTarget : [];
+        if (sub.length === 0) return true;       // 학과/학년 지정 X → 카테고리 전체
+        if (userCategory === 'company') return true;  // 전담인력은 학과 매칭 안 함
+        return userSubKey && sub.includes(userSubKey);
+      });
 
       // 예비신입생만 카테고리 생략 (단일 목록)
       // 졸업생은 재학생과 동일한 학과별 분류 사용
