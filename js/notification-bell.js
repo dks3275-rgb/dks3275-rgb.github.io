@@ -34,23 +34,51 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const LS_LAST_SEEN = 'notifBell.lastSeenAt';
 const MAX_ITEMS = 50;
 
-// 사용자 카테고리 가져오기
-function getUserCategory() {
+// 사용자 정보 가져오기 (전체)
+function getUserInfo() {
   try {
-    const ui = JSON.parse(localStorage.getItem('userInfo') || '{}');
-    return ui.category || null;
-  } catch { return null; }
+    return JSON.parse(localStorage.getItem('userInfo') || '{}');
+  } catch { return {}; }
+}
+// 사용자 카테고리만 (호환용)
+function getUserCategory() {
+  return getUserInfo().category || null;
 }
 
-// 사용자에게 보일 알림인지 판단 (target 매칭)
-function matchesUser(target, userCategory) {
+// 사용자 카테고리 + 학과/학년 키 가져오기
+// student → grade, graduate → dept, prospect → interest
+function getUserSubKey(userInfo) {
+  const cat = userInfo.category;
+  if (cat === 'student') return userInfo.grade || '';
+  if (cat === 'graduate') return userInfo.dept || '';
+  if (cat === 'prospect') return userInfo.interest || '';
+  return '';  // company는 학과/학년 매칭 안 함
+}
+
+// 사용자에게 보일 알림인지 판단 (target + subTarget 매칭)
+// Phase 1-5: subTarget 추가. subTarget 비어있으면 카테고리 전체에 보임 (옛 동작 호환)
+function matchesUser(target, subTarget, userInfo) {
+  const userCategory = userInfo && userInfo.category;
   if (!userCategory) return false;          // 카테고리 미설정 → 안 보임
-  if (!target || target === 'all') return true;
-  return target === userCategory;
+
+  // 1. 카테고리 매칭
+  const targetOk = !target || target === 'all' || target === userCategory;
+  if (!targetOk) return false;
+
+  // 2. subTarget 비어있음 → 카테고리 전체 통과 (옛 동작)
+  if (!subTarget || !Array.isArray(subTarget) || subTarget.length === 0) return true;
+
+  // 3. company는 학과/학년 매칭 안 함 → subTarget 있어도 카테고리 매칭만으로 통과
+  if (userCategory === 'company') return true;
+
+  // 4. 사용자의 학과/학년 키가 subTarget에 포함되어 있어야 보임
+  const userKey = getUserSubKey(userInfo);
+  if (!userKey) return false;
+  return subTarget.includes(userKey);
 }
 
 // Firestore 데이터 가져오기 (3개 컬렉션)
-async function fetchAllItems(db, userCategory) {
+async function fetchAllItems(db, userInfo) {
   const cutoff = Date.now() - THIRTY_DAYS_MS;
   const items = [];
 
@@ -62,7 +90,7 @@ async function fetchAllItems(db, userCategory) {
       const ts = typeof data.createdAt === 'number' ? data.createdAt
               : (data.createdAt?.toMillis?.() ?? 0);
       if (ts < cutoff) return;
-      if (!matchesUser(data.target, userCategory)) return;
+      if (!matchesUser(data.target, data.subTarget, userInfo)) return;
       items.push({
         id: 'notice_' + d.id,
         kind: 'notice',
@@ -83,7 +111,7 @@ async function fetchAllItems(db, userCategory) {
       const ts = typeof data.createdAt === 'number' ? data.createdAt
               : (data.createdAt?.toMillis?.() ?? 0);
       if (ts < cutoff) return;
-      if (!matchesUser(data.target, userCategory)) return;
+      if (!matchesUser(data.target, data.subTarget, userInfo)) return;
       items.push({
         id: 'lib_' + d.id,
         kind: 'library',
@@ -105,7 +133,7 @@ async function fetchAllItems(db, userCategory) {
       const ts = data.displayAt || data.createdAt || 0;
       if (ts < cutoff) return;
       if (ts > now) return;                       // 미래 예약 → 시간 안 됨
-      if (!matchesUser(data.target, userCategory)) return;
+      if (!matchesUser(data.target, data.subTarget, userInfo)) return;
       items.push({
         id: 'push_' + d.id,
         kind: 'push',
@@ -316,8 +344,8 @@ function updateBadge(count) {
 
 // 초기화
 async function init() {
-  const userCategory = getUserCategory();
-  if (!userCategory) return;  // userInfo 없으면 위젯 비표시
+  const userInfo = getUserInfo();
+  if (!userInfo.category) return;  // userInfo 없으면 위젯 비표시
   injectStyles();
   const wrap = createWidget();
   if (!wrap) return;  // 이미 존재하면 새로 안 만듦
@@ -332,7 +360,7 @@ async function init() {
   // 데이터 로드 (백그라운드)
   async function loadAndRender() {
     try {
-      items = await fetchAllItems(db, userCategory);
+      items = await fetchAllItems(db, userInfo);
       loaded = true;
       const unread = countUnread(items);
       updateBadge(unread);

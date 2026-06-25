@@ -588,6 +588,27 @@
         <button class="group-btn" onclick="selectGroup('전문대 호텔관광학과', this)"><span class="icon">🏨</span>호텔<br>관광학과</button>
         <button class="group-btn" style="grid-column: span 4;" onclick="selectGroup('전체', this)"><span class="icon">📣</span>전체 발송</button>
       </div>
+      <!-- 🎉 졸업생 학과별 (Phase 1-2 신규) -->
+      <div style="font-size:11px;font-weight:700;color:#92400e;letter-spacing:1px;margin:14px 0 8px;">🎉 졸업생 학과별</div>
+      <div class="group-buttons">
+        <button class="group-btn" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;" onclick="selectGroup('graduate:P-TECH', this)"><span class="icon">🎓</span>P-TECH</button>
+        <button class="group-btn" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;" onclick="selectGroup('graduate:마케팅경영학과', this)"><span class="icon">📚</span>마케팅<br>경영학과</button>
+        <button class="group-btn" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;" onclick="selectGroup('graduate:호텔조리학과', this)"><span class="icon">🍳</span>호텔<br>조리학과</button>
+        <button class="group-btn" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;" onclick="selectGroup('graduate:회계세무학과', this)"><span class="icon">📊</span>회계<br>세무학과</button>
+        <button class="group-btn" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;" onclick="selectGroup('graduate:호텔관광학과', this)"><span class="icon">🏨</span>호텔<br>관광학과</button>
+      </div>
+
+      <!-- 🌱 예비 신입생 관심 학과별 (Phase 1-2 신규) -->
+      <div style="font-size:11px;font-weight:700;color:#065f46;letter-spacing:1px;margin:14px 0 8px;">🌱 예비 신입생 관심 학과별</div>
+      <div class="group-buttons">
+        <button class="group-btn" style="background:#d1fae5;border-color:#10b981;color:#065f46;" onclick="selectGroup('prospect:P-TECH 글로벌호텔관광학과', this)"><span class="icon">🎓</span>P-TECH<br>호텔관광</button>
+        <button class="group-btn" style="background:#d1fae5;border-color:#10b981;color:#065f46;" onclick="selectGroup('prospect:P-TECH 호텔조리학과', this)"><span class="icon">🎓</span>P-TECH<br>호텔조리</button>
+        <button class="group-btn" style="background:#d1fae5;border-color:#10b981;color:#065f46;" onclick="selectGroup('prospect:마케팅경영학과', this)"><span class="icon">📚</span>마케팅<br>경영학과</button>
+        <button class="group-btn" style="background:#d1fae5;border-color:#10b981;color:#065f46;" onclick="selectGroup('prospect:호텔조리학과', this)"><span class="icon">🍳</span>호텔<br>조리학과</button>
+        <button class="group-btn" style="background:#d1fae5;border-color:#10b981;color:#065f46;" onclick="selectGroup('prospect:회계세무학과', this)"><span class="icon">📊</span>회계<br>세무학과</button>
+        <button class="group-btn" style="background:#d1fae5;border-color:#10b981;color:#065f46;" onclick="selectGroup('prospect:호텔관광학과', this)"><span class="icon">🏨</span>호텔<br>관광학과</button>
+      </div>
+
       <div style="font-size:11px;font-weight:700;color:#718096;letter-spacing:1px;margin:14px 0 8px;">📢 카테고리별 일괄 발송</div>
       <div class="group-buttons" style="grid-template-columns:1fr 1fr 1fr 1fr;">
         <button class="group-btn" style="background:#e3f2fd;border-color:#2196f3;color:#1565c0;" onclick="selectGroup('재학생 전체', this)"><span class="icon">🎓</span>재학생<br>전체</button>
@@ -1103,25 +1124,43 @@
   });
 
   // ── 알림 발송 ──
-  // 사용자 알림 히스토리(notifications 컬렉션) 저장 — 발송 후에 별도 try로 호출, 실패해도 발송엔 영향 없음
-  function _mapGroupToTarget(group) {
-    if (group === '전체') return 'all';
-    if (group === '재학생 전체') return 'student';
-    if (group === '졸업생 전체') return 'graduate';
-    if (group === '예비 신입생 전체') return 'prospect';
-    if (group === 'company') return 'company';
-    // 학년/학과별(예: 'P-TECH 1학년')은 재학생으로 분류
-    return 'student';
+  // 카테고리별 학과/학년 마스터 (Phase 1 — subTarget 매칭용)
+  const STUDENT_DEPTS = ['P-TECH 1학년', 'P-TECH 2학년', '전문대 마케팅경영학과', '전문대 호텔조리학과', '전문대 회계세무학과', '전문대 호텔관광학과'];
+  const GRADUATE_DEPTS = ['P-TECH', '마케팅경영학과', '호텔조리학과', '회계세무학과', '호텔관광학과'];
+  const PROSPECT_INTERESTS = ['P-TECH 글로벌호텔관광학과', 'P-TECH 호텔조리학과', '마케팅경영학과', '호텔조리학과', '회계세무학과', '호텔관광학과'];
+
+  // 그룹 문자열 → { target, subTarget } 매핑
+  // 'subTarget' 비어있으면 카테고리 전체, 채워있으면 그 학과/학년만
+  // 졸업생·예비신입생 학과명은 'graduate:' / 'prospect:' 프리픽스로 카테고리 명시
+  function _mapGroup(group) {
+    if (group === '전체') return { target: 'all', subTarget: [] };
+    if (group === '재학생 전체') return { target: 'student', subTarget: [] };
+    if (group === '졸업생 전체') return { target: 'graduate', subTarget: [] };
+    if (group === '예비 신입생 전체') return { target: 'prospect', subTarget: [] };
+    if (group === 'company') return { target: 'company', subTarget: [] };
+    // 프리픽스 명시: 'graduate:학과명' / 'prospect:학과명'
+    if (group.startsWith('graduate:')) return { target: 'graduate', subTarget: [group.slice(9)] };
+    if (group.startsWith('prospect:')) return { target: 'prospect', subTarget: [group.slice(9)] };
+    // 재학생 학과/학년 (현재 UI 버튼 6개)
+    if (STUDENT_DEPTS.includes(group)) return { target: 'student', subTarget: [group] };
+    // 안전 폴백: 재학생으로 분류 (옛 동작 호환)
+    return { target: 'student', subTarget: [group] };
   }
+  // 기존 호출 호환용 (target만 필요한 곳)
+  function _mapGroupToTarget(group) { return _mapGroup(group).target; }
+
+  // 사용자 알림 히스토리(notifications 컬렉션) 저장 — 발송 후에 별도 try로 호출, 실패해도 발송엔 영향 없음
   async function _saveNotificationHistory(title, message, group, displayAtMs) {
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const app = getApps().find(a => a.name === 'notif-hist') || initializeApp(FB_CFG, 'notif-hist');
       const db = getFirestore(app);
+      const { target, subTarget } = _mapGroup(group);
       await addDoc(collection(db, 'notifications'), {
         title, message,
-        target: _mapGroupToTarget(group),
+        target,
+        subTarget,  // 신규: 비어있으면 카테고리 전체, 채워있으면 그 학과/학년만
         type: 'push',
         createdAt: Date.now(),
         displayAt: displayAtMs || Date.now(),
@@ -1135,7 +1174,12 @@
   function selectGroup(group, btn) {
     document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected'); selectedGroup = group;
-    const displayName = group === '전체' ? '전체 학생' : group === 'company' ? '🏢 전담인력 전체' : group;
+    let displayName;
+    if (group === '전체') displayName = '📣 전체';
+    else if (group === 'company') displayName = '🏢 전담인력 전체';
+    else if (group.startsWith('graduate:')) displayName = '🎉 졸업생 ' + group.slice(9);
+    else if (group.startsWith('prospect:')) displayName = '🌱 예비 신입생 ' + group.slice(9);
+    else displayName = group;
     document.getElementById('selectedDisplay').innerHTML = '선택됨: <span>' + displayName + '</span>';
   }
   async function sendNotification() {
@@ -1191,8 +1235,16 @@
         targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
       } else if (selectedGroup === 'company') {
         targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
+      } else if (selectedGroup.startsWith('graduate:')) {
+        // 졸업생 학과별 — dept 필드로 매칭
+        const dept = selectedGroup.slice(9);
+        targets = allUsers.filter(u => u.category === 'graduate' && u.dept === dept).map(u => u.oneSignalId);
+      } else if (selectedGroup.startsWith('prospect:')) {
+        // 예비 신입생 관심 학과별 — interest 필드로 매칭
+        const interest = selectedGroup.slice(9);
+        targets = allUsers.filter(u => u.category === 'prospect' && u.interest === interest).map(u => u.oneSignalId);
       } else {
-        // 학년/학과별 (P-TECH 1학년, 전문대 호텔관광학과 등) - Firestore grade/dept 필드로 매칭
+        // 재학생 학년/학과별 (P-TECH 1학년, 전문대 호텔관광학과 등) - Firestore grade/dept 필드로 매칭
         targets = allUsers.filter(u => {
           // category가 student이고 grade가 selectedGroup과 일치
           if (u.category !== 'student') return false;
@@ -2335,8 +2387,16 @@
       else if (target === '졸업생 전체') targets = allUsers.filter(u => u.category === 'graduate').map(u => u.oneSignalId);
       else if (target === '예비 신입생 전체') targets = allUsers.filter(u => u.category === 'prospect').map(u => u.oneSignalId);
       else if (target === 'company') targets = allUsers.filter(u => u.category === 'company' || u.category === '회사').map(u => u.oneSignalId);
+      else if (target.startsWith('graduate:')) {
+        const dept = target.slice(9);
+        targets = allUsers.filter(u => u.category === 'graduate' && u.dept === dept).map(u => u.oneSignalId);
+      }
+      else if (target.startsWith('prospect:')) {
+        const interest = target.slice(9);
+        targets = allUsers.filter(u => u.category === 'prospect' && u.interest === interest).map(u => u.oneSignalId);
+      }
       else {
-        // 학년/학과별
+        // 재학생 학년/학과별
         targets = allUsers.filter(u => u.category === 'student' && (u.grade === target || u.dept === target || u['학년'] === target)).map(u => u.oneSignalId);
       }
       targets = [...new Set(targets)].filter(id => id);
