@@ -621,6 +621,21 @@
         <button class="group-btn" style="background:#ede9fe;border-color:#7c3aed;color:#5b21b6;" onclick="selectGroup('company', this)"><span class="icon">🏢</span>전담<br>인력</button>
       </div>
       <div class="selected-group-display" id="selectedDisplay">대상을 선택해주세요</div>
+
+      <!-- Phase 2-1: 개인 선택 모드 -->
+      <div style="margin-top:14px;padding:12px 14px;background:#fff8e6;border-left:3px solid #f59e0b;border-radius:0 10px 10px 0;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#7a5800;">
+          <input type="checkbox" id="individualModeToggle" onchange="toggleIndividualMode()" style="width:16px;height:16px;cursor:pointer;">
+          ✋ 특정 사람만 골라서 보내기
+        </label>
+        <div id="individualPickerBox" style="display:none;margin-top:12px;">
+          <input type="search" class="form-input" id="individualSearch" placeholder="🔍 이름으로 검색..." oninput="renderIndividualList()" style="margin-bottom:8px;">
+          <div id="individualSelectedSummary" style="font-size:12px;color:#7a5800;font-weight:600;margin-bottom:8px;">선택 0명</div>
+          <div id="individualList" style="max-height:280px;overflow-y:auto;background:white;border:1px solid #fde68a;border-radius:8px;padding:6px;">
+            <div style="text-align:center;padding:20px;color:#999;font-size:12px;">개인 모드 켜고 검색해주세요</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
@@ -1170,28 +1185,129 @@
   function _mapGroupToTarget(group) { return _mapGroup(group).target; }
 
   // 사용자 알림 히스토리(notifications 컬렉션) 저장 — 발송 후에 별도 try로 호출, 실패해도 발송엔 영향 없음
-  async function _saveNotificationHistory(title, message, group, displayAtMs) {
+  // group이 null이면 개인 모드 (recipientUserIds 사용)
+  async function _saveNotificationHistory(title, message, group, displayAtMs, recipientUserIds) {
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const app = getApps().find(a => a.name === 'notif-hist') || initializeApp(FB_CFG, 'notif-hist');
       const db = getFirestore(app);
-      const { target, subTarget } = _mapGroup(group);
-      await addDoc(collection(db, 'notifications'), {
+      // Phase 2-1: 개인 모드면 target='individual', target/subTarget 비움
+      const docData = {
         title, message,
-        target,
-        subTarget,  // 신규: 비어있으면 카테고리 전체, 채워있으면 그 학과/학년만
         type: 'push',
         createdAt: Date.now(),
         displayAt: displayAtMs || Date.now(),
         serverCreatedAt: serverTimestamp()
-      });
+      };
+      if (recipientUserIds && recipientUserIds.length > 0) {
+        docData.target = 'individual';
+        docData.subTarget = [];
+        docData.recipientUserIds = recipientUserIds;
+      } else {
+        const { target, subTarget } = _mapGroup(group);
+        docData.target = target;
+        docData.subTarget = subTarget;
+      }
+      await addDoc(collection(db, 'notifications'), docData);
     } catch(e) {
       console.warn('[알림 히스토리 저장 실패 - 무시됨]', e);
     }
   }
 
+  // ── Phase 2-1: 개인 선택 모드 ──
+  let _allUsersCache = [];  // 가입자 캐시 (1회 로드)
+  let _selectedUserIds = new Set();  // 선택된 deviceId
+
+  async function _loadAllUsersForPicker() {
+    if (_allUsersCache.length > 0) return _allUsersCache;
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const db = getFirestore(app);
+      const snap = await getDocs(collection(db, 'users'));
+      _allUsersCache = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.deviceId);
+    } catch(e) {
+      console.warn('가입자 목록 로드 실패', e);
+      _allUsersCache = [];
+    }
+    return _allUsersCache;
+  }
+
+  async function toggleIndividualMode() {
+    const on = document.getElementById('individualModeToggle').checked;
+    const box = document.getElementById('individualPickerBox');
+    box.style.display = on ? 'block' : 'none';
+    // 개인 모드 켜면 그룹 선택 해제 + 그룹 버튼 비활성 표시
+    document.querySelectorAll('.group-btn').forEach(b => {
+      b.classList.remove('selected');
+      b.style.opacity = on ? '0.4' : '1';
+      b.style.pointerEvents = on ? 'none' : '';
+    });
+    if (on) {
+      selectedGroup = null;
+      document.getElementById('selectedDisplay').innerHTML = '선택됨: <span>✋ 개인 선택 모드</span>';
+      await _loadAllUsersForPicker();
+      renderIndividualList();
+    } else {
+      _selectedUserIds.clear();
+      document.getElementById('selectedDisplay').innerHTML = '대상을 선택해주세요';
+    }
+  }
+
+  function renderIndividualList() {
+    const listEl = document.getElementById('individualList');
+    const summaryEl = document.getElementById('individualSelectedSummary');
+    const keyword = (document.getElementById('individualSearch').value || '').trim().toLowerCase();
+    if (_allUsersCache.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#999;font-size:12px;">가입자가 없거나 로드 실패</div>';
+      return;
+    }
+    let users = _allUsersCache;
+    if (keyword) {
+      users = users.filter(u => (u.name || '').toLowerCase().includes(keyword));
+    }
+    summaryEl.textContent = `선택 ${_selectedUserIds.size}명 (검색 결과 ${users.length}명)`;
+    if (users.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#999;font-size:12px;">검색 결과 없음</div>';
+      return;
+    }
+    const catLabel = c => c === 'student' ? '🎓 재학생' : c === 'graduate' ? '🎉 졸업생' : c === 'prospect' ? '🌱 예비신입생' : c === 'company' ? '🏢 전담인력' : '';
+    const subInfo = u => u.category === 'student' ? (u.grade || '')
+                       : u.category === 'graduate' ? (u.dept || '')
+                       : u.category === 'prospect' ? (u.interest || '')
+                       : u.category === 'company' ? (u.firm || '')
+                       : '';
+    listEl.innerHTML = users.slice(0, 100).map(u => {
+      const checked = _selectedUserIds.has(u.deviceId) ? 'checked' : '';
+      const sub = subInfo(u);
+      return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;border-radius:6px;hover:background:#fff8e6;">
+        <input type="checkbox" data-uid="${u.deviceId}" ${checked} onchange="toggleIndividualUser('${u.deviceId}', this.checked)">
+        <span style="font-size:13px;font-weight:600;color:#191F28;">${escapeHtmlSafe(u.name || '-')}</span>
+        <span style="font-size:11px;color:#666;">${catLabel(u.category)}${sub ? ' · ' + escapeHtmlSafe(sub) : ''}</span>
+      </label>`;
+    }).join('');
+    if (users.length > 100) {
+      listEl.innerHTML += `<div style="text-align:center;padding:10px;color:#999;font-size:11px;">검색으로 더 좁혀주세요 (상위 100명만 표시)</div>`;
+    }
+  }
+
+  function toggleIndividualUser(uid, checked) {
+    if (checked) _selectedUserIds.add(uid);
+    else _selectedUserIds.delete(uid);
+    const summaryEl = document.getElementById('individualSelectedSummary');
+    if (summaryEl) summaryEl.textContent = `선택 ${_selectedUserIds.size}명`;
+    document.getElementById('selectedDisplay').innerHTML = `선택됨: <span>✋ 개인 ${_selectedUserIds.size}명</span>`;
+  }
+
   function selectGroup(group, btn) {
+    // 개인 모드 켜져있으면 끄기
+    const toggle = document.getElementById('individualModeToggle');
+    if (toggle && toggle.checked) {
+      toggle.checked = false;
+      toggleIndividualMode();
+    }
     document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected'); selectedGroup = group;
     let displayName;
@@ -1207,7 +1323,13 @@
     const message = document.getElementById('message').value.trim();
     const scheduleVal = document.getElementById('scheduleTime').value;
     const sendBtn = document.getElementById('sendBtn');
-    if (!selectedGroup) { showResult('발송 대상을 선택해주세요!', 'error'); return; }
+    // Phase 2-1: 개인 모드 검증
+    const individualMode = document.getElementById('individualModeToggle')?.checked;
+    if (individualMode) {
+      if (_selectedUserIds.size === 0) { showResult('받을 사람을 1명 이상 선택해주세요!', 'error'); return; }
+    } else {
+      if (!selectedGroup) { showResult('발송 대상을 선택해주세요!', 'error'); return; }
+    }
     if (!title) { showResult('알림 제목을 입력해주세요!', 'error'); return; }
     if (!message) { showResult('알림 내용을 입력해주세요!', 'error'); return; }
 
@@ -1245,7 +1367,10 @@
       const snap = await getDocs(collection(db, 'users'));
       const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
       let targets;
-      if (selectedGroup === '전체') {
+      // Phase 2-1: 개인 모드 — 선택한 deviceId의 사용자만
+      if (individualMode) {
+        targets = allUsers.filter(u => _selectedUserIds.has(u.deviceId)).map(u => u.oneSignalId);
+      } else if (selectedGroup === '전체') {
         targets = allUsers.map(u => u.oneSignalId);
       } else if (selectedGroup === '재학생 전체') {
         targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
@@ -1275,15 +1400,19 @@
       // 중복 제거
       targets = [...new Set(targets)].filter(id => id);
       if (targets.length === 0) {
-        const labelMap = { '전체': '전체', '재학생 전체': '재학생', '졸업생 전체': '졸업생', '예비 신입생 전체': '예비 신입생', 'company': '전담인력' };
-        const label = labelMap[selectedGroup] || selectedGroup;
-        showResult(`❌ ${label} 가입자가 없거나 모두 알림 미구독 상태입니다.`, 'error');
+        if (individualMode) {
+          showResult('❌ 선택한 사람 중 알림 구독자가 없어요.', 'error');
+        } else {
+          const labelMap = { '전체': '전체', '재학생 전체': '재학생', '졸업생 전체': '졸업생', '예비 신입생 전체': '예비 신입생', 'company': '전담인력' };
+          const label = labelMap[selectedGroup] || selectedGroup;
+          showResult(`❌ ${label} 가입자가 없거나 모두 알림 미구독 상태입니다.`, 'error');
+        }
         sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
         return;
       }
       body.include_aliases = { onesignal_id: targets };
       body.target_channel = 'push';
-      console.log(`[알림] ${selectedGroup} 대상 ${targets.length}명에게 발송`);
+      console.log(`[알림] ${individualMode ? '개인 ' + _selectedUserIds.size + '명' : selectedGroup} 대상 ${targets.length}명에게 발송`);
     } catch(e) {
       showResult('❌ 가입자 조회 실패: ' + e.message, 'error');
       sendBtn.disabled = false; sendBtn.textContent = '🔔 알림 발송';
@@ -1322,7 +1451,7 @@
         addHistory(selectedGroup, title, message, scheduleVal);
         await writeLog('create', 'notification', ref.id, `예약 등록 (OneSignal 위임): "${title}" (${selectedGroup}) - ${timeStr} → ${body.include_aliases?.onesignal_id?.length || 0}명`);
         // 사용자 알림 히스토리에 저장 (예약 시간이 되면 보이도록 displayAt = sendAt)
-        _saveNotificationHistory(title, message, selectedGroup, new Date(scheduleVal).getTime());
+        _saveNotificationHistory(title, message, selectedGroup, new Date(scheduleVal).getTime(), individualMode ? Array.from(_selectedUserIds) : null);
         document.getElementById('title').value = '';
         document.getElementById('message').value = '';
         document.getElementById('scheduleTime').value = '';
@@ -1336,7 +1465,7 @@
           addHistory(selectedGroup, title, message, null);
           await writeLog('send', 'notification', data.id || 'unknown', `즉시 발송: "${title}" (${selectedGroup}) → ${recipients}명`);
           // 사용자 알림 히스토리에 저장 (지금 보이도록)
-          _saveNotificationHistory(title, message, selectedGroup, Date.now());
+          _saveNotificationHistory(title, message, selectedGroup, Date.now(), individualMode ? Array.from(_selectedUserIds) : null);
           document.getElementById('title').value = '';
           document.getElementById('message').value = '';
           document.getElementById('scheduleTime').value = '';
