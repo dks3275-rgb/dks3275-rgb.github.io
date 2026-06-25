@@ -1298,7 +1298,17 @@
     else _selectedUserIds.delete(uid);
     const summaryEl = document.getElementById('individualSelectedSummary');
     if (summaryEl) summaryEl.textContent = `선택 ${_selectedUserIds.size}명`;
-    document.getElementById('selectedDisplay').innerHTML = `선택됨: <span>✋ 개인 ${_selectedUserIds.size}명</span>`;
+    document.getElementById('selectedDisplay').innerHTML = `선택됨: <span>${_individualLabel()}</span>`;
+  }
+
+  // 개인 모드 라벨 — 선택한 사람 이름 전부 표시
+  function _individualLabel() {
+    if (_selectedUserIds.size === 0) return '✋ 개인 0명';
+    const names = Array.from(_selectedUserIds).map(uid => {
+      const u = _allUsersCache.find(x => x.deviceId === uid);
+      return u && u.name ? u.name : '?';
+    });
+    return `✋ ${names.join(', ')}`;
   }
 
   function selectGroup(group, btn) {
@@ -1448,8 +1458,9 @@
         });
         const timeStr = new Date(scheduleVal).toLocaleString('ko-KR');
         showResult(`⏰ 예약 완료! (${timeStr} 발송 · OneSignal 서버 처리 · 관리자 페이지 닫아도 OK)`, 'success');
-        addHistory(selectedGroup, title, message, scheduleVal);
-        await writeLog('create', 'notification', ref.id, `예약 등록 (OneSignal 위임): "${title}" (${selectedGroup}) - ${timeStr} → ${body.include_aliases?.onesignal_id?.length || 0}명`);
+        const histLabel = individualMode ? _individualLabel() : selectedGroup;
+        addHistory(histLabel, title, message, scheduleVal);
+        await writeLog('create', 'notification', ref.id, `예약 등록 (OneSignal 위임): "${title}" (${histLabel}) - ${timeStr} → ${body.include_aliases?.onesignal_id?.length || 0}명`);
         // 사용자 알림 히스토리에 저장 (예약 시간이 되면 보이도록 displayAt = sendAt)
         _saveNotificationHistory(title, message, selectedGroup, new Date(scheduleVal).getTime(), individualMode ? Array.from(_selectedUserIds) : null);
         document.getElementById('title').value = '';
@@ -1462,8 +1473,9 @@
         if (data.id || data.recipients > 0) {
           const recipients = data.recipients || '?';
           showResult(`✅ 발송 완료! (${recipients}명 도달)`, 'success');
-          addHistory(selectedGroup, title, message, null);
-          await writeLog('send', 'notification', data.id || 'unknown', `즉시 발송: "${title}" (${selectedGroup}) → ${recipients}명`);
+          const histLabel2 = individualMode ? _individualLabel() : selectedGroup;
+          addHistory(histLabel2, title, message, null);
+          await writeLog('send', 'notification', data.id || 'unknown', `즉시 발송: "${title}" (${histLabel2}) → ${recipients}명`);
           // 사용자 알림 히스토리에 저장 (지금 보이도록)
           _saveNotificationHistory(title, message, selectedGroup, Date.now(), individualMode ? Array.from(_selectedUserIds) : null);
           document.getElementById('title').value = '';
