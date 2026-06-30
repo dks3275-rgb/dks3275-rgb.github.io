@@ -73,6 +73,33 @@
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--tk-bg); color: var(--tk-text); min-height: 100vh; -webkit-font-smoothing: antialiased; letter-spacing: -0.2px; }
+    /* Phase B: 알림 OFF 빨간 배너 */
+    .notif-off-banner {
+      background: linear-gradient(135deg, #F04452, #C0392B);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(240, 68, 82, 0.3);
+      animation: notifBannerSlide 0.4s ease-out;
+    }
+    .notif-off-banner-inner {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .notif-off-icon { font-size: 22px; flex-shrink: 0; }
+    .notif-off-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .notif-off-text strong { font-size: 14px; font-weight: 800; letter-spacing: -0.2px; }
+    .notif-off-text span { font-size: 12px; opacity: 0.95; line-height: 1.4; }
+    .notif-off-text u { text-decoration: underline; font-weight: 700; }
+    .notif-off-arrow { font-size: 22px; font-weight: 700; opacity: 0.9; flex-shrink: 0; }
+    @keyframes notifBannerSlide {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
     .top-header { background: #E8F2FF; padding: 36px 24px 40px; position: relative; overflow: hidden; }
     .top-header::before { content: ''; position: absolute; top: -60px; right: -50px; width: 200px; height: 200px; border-radius: 50%; background: rgba(49,130,246,0.10); }
     .top-header::after { content: ''; position: absolute; bottom: -50px; left: -40px; width: 140px; height: 140px; border-radius: 50%; background: rgba(124,92,250,0.08); }
@@ -416,6 +443,18 @@
     </div>
   </div>
 </div>
+<!-- Phase B: 알림 OFF 상태 빨간 배너 (가입자에게만 표시) -->
+<div class="notif-off-banner" id="notifOffBanner" style="display:none;" onclick="handleNotifBannerClick()">
+  <div class="notif-off-banner-inner">
+    <span class="notif-off-icon">🔕</span>
+    <div class="notif-off-text">
+      <strong>알림이 꺼져 있어요</strong>
+      <span>학교 공지·일정을 못 받고 있어요 · <u>설정하기</u></span>
+    </div>
+    <span class="notif-off-arrow">›</span>
+  </div>
+</div>
+
 <!-- 메인 UI -->
 <div class="top-header">
   <div class="top-header-inner">
@@ -946,10 +985,26 @@
     setTimeout(() => t.classList.remove('show'), 3500);
   }
 
+  // Phase B: 알림 OFF 배너 클릭 핸들러 — 알림 받기 버튼으로 스크롤 + 강조
+  window.handleNotifBannerClick = function() {
+    const btn = document.getElementById('subscribeBtn');
+    if (!btn) return;
+    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 빨간 테두리 깜빡임 효과
+    btn.style.transition = 'box-shadow 0.3s';
+    btn.style.boxShadow = '0 0 0 4px #FF3B30';
+    setTimeout(() => { btn.style.boxShadow = '0 0 0 8px rgba(255,59,48,0.2)'; }, 400);
+    setTimeout(() => { btn.style.boxShadow = ''; }, 2200);
+  };
+
   // ============ 알림 상태 ============
   function updateStatus(subscribed) {
     const dot = document.getElementById('statusDot'), text = document.getElementById('statusText'), sub = document.getElementById('statusSub');
     const subBtn = document.getElementById('subscribeBtn'), unsubBtn = document.getElementById('unsubscribeBtn');
+    const banner = document.getElementById('notifOffBanner');
+    // Phase B: 알림 OFF 배너 — 가입한 사용자가 알림 권한 없을 때만 표시
+    const hasUserInfo = !!(JSON.parse(localStorage.getItem('userInfo') || '{}').category);
+    if (banner) banner.style.display = (!subscribed && hasUserInfo) ? 'block' : 'none';
     if (subscribed) {
       dot.classList.add('active'); text.textContent = '알림 수신 중 ✅';
       sub.textContent = '공지사항 알림을 받을 준비가 되었습니다';
