@@ -1034,6 +1034,7 @@
             <option value="graduate">🎉 졸업생</option>
             <option value="prospect">🌱 예비 신입생</option>
             <option value="company">🏢 전담인력</option>
+            <option value="unsubscribed">🔕 알림 미구독자만</option>
             <option value="trash">🗑️ 휴지통</option>
           </select>
           <select class="filter-select" id="memberSortBy" onchange="renderMembers()">
@@ -2333,6 +2334,22 @@
         else if (u.category === 'company') cat.company++;
         else cat.other++;
       });
+      // Phase C: 알림 구독률 (휴지통 제외)
+      const activeUsers = users.filter(u => !u.deleted);
+      const subscribedUsers = activeUsers.filter(u => u.oneSignalId);
+      const subRate = activeUsers.length > 0 ? (subscribedUsers.length / activeUsers.length * 100).toFixed(0) : 0;
+      // 카테고리별 구독률
+      const subByCat = {};
+      ['student', 'graduate', 'prospect', 'company'].forEach(c => {
+        const list = activeUsers.filter(u => u.category === c);
+        const subbed = list.filter(u => u.oneSignalId);
+        subByCat[c] = {
+          total: list.length,
+          subbed: subbed.length,
+          missing: list.length - subbed.length,
+          pct: list.length > 0 ? (subbed.length / list.length * 100).toFixed(0) : 0
+        };
+      });
       // 학년별 분포 (재학생)
       const deptCount = {};
       users.filter(u => u.category === 'student').forEach(u => {
@@ -2397,11 +2414,36 @@
           </div>
         </div>`;
       }).join('');
+      // Phase C: 구독률 카드 색상 — 80% 이상 초록, 50~80% 주황, 50% 미만 빨강
+      const subColor = subRate >= 80 ? 'linear-gradient(135deg,#10b981,#059669)'
+                     : subRate >= 50 ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+                     : 'linear-gradient(135deg,#ef4444,#dc2626)';
+      // 카테고리별 구독률 막대
+      const catSubBars = ['student', 'graduate', 'prospect', 'company'].filter(c => subByCat[c].total > 0).map(c => {
+        const d = subByCat[c];
+        const color = d.pct >= 80 ? '#10b981' : d.pct >= 50 ? '#f59e0b' : '#ef4444';
+        const label = c === 'student' ? '🎓 재학생' : c === 'graduate' ? '🎉 졸업생' : c === 'prospect' ? '🌱 예비신입생' : '🏢 전담인력';
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>${label}</span>
+            <span><b>${d.subbed}/${d.total}</b>명 (${d.pct}%)${d.missing > 0 ? ` <span style="color:#dc2626;">· ❗ 미구독 ${d.missing}명</span>` : ''}</span>
+          </div>
+          <div style="background:#e4eaf4;height:8px;border-radius:4px;overflow:hidden;">
+            <div style="background:${color};height:100%;width:${d.pct}%;transition:width 0.3s;"></div>
+          </div>
+        </div>`;
+      }).join('');
+
       document.getElementById('statsContent').innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;">
           <div style="background:linear-gradient(135deg,#2196f3,#1976d2);color:white;padding:14px;border-radius:12px;">
             <div style="font-size:11px;opacity:0.9;">총 가입자</div>
             <div style="font-size:24px;font-weight:800;">${totalUsers}</div>
+          </div>
+          <div style="background:${subColor};color:white;padding:14px;border-radius:12px;">
+            <div style="font-size:11px;opacity:0.9;">🔔 알림 구독률</div>
+            <div style="font-size:24px;font-weight:800;">${subRate}%</div>
+            <div style="font-size:10px;opacity:0.85;margin-top:2px;">${subscribedUsers.length}/${activeUsers.length}명</div>
           </div>
           <div style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:14px;border-radius:12px;">
             <div style="font-size:11px;opacity:0.9;">7일 신규</div>
@@ -2416,6 +2458,12 @@
             <div style="font-size:24px;font-weight:800;">${avgRespHours}</div>
           </div>
         </div>
+        ${catSubBars ? `
+        <div style="background:#fef3c7;padding:16px;border-radius:12px;margin-bottom:14px;border-left:4px solid #f59e0b;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;color:#92400e;">🔔 카테고리별 알림 구독률</div>
+          <div style="font-size:11.5px;color:#7a5800;margin-bottom:12px;">미구독자는 가입은 했지만 알림 권한이 없어요 (iOS PWA 미설치·권한 거부 등)</div>
+          ${catSubBars}
+        </div>` : ''}
         <div style="background:#f4f6fb;padding:16px;border-radius:12px;margin-bottom:14px;">
           <div style="font-size:14px;font-weight:700;margin-bottom:12px;">👥 사용자 카테고리 분포</div>
           ${catBars || '<div style="font-size:13px;color:#718096;">데이터 없음</div>'}
@@ -3917,6 +3965,9 @@
     let list;
     if (filter === 'trash') {
       list = trashMembers;
+    } else if (filter === 'unsubscribed') {
+      // Phase C: 알림 미구독자만 (활성 사용자 중 oneSignalId 없음)
+      list = activeMembers.filter(m => !m.oneSignalId);
     } else {
       list = filter === 'all' ? activeMembers : activeMembers.filter(m => m.category === filter);
     }
@@ -3959,7 +4010,9 @@
     autoCleanMemberTrash();
 
     if (filtered.length === 0) {
-      const msg = isTrashView ? '🗑️ 휴지통이 비어있어요' : '검색 결과가 없거나, 해당 카테고리 가입자가 없어요';
+      const msg = isTrashView ? '🗑️ 휴지통이 비어있어요'
+                : filter === 'unsubscribed' ? '🎉 모든 활성 가입자가 알림을 받고 있어요!'
+                : '검색 결과가 없거나, 해당 카테고리 가입자가 없어요';
       document.getElementById('memberList').innerHTML = `<div class="c-loading">${msg}</div>`;
       return;
     }
