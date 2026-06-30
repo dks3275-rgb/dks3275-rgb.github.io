@@ -276,6 +276,60 @@
     margin: 0 2px;
   }
 
+  /* ============ iOS 시각 가이드 (Phase A) ============ */
+  .ios-guide-header {
+    background: linear-gradient(135deg, #007AFF, #0051D5);
+    color: white;
+    padding: 16px 18px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .ios-guide-header strong { font-size: 16px; display:block; margin-bottom: 4px; }
+  .ios-step-big {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 16px;
+    background: #f5f9ff;
+    border: 2px solid #d6e8ff;
+    border-radius: 16px;
+    margin-bottom: 12px;
+  }
+  .ios-step-num {
+    width: 38px; height: 38px;
+    background: #007AFF; color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900;
+    flex-shrink: 0;
+  }
+  .ios-step-visual {
+    flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    min-width: 80px;
+  }
+  .ios-arrow-here {
+    font-size: 11px; font-weight: 800; color: #FF3B30;
+    background: #FFF0EE; padding: 3px 8px; border-radius: 10px;
+  }
+  .ios-step-text { flex: 1; min-width: 0; }
+  .ios-step-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 4px; line-height: 1.3; }
+  .ios-step-desc { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+  .ios-step-desc b { color: #FF3B30; }
+  .ios-trouble {
+    background: #fff8e6; border-left: 3px solid #ffb800;
+    padding: 12px 14px; border-radius: 0 10px 10px 0;
+    font-size: 12px; color: #7a5800; line-height: 1.6; margin-top: 4px;
+  }
+  .ios-share-btn-mock {
+    background: white; border: 2.5px solid #007AFF; border-radius: 8px;
+    padding: 6px; display: inline-flex; align-items: center; justify-content: center;
+  }
+
   /* ============ 하단 CTA ============ */
   .cta-section {
     background: linear-gradient(135deg, #059669, #047857);
@@ -389,28 +443,64 @@
       <button class="copy-url-btn" onclick="copyUrl()">📋 주소 복사하기</button>
     </div>
 
-    <!-- iOS 가이드 -->
-    <div class="step-list" id="stepsIOS" style="display:none;">
-      <div class="step-card">
-        <div class="step-number">1</div>
-        <div class="step-content">
-          <div class="step-title">하단 공유 버튼 누르기</div>
-          <div class="step-desc">화면 하단 가운데의 <span class="key">⬆️</span> 공유 버튼을 눌러주세요</div>
+    <!-- iOS 시각 가이드 (Phase A) -->
+    <div id="stepsIOS" style="display:none;">
+      <div class="ios-guide-header">
+        <strong>📱 아이폰 설치 (3단계)</strong>
+        사파리에서 아래 그림처럼 진행해주세요
+      </div>
+
+      <!-- 단계 1: 공유 버튼 -->
+      <div class="ios-step-big">
+        <div class="ios-step-num">1</div>
+        <div class="ios-step-visual">
+          <div class="ios-share-btn-mock">
+            <svg width="34" height="44" viewBox="0 0 34 44" fill="none">
+              <rect x="3" y="18" width="28" height="23" rx="3" stroke="#007AFF" stroke-width="2.5"/>
+              <path d="M17 4 L17 28 M9 12 L17 4 L25 12" stroke="#007AFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="ios-arrow-here">👆 이 버튼!</div>
+        </div>
+        <div class="ios-step-text">
+          <div class="ios-step-title">공유 버튼 누르기</div>
+          <div class="ios-step-desc">화면 <b>하단 가운데</b>에 있어요<br>(주소창 옆 또는 아래쪽)</div>
         </div>
       </div>
-      <div class="step-card">
-        <div class="step-number">2</div>
-        <div class="step-content">
-          <div class="step-title">'홈 화면에 추가' 선택</div>
-          <div class="step-desc">메뉴에서 <span class="hl">'홈 화면에 추가'</span>를 찾아 눌러주세요</div>
+
+      <!-- 단계 2: 홈 화면에 추가 -->
+      <div class="ios-step-big">
+        <div class="ios-step-num">2</div>
+        <div class="ios-step-visual">
+          <div style="background:white;border:2px solid #007AFF;border-radius:10px;padding:8px 10px;display:inline-flex;align-items:center;gap:6px;">
+            <span style="font-size:20px;color:#007AFF;">➕</span>
+            <span style="font-size:12px;font-weight:700;color:#007AFF;white-space:nowrap;">홈 화면에 추가</span>
+          </div>
+          <div class="ios-arrow-here">👆 이 항목!</div>
+        </div>
+        <div class="ios-step-text">
+          <div class="ios-step-title">'홈 화면에 추가' 선택</div>
+          <div class="ios-step-desc">메뉴를 <b>아래로 스크롤</b>하다 보면 보여요</div>
         </div>
       </div>
-      <div class="step-card">
-        <div class="step-number">3</div>
-        <div class="step-content">
-          <div class="step-title">오른쪽 위 '추가' 버튼</div>
-          <div class="step-desc">앱 이름 확인 후 오른쪽 위 <span class="key">추가</span> 버튼을 누르면 끝!</div>
+
+      <!-- 단계 3: 추가 -->
+      <div class="ios-step-big">
+        <div class="ios-step-num">3</div>
+        <div class="ios-step-visual">
+          <div style="background:#007AFF;color:white;padding:9px 22px;border-radius:8px;font-weight:800;font-size:14px;">추가</div>
+          <div class="ios-arrow-here">👆 이 버튼!</div>
         </div>
+        <div class="ios-step-text">
+          <div class="ios-step-title">'추가' 버튼 누르기</div>
+          <div class="ios-step-desc">오른쪽 위 <b>추가</b> 버튼<br>→ 홈 화면에 아이콘 생김 ✅</div>
+        </div>
+      </div>
+
+      <!-- 트러블슈팅 -->
+      <div class="ios-trouble">
+        💡 <b>공유 버튼이 안 보여요?</b> → 화면을 위/아래로 스와이프하면 사파리 도구창이 나타나요<br>
+        💡 <b>'홈 화면에 추가'가 없어요?</b> → 사파리가 아닌 다른 앱(카카오톡·크롬 등)에서 들어왔을 수 있어요. 위의 "Safari로 열기"를 먼저 해주세요
       </div>
     </div>
 
@@ -578,7 +668,7 @@
     if (inAppBrowsers.includes(browser)) {
       showBrowserWarning(device, browser);
       // 인앱 브라우저에서는 가이드도 함께 표시
-      if (device === 'ios') document.getElementById('stepsIOS').style.display = 'flex';
+      if (device === 'ios') document.getElementById('stepsIOS').style.display = 'block';
       else if (device === 'android') { document.getElementById('apkSection').style.display='block'; document.getElementById('stepsAndroid').style.display = 'flex'; }
       return;
     }
@@ -594,13 +684,13 @@
     // iOS 다른 브라우저 (Chrome for iOS 등)
     if (browser === 'ios-other') {
       showBrowserWarning(device, browser);
-      document.getElementById('stepsIOS').style.display = 'flex';
+      document.getElementById('stepsIOS').style.display = 'block';
       return;
     }
 
     // 올바른 브라우저 (Safari on iOS, Chrome on Android)
     if (device === 'ios') {
-      document.getElementById('stepsIOS').style.display = 'flex';
+      document.getElementById('stepsIOS').style.display = 'block';
       showStatusMessage('info', '✅ Safari로 접속하셨네요! 아래 안내대로 설치해주세요');
     } else if (device === 'android') {
       document.getElementById('apkSection').style.display = 'block';
