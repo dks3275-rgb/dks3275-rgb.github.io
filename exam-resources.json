@@ -1,15 +1,7 @@
 [
   {
     "id": "ptech_L3_시행자료",
-    "department": "ptech1",
-    "title": "[시행자료] 호텔식음료서비스 L3",
-    "description": "호텔식음료서비스 외부평가 시행자료 (지필·면접 평가방법, 합격기준 안내)",
-    "fileUrl": "files/ptech_L3_시행자료.pdf",
-    "type": "pdf"
-  },
-  {
-    "id": "ptech_L3_시행자료2",
-    "department": "ptech2",
+    "department": "ptech",
     "title": "[시행자료] 호텔식음료서비스 L3",
     "description": "호텔식음료서비스 외부평가 시행자료 (지필·면접 평가방법, 합격기준 안내)",
     "fileUrl": "files/ptech_L3_시행자료.pdf",
