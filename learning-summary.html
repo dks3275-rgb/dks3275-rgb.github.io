@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>학습요약 · AU 일학습병행</title>
+<title>학습내용 요약 · AU 일학습병행</title>
 <script src="device-check.js" data-auto-block></script>
 <script src="dark-mode.js"></script>
 <meta name="theme-color" content="#FFFFFF" />
@@ -98,8 +98,8 @@
 <body>
 <div class="header">
   <a href="index.html" class="home-btn">←</a>
-  <div class="header-badge">학습요약</div>
-  <h1 id="pageTitle">학습활동 요약 도우미</h1>
+  <div class="header-badge">학습내용 요약</div>
+  <h1 id="pageTitle">학습내용 요약 살펴보기</h1>
 </div>
 
 <div class="container">
@@ -108,10 +108,10 @@
   <!-- Step 1: 학과 선택 -->
   <div id="step-dept">
     <div class="intro-banner">
-      <div class="intro-banner-title">📝 매월 학습활동보고서 작성 도우미</div>
+      <div class="intro-banner-title">📖 능력단위별 학습내용 요약</div>
       <div class="intro-banner-desc">
-        HRD-Net에 입력할 학습활동 요약 문장을 손쉽게 생성합니다.<br>
-        학과 → 능력단위 → 주차를 선택하고, <b>"새로 뽑기"</b>를 누르면 랜덤 2문장이 나와요.
+        이번 달 학습한 능력단위의 핵심 내용을 짧은 문장으로 다시 살펴볼 수 있어요.<br>
+        학과 → 능력단위 → 주차를 선택하고 <b>"새로 뽑기"</b>를 누르면 요약 문장이 나옵니다.
       </div>
     </div>
     <div class="section-title">학과를 선택하세요</div>
@@ -122,14 +122,14 @@
   <!-- Step 2: 능력단위 선택 -->
   <div id="step-unit" style="display:none;">
     <div class="section-title" id="unitTitle">능력단위를 선택하세요</div>
-    <div class="section-desc">이번 달 학습한 능력단위를 골라주세요.</div>
+    <div class="section-desc">복습하고 싶은 능력단위를 골라주세요.</div>
     <div class="unit-grid" id="unitGrid"></div>
   </div>
 
   <!-- Step 3: 주차 선택 -->
   <div id="step-week" style="display:none;">
     <div class="section-title" id="weekTitle">주차를 선택하세요</div>
-    <div class="section-desc">해당 능력단위에서 몇 주차 내용을 요약하시나요?</div>
+    <div class="section-desc">해당 능력단위의 몇 주차 내용을 살펴보시겠어요?</div>
     <div class="week-grid" id="weekGrid"></div>
   </div>
 
@@ -142,9 +142,9 @@
       <button class="btn-primary" onclick="drawNew()">🔄 새로 뽑기</button>
     </div>
     <div class="tip-card">
-      <div class="tip-card-title">💡 작성 TIP</div>
+      <div class="tip-card-title">💡 복습 TIP</div>
       <div class="tip-card-desc">
-        각 문장은 학습안내서에 기반한 요약 예시입니다. 그대로 사용해도 되지만, 본인의 학습 경험을 조금 덧붙이면 더 자연스럽습니다.
+        각 문장은 학습안내서의 핵심 내용을 짧게 정리한 요약입니다. 배운 내용을 다시 떠올려보고, 잘 기억나지 않는 부분은 학습안내서 원문을 다시 살펴보세요.
       </div>
     </div>
   </div>
