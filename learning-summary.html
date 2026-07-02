@@ -138,7 +138,7 @@
     <div class="result-context" id="resultContext"></div>
     <div class="sentence-list" id="sentenceList"></div>
     <div class="action-row">
-      <button class="btn-secondary" onclick="copyAll()">📋 전체 복사</button>
+      <button class="btn-secondary" onclick="copyAll()">📋 복사</button>
       <button class="btn-primary" onclick="drawNew()">🔄 새로 뽑기</button>
     </div>
     <div class="tip-card">
@@ -246,11 +246,11 @@ function selectWeek(weekName) {
   showStep('result');
 }
 
-// 랜덤 2문장 뽑기
+// 랜덤 1문장 뽑기
 function drawNew() {
   const week = allData[currentDept].units[currentUnit].weeks[currentWeek];
   const sentences = week.sentences || [];
-  currentSentences = shuffle(sentences).slice(0, 2);
+  currentSentences = shuffle(sentences).slice(0, 1);
 
   // 컨텍스트 표시
   const deptLabel = allData[currentDept].label.split(' ')[0] + ' ' + (allData[currentDept].label.split(' ')[1] || '');
