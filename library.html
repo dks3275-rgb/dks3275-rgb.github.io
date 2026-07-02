@@ -263,14 +263,66 @@
     window._currentSubCategory = null;
     // 재학생에게만 상단에 "학습요약 AI" 진입 배너 노출
     const summaryBanner = (userCategory === 'student')
-      ? `<a href="learning-summary.html" style="grid-column: 1 / -1; text-decoration: none;">
-           <div class="category-card" style="background: linear-gradient(135deg,#E8F2FF 0%,#F0EDFF 100%); border-color: transparent; text-align: left; display: flex; align-items: center; gap: 14px; padding: 18px 20px;">
-             <div style="width:44px; height:44px; border-radius:12px; background:#FFFFFF; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0;">📖</div>
-             <div style="flex:1; min-width:0;">
-               <div style="font-size:14.5px; font-weight:800; color:#1B64DA; margin-bottom:3px; letter-spacing:-0.3px;">학습내용 요약</div>
-               <div style="font-size:11.5px; color:#4E5968; letter-spacing:-0.2px;">능력단위별 학습 내용을 짧은 문장으로 다시 살펴보기</div>
+      ? `<style>
+           @keyframes summaryShine {
+             0% { background-position: -200% 0; }
+             100% { background-position: 200% 0; }
+           }
+           @keyframes summaryPulse {
+             0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(49,130,246,0.25); }
+             50% { transform: scale(1.02); box-shadow: 0 6px 22px rgba(49,130,246,0.35); }
+           }
+           .summary-banner {
+             grid-column: 1 / -1;
+             text-decoration: none;
+             display: block;
+             position: relative;
+             animation: summaryPulse 2.5s ease-in-out infinite;
+           }
+           .summary-banner-card {
+             background: linear-gradient(135deg,#3182F6 0%,#5D5FEF 50%,#8B5CF6 100%);
+             border-radius: 20px;
+             padding: 22px 22px;
+             display: flex;
+             align-items: center;
+             gap: 16px;
+             position: relative;
+             overflow: hidden;
+             border: none;
+           }
+           .summary-banner-card::before {
+             content: '';
+             position: absolute;
+             top: 0; left: 0; right: 0; bottom: 0;
+             background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+             background-size: 200% 100%;
+             animation: summaryShine 3s ease-in-out infinite;
+             pointer-events: none;
+           }
+           .summary-banner-badge {
+             position: absolute;
+             top: -6px;
+             right: 16px;
+             background: #FFE066;
+             color: #7A5A00;
+             font-size: 10px;
+             font-weight: 800;
+             padding: 3px 8px;
+             border-radius: 100px;
+             letter-spacing: 0.3px;
+             box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+             z-index: 2;
+           }
+         </style>
+         <a href="learning-summary.html" class="summary-banner">
+           <span class="summary-banner-badge">✨ NEW</span>
+           <div class="summary-banner-card">
+             <div style="width:52px; height:52px; border-radius:14px; background:rgba(255,255,255,0.25); backdrop-filter: blur(8px); display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0; position:relative; z-index:1;">📖</div>
+             <div style="flex:1; min-width:0; position:relative; z-index:1;">
+               <div style="font-size:16px; font-weight:800; color:#FFFFFF; margin-bottom:4px; letter-spacing:-0.3px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">학습내용 요약 AI</div>
+               <div style="font-size:12.5px; color:rgba(255,255,255,0.92); letter-spacing:-0.2px; line-height:1.4;">능력단위별 학습 내용을 짧은 문장으로 살펴보기</div>
              </div>
-             <div style="color:#8B95A1; font-size:20px; flex-shrink:0;">›</div>
+             <div style="color:#FFFFFF; font-size:24px; flex-shrink:0; font-weight:600; position:relative; z-index:1;">›</div>
            </div>
          </a>`
       : '';
