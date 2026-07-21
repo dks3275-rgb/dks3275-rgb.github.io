@@ -94,6 +94,25 @@ body { font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,
 .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
 .toast.error { background:var(--red); }
 .toast.success { background:var(--green); }
+
+/* 개인정보 동의 섹션 */
+.consent-section { background:#F8F9FA; border:1px solid #E5E8EB; border-radius:12px; padding:16px; margin-top:20px; margin-bottom:16px; }
+.consent-title { font-size:13.5px; font-weight:700; color:var(--text); margin-bottom:12px; letter-spacing:-0.3px; }
+.consent-item { margin-bottom:10px; }
+.consent-item:last-child { margin-bottom:0; }
+.consent-checkbox-row { display:flex; align-items:flex-start; gap:8px; }
+.consent-checkbox-row input[type="checkbox"] { width:18px; height:18px; margin-top:1px; flex-shrink:0; accent-color:var(--blue); cursor:pointer; }
+.consent-label { flex:1; font-size:13px; color:var(--text); line-height:1.45; cursor:pointer; letter-spacing:-0.2px; }
+.consent-label .tag-req { display:inline-block; background:#FFE5E5; color:var(--red); font-size:10.5px; font-weight:700; padding:2px 6px; border-radius:4px; margin-right:4px; }
+.consent-label .tag-opt { display:inline-block; background:#E8F2FF; color:var(--blue); font-size:10.5px; font-weight:700; padding:2px 6px; border-radius:4px; margin-right:4px; }
+.consent-toggle { background:none; border:none; color:var(--text2); font-size:11.5px; padding:4px 0; cursor:pointer; margin-left:26px; margin-top:2px; font-family:inherit; }
+.consent-toggle:hover { color:var(--blue); }
+.consent-details { display:none; margin-left:26px; margin-top:8px; padding:12px; background:white; border-radius:8px; border:1px solid #E5E8EB; font-size:12px; color:var(--text2); line-height:1.6; }
+.consent-details.open { display:block; }
+.consent-details table { width:100%; border-collapse:collapse; }
+.consent-details td { padding:4px 6px; vertical-align:top; }
+.consent-details td:first-child { font-weight:600; color:var(--text); white-space:nowrap; width:70px; }
+.consent-notice { background:#FFFBEB; border:1px solid #FEF08A; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#78560A; line-height:1.5; margin-top:12px; }
 </style>
 </head>
 <body>
@@ -306,10 +325,66 @@ function renderForm(existing) {
     </div>
   </div>`;
 
+  // === 개인정보 동의 섹션 ===
+  const prevConsent = existing?.consent || {};
+  html += `
+  <div class="consent-section">
+    <div class="consent-title">📋 개인정보 수집·이용 동의</div>
+
+    <div class="consent-item">
+      <div class="consent-checkbox-row">
+        <input type="checkbox" id="consentPrivacy" ${prevConsent.privacy ? 'checked' : ''} />
+        <label class="consent-label" for="consentPrivacy">
+          <span class="tag-req">필수</span>개인정보 수집·이용에 동의합니다
+        </label>
+      </div>
+      <button type="button" class="consent-toggle" data-target="privacyDetail">상세 보기 ▾</button>
+      <div class="consent-details" id="privacyDetail">
+        <table>
+          <tr><td>수집 항목</td><td>이름, 연락처, 주소, 학교 정보, 희망 기업, 기타 의견</td></tr>
+          <tr><td>수집 목적</td><td>일학습병행 참여 상담 및 학습기업 매칭</td></tr>
+          <tr><td>보유 기간</td><td>처리 목적 달성 시까지 (최대 3년)</td></tr>
+        </table>
+        <div style="margin-top:6px; color:var(--text3); font-size:11px;">※ 동의를 거부할 수 있으나, 미동의 시 신청서 제출이 제한됩니다.</div>
+      </div>
+    </div>
+
+    <div class="consent-item">
+      <div class="consent-checkbox-row">
+        <input type="checkbox" id="consentMarketing" ${prevConsent.marketing ? 'checked' : ''} />
+        <label class="consent-label" for="consentMarketing">
+          <span class="tag-opt">선택</span>마케팅·알림 수신에 동의합니다
+        </label>
+      </div>
+      <button type="button" class="consent-toggle" data-target="marketingDetail">상세 보기 ▾</button>
+      <div class="consent-details" id="marketingDetail">
+        <table>
+          <tr><td>수집 항목</td><td>연락처, 이메일</td></tr>
+          <tr><td>수집 목적</td><td>모집 일정·설명회·이벤트 안내</td></tr>
+          <tr><td>보유 기간</td><td>동의 철회 시까지</td></tr>
+        </table>
+        <div style="margin-top:6px; color:var(--text3); font-size:11px;">※ 동의를 거부하셔도 신청 접수는 가능합니다.</div>
+      </div>
+    </div>
+
+    <div class="consent-notice">
+      💡 본 신청서는 <b>사전 상담 목적</b>으로 활용됩니다. 정식 입학 지원 시에는 학교 소정 양식의 입학원서와 개인정보 동의서를 별도로 작성하셔야 합니다.
+    </div>
+  </div>`;
+
   // === 제출 버튼 ===
   html += `<button class="submit-btn" id="submitBtn">${existing ? '✏️ 수정해서 다시 제출' : '📝 제출하기'}</button>`;
 
   document.getElementById('mainContainer').innerHTML = html;
+
+  // 상세 보기 토글 핸들러
+  document.querySelectorAll('.consent-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.getAttribute('data-target'));
+      const isOpen = target.classList.toggle('open');
+      btn.textContent = isOpen ? '상세 접기 ▴' : '상세 보기 ▾';
+    });
+  });
 }
 
 function escapeAttr(s) {
@@ -441,11 +516,22 @@ async function submitApplication(db, existing, app, selectedTrack, selectedDept)
   if (c1 && c3 && c1 === c3) { showToast('1·3순위 기업이 같아요', 'error'); return; }
   if (c2 && c3 && c2 === c3) { showToast('2·3순위 기업이 같아요', 'error'); return; }
 
+  // 개인정보 동의 검증
+  const consentPrivacy = document.getElementById('consentPrivacy')?.checked || false;
+  const consentMarketing = document.getElementById('consentMarketing')?.checked || false;
+  if (!consentPrivacy) {
+    showToast('개인정보 수집·이용에 동의해주세요 (필수)', 'error');
+    document.getElementById('consentPrivacy')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
   // 제출
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
   submitBtn.textContent = '제출 중...';
 
+  const nowIso = new Date().toISOString();
+  const prevConsent = existing?.consent || {};
   const data = {
     deviceId,
     userId: deviceId,
@@ -455,6 +541,12 @@ async function submitApplication(db, existing, app, selectedTrack, selectedDept)
     ...extraFields,
     choices: [c1, c2, c3],
     extraWish,
+    consent: {
+      privacy: consentPrivacy,
+      privacyAt: prevConsent.privacyAt || nowIso,
+      marketing: consentMarketing,
+      marketingAt: consentMarketing ? (prevConsent.marketingAt || nowIso) : null
+    },
     createdAt: existing?.createdAt || Date.now(),
     updatedAt: Date.now(),
     serverUpdatedAt: serverTimestamp()
