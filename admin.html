@@ -4611,6 +4611,33 @@
           ${choices.map((c, i) => `<div>${i+1}순위. ${escapeHtmlSafe(c)}</div>`).join('')}
           ${a.extraWish ? `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #ddd;color:#666;"><b>기타 희망:</b> ${escapeHtmlSafe(a.extraWish)}</div>` : ''}
         </div>
+        ${(() => {
+          const c = a.consent || {};
+          const privacyOk = c.privacy === true;
+          const marketingOk = c.marketing === true;
+          const privacyStyle = privacyOk
+            ? 'background:#D1FAE5;color:#065F46;'
+            : 'background:#FEE2E2;color:#991B1B;';
+          const marketingStyle = marketingOk
+            ? 'background:#DBEAFE;color:#1E40AF;'
+            : 'background:#F1F3F5;color:#6B7280;';
+          const fmt = iso => {
+            if (!iso) return '';
+            try { return new Date(iso).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}); }
+            catch(e) { return ''; }
+          };
+          const privacyDate = fmt(c.privacyAt);
+          const marketingDate = fmt(c.marketingAt);
+          return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #EEE;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px;">
+            <span style="color:#888;font-weight:600;">📋 동의</span>
+            <span style="${privacyStyle}padding:2px 8px;border-radius:100px;font-weight:600;">
+              ${privacyOk ? '✓' : '✗'} 개인정보${privacyDate ? ' · ' + privacyDate : ''}
+            </span>
+            <span style="${marketingStyle}padding:2px 8px;border-radius:100px;font-weight:600;">
+              ${marketingOk ? '✓' : '✗'} 마케팅${marketingOk && marketingDate ? ' · ' + marketingDate : ''}
+            </span>
+          </div>`;
+        })()}
       </div>`;
     });
     html += '</div>';
@@ -4619,9 +4646,11 @@
 
   function downloadApplicationsCSV() {
     if (_applications.length === 0) { alert('신청서가 없어요'); return; }
-    const rows = [['신청일','트랙','학과','이름','연락처','이메일','학번','고등학교','전공과','주소','거주계획','1순위','2순위','3순위','기타 희망']];
+    const rows = [['신청일','트랙','학과','이름','연락처','이메일','학번','고등학교','전공과','주소','거주계획','1순위','2순위','3순위','기타 희망','개인정보동의','마케팅동의','동의일시']];
     _applications.forEach(a => {
       const choices = a.choices || ['','',''];
+      const c = a.consent || {};
+      const consentDate = c.privacyAt ? new Date(c.privacyAt).toLocaleString('ko-KR') : '';
       rows.push([
         a.createdAt ? new Date(a.createdAt).toLocaleString('ko-KR') : '',
         APPLY_TRACK_NAME[a.track] || '',
@@ -4637,7 +4666,10 @@
         choices[0] || '',
         choices[1] || '',
         choices[2] || '',
-        a.extraWish || ''
+        a.extraWish || '',
+        c.privacy === true ? 'Y' : 'N',
+        c.marketing === true ? 'Y' : 'N',
+        consentDate
       ]);
     });
     const csv = '﻿' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
