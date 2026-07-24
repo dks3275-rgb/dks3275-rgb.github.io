@@ -4056,6 +4056,55 @@
       return;
     }
 
+    // 미구독자 전용 상세 카드
+    if (filter === 'unsubscribed') {
+      const now = Date.now();
+      document.getElementById('memberList').innerHTML =
+        `<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:12.5px;line-height:1.6;">
+           ℹ️ <b>아래 가입자들은 알림을 받지 못하는 상태입니다.</b><br>
+           가입은 했지만 알림 권한이 없어요. 아래 연락처로 안내해주세요.<br>
+           <span style="color:#8a6d00;">• iOS(아이폰): 홈 화면에 앱 설치 후 알림 허용 필요<br>
+           • 안드로이드: 알림 권한 거부했거나 브라우저에서만 접속</span>
+         </div>` +
+        pageItems.map(m => {
+          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : '🌱 예비 신입생';
+          const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : '#d1fae5';
+          const catTextColor = m.category === 'student' ? '#1565c0' : m.category === 'graduate' ? '#92400e' : m.category === 'company' ? '#5b21b6' : '#065f46';
+          // 부가 정보
+          let subInfo = '';
+          if (m.category === 'student') subInfo = `📚 ${m.grade || '-'}`;
+          else if (m.category === 'graduate') subInfo = `🎓 ${m.dept || '-'} · ${m.graduateYear || '-'}년 졸업`;
+          else if (m.category === 'prospect') subInfo = `🏫 ${m.school || '-'}`;
+          else if (m.category === 'company') subInfo = `🏢 ${m.firm || '-'} · ${m.role || '-'}`;
+          // 가입 경과일
+          const joinTime = m.createdAt || m.updatedAt;
+          const joinDate = joinTime ? new Date(joinTime).toLocaleDateString('ko-KR', {year:'2-digit', month:'2-digit', day:'2-digit'}) : '-';
+          const daysSince = joinTime ? Math.floor((now - joinTime) / (24*60*60*1000)) : null;
+          const daysLabel = daysSince !== null ? `가입 ${daysSince}일째` : '';
+          // 연락처 버튼 (강조)
+          const phoneBtn = m.phone
+            ? `<a href="tel:${m.phone}" style="background:#fee2e2;border:1px solid #f87171;color:#b91c1c;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;">📞 ${m.phone}</a>`
+            : `<span style="background:#f3f4f6;color:#9ca3af;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;">연락처 없음</span>`;
+          return `<div class="consulting-card" style="border-left-color:#dc2626;">
+            <div class="c-top">
+              <div class="c-person">
+                <div class="c-avatar" style="background:#dc2626;">${(m.name||'?').charAt(0)}</div>
+                <div>
+                  <div class="c-name">${m.name || '-'}
+                    <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;background:${catColor};color:${catTextColor};margin-left:2px;">${catLabel}</span>
+                    <span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:100px;background:#fee2e2;color:#b91c1c;margin-left:4px;">🔕 알림 미수신</span>
+                  </div>
+                  <div class="c-dept" style="margin-top:3px;">${subInfo}${subInfo && daysLabel ? ' · ' : ''}${daysLabel ? `<span style="color:#dc2626;">${daysLabel}</span>` : ''}</div>
+                </div>
+              </div>
+              ${phoneBtn}
+            </div>
+            <div class="c-time" style="font-size:10.5px;margin-top:8px;">🕐 가입일: ${joinDate}</div>
+          </div>`;
+        }).join('') + paginationHtml;
+      return;
+    }
+
     const html = pageItems.map(m => {
       const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : '🌱 예비 신입생';
       const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : '#d1fae5';
@@ -4123,7 +4172,7 @@
   function downloadMembersCSV() {
     const rows = getFilteredSortedMembers();
     if (rows.length === 0) { alert('다운로드할 가입자가 없습니다.'); return; }
-    const headers = ['카테고리', '이름', '연락처', '학과/직책', '상세', '가입/수정일시'];
+    const headers = ['카테고리', '이름', '연락처', '학과/직책', '상세', '알림상태', '가입/수정일시'];
     const catLabel = c => c === 'student' ? '재학생' : c === 'graduate' ? '졸업생' : c === 'company' ? '전담인력' : c === 'prospect' ? '예비 신입생' : (c || '');
     const esc = v => {
       const s = String(v == null ? '' : v).replace(/"/g, '""');
@@ -4136,8 +4185,9 @@
       else if (m.category === 'graduate') { deptRole = m.dept || ''; details = `${m.graduateYear || ''}년 졸업 / ${m.workplace || ''}`; }
       else if (m.category === 'prospect') { deptRole = m.interest || ''; details = m.school || ''; }
       else if (m.category === 'company') { deptRole = m.role || ''; details = `${m.firm || ''} / 담당학생: ${m.student || ''}`; }
+      const subStatus = m.oneSignalId ? '알림 수신' : '알림 미수신';
       const updatedAt = m.updatedAt ? new Date(m.updatedAt).toLocaleString('ko-KR') : '';
-      lines.push([catLabel(m.category), m.name, m.phone, deptRole, details, updatedAt].map(esc).join(','));
+      lines.push([catLabel(m.category), m.name, m.phone, deptRole, details, subStatus, updatedAt].map(esc).join(','));
     });
     const csv = '\uFEFF' + lines.join('\r\n'); // UTF-8 BOM (엑셀 한글 호환)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
