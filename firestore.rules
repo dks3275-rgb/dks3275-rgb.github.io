@@ -14,28 +14,36 @@ service cloud.firestore {
     // ── 회원 정보 (민감: 이름·전화번호) ──
     // get(개별 조회)·가입·본인 정보 수정: 공개 (deviceId를 아는 본인만 실질 접근)
     // list(전체 목록)·삭제: 관리자만 → 전화번호 대량 유출 차단
+    // 🔒 2단계: 문서 ID와 deviceId 필드가 일치해야만 쓰기 허용
+    //          → 남의 회원 문서를 임의로 만들거나 덮어쓰는 위조 차단
     match /users/{userId} {
       allow get: if true;
       allow list: if isAdmin();
-      allow create, update: if true;
+      allow create, update: if isAdmin()
+        || request.resource.data.deviceId == userId;
       allow delete: if isAdmin();
     }
 
     // ── 상담 신청 (민감) ──
-    // 사용자가 자기 상담을 deviceId 필터로 조회하는 구조라 read 개방 유지 (v2에서 개선 예정)
-    // 삭제는 관리자만
+    // 사용자가 자기 상담을 deviceId 필터로 조회하는 구조라 read 개방 유지
+    // 🔒 2단계: 일반 사용자는 comments(문의 대화) 추가만 가능
+    //          → 상담 내용·상태·이름 등 기존 기록 변조/훼손 차단
     match /consulting/{id} {
       allow read: if true;
-      allow create, update: if true;
+      allow create: if true;
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comments']);
       allow delete: if isAdmin();
     }
 
     // ── 신청서 (민감: 이름·주소·학교) ──
     // 문서 ID = deviceId. 본인 제출·수정 가능, 전체 목록은 관리자만
+    // 🔒 2단계: 문서 ID와 deviceId 필드 일치 검증
     match /applications/{deviceId} {
       allow get: if true;
       allow list: if isAdmin();
-      allow create, update: if true;
+      allow create, update: if isAdmin()
+        || request.resource.data.deviceId == deviceId;
       allow delete: if isAdmin();
     }
 
