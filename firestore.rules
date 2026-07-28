@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════
+    // 관리자 판별: Firebase Auth 로그인 계정 = 관리자
+    // (이 앱에서 Auth는 관리자 페이지만 사용. 일반 사용자는 로그인 없음)
+    // 계정 관리: Firebase 콘솔 → Authentication → Users
+    // ═══════════════════════════════════════════
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // ── 회원 정보 (민감: 이름·전화번호) ──
+    // get(개별 조회)·가입·본인 정보 수정: 공개 (deviceId를 아는 본인만 실질 접근)
+    // list(전체 목록)·삭제: 관리자만 → 전화번호 대량 유출 차단
+    match /users/{userId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // ── 상담 신청 (민감) ──
+    // 사용자가 자기 상담을 deviceId 필터로 조회하는 구조라 read 개방 유지 (v2에서 개선 예정)
+    // 삭제는 관리자만
+    match /consulting/{id} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // ── 신청서 (민감: 이름·주소·학교) ──
+    // 문서 ID = deviceId. 본인 제출·수정 가능, 전체 목록은 관리자만
+    match /applications/{deviceId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // ── 익명 의견함 ──
+    // 제출만 공개, 열람·삭제는 관리자만
+    match /feedback/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── 관리자 활동 로그 ──
+    match /audit_logs/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── 앱 설정 (관리자 알림 대상 등) ──
+    // apply.html이 admin_targets 문서를 읽어 관리자에게 푸시 발송 → get 공개
+    // 수정은 관리자만 → 알림 대상 바꿔치기 차단
+    match /app_config/{id} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ── 예약 발송 ──
+    match /scheduled_notifications/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── 공지사항: 읽기 공개, 등록·삭제는 관리자만 ──
+    // 사용자 상호작용(댓글·이모지·조회수) 필드만 일반 수정 허용
+    match /notices/{id} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['comments', 'reactions', 'views', 'viewCount', 'readBy']);
+    }
+
+    // ── 자료실: 읽기 공개, 관리는 관리자만 ──
+    match /library/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 취업 정보 ──
+    match /jobs/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 일정 캘린더 ──
+    match /calendar_events/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 학습기업 디렉토리 ──
+    match /companies/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 만족도 조사 설정 ──
+    match /surveyConfig/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 알림 기록 (종 위젯 표시용) ──
+    match /notifications/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 그 외 모든 컬렉션: 관리자만 (기본 잠금) ──
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

@@ -236,10 +236,10 @@
     <div class="auth-icon">🔒</div>
     <div class="auth-title">관리자 로그인</div>
     <div class="auth-sub">AU 일학습병행 관리자 페이지</div>
-    <div class="auth-error" id="authError">아이디 또는 비밀번호가 일치하지 않습니다.</div>
+    <div class="auth-error" id="authError">이메일 또는 비밀번호가 일치하지 않습니다.</div>
     <div class="auth-field">
-      <label class="auth-label" for="authId">아이디</label>
-      <input type="text" id="authId" class="auth-input" placeholder="admin" autocomplete="username" />
+      <label class="auth-label" for="authId">관리자 이메일</label>
+      <input type="email" id="authId" class="auth-input" placeholder="admin@example.com" autocomplete="username" />
     </div>
     <div class="auth-field">
       <label class="auth-label" for="authPw">비밀번호</label>
@@ -252,77 +252,98 @@
 <button class="auth-logout-btn" id="authLogoutBtn" style="display:none;" onclick="adminLogout()">🚪 로그아웃</button>
 <script>
   // ═══════════════════════════════════════════
-  // 관리자 로그인 게이트 (SHA-256 해시 비교)
-  // ⚠️ 클라이언트 사이드 검증 - 진짜 보안은 Firebase Auth + Security Rules 필요
-  // ⚠️ ID/PW 변경: 아래 helper로 새 해시 생성 후 ID_HASH / PW_HASH 교체
-  //    콘솔에서: await adminHashHelper("새비밀번호") 호출 → 결과를 PW_HASH에 붙여넣기
+  // 관리자 로그인 게이트 (Firebase Authentication)
+  // ✅ 서버 측 인증: Firestore 보안 규칙이 request.auth로 관리자를 식별
+  // ✅ 계정 관리: Firebase 콘솔 → Authentication → Users
   // ═══════════════════════════════════════════
   (function(){
-    // 기본값: ID=admin / PW=au2026!
-    const ID_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
-    const PW_HASH = '706defbba41185adb8d6dff623dc4ba1fe43301c696e9b5d6ae8431aa4480174';
     const TOKEN_KEY = 'au_admin_auth';
-    const TOKEN_VALUE = ID_HASH.substring(0, 16) + PW_HASH.substring(0, 16); // 토큰 = 해시 조합
+    // 기존 isAdminAuthed()가 32자 토큰을 검사하므로 32자 고정 토큰 유지 (호환용)
+    const TOKEN_VALUE = 'fbauth-ok-0123456789abcdef012345';
+    const FB_CFG_LOGIN = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
 
-    async function sha256(text) {
-      const buf = new TextEncoder().encode(text);
-      const hash = await crypto.subtle.digest('SHA-256', buf);
-      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    let _authInstance = null;
+    async function getAuthInstance() {
+      if (_authInstance) return _authInstance;
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG_LOGIN);
+      _authInstance = getAuth(app);
+      return _authInstance;
     }
-
-    // 콘솔 헬퍼: 새 비밀번호 해시 생성용
-    window.adminHashHelper = async function(text) {
-      const h = await sha256(text);
-      console.log(`SHA-256("${text}") =\n${h}`);
-      return h;
-    };
 
     function unlock() {
       document.getElementById('authOverlay').style.display = 'none';
       document.body.classList.remove('auth-locked');
       const logoutBtn = document.getElementById('authLogoutBtn');
       if (logoutBtn) logoutBtn.style.display = 'block';
+      sessionStorage.setItem(TOKEN_KEY, TOKEN_VALUE);
+    }
+
+    function lock() {
+      sessionStorage.removeItem(TOKEN_KEY);
+      document.getElementById('authOverlay').style.display = '';
+      document.body.classList.add('auth-locked');
+      const logoutBtn = document.getElementById('authLogoutBtn');
+      if (logoutBtn) logoutBtn.style.display = 'none';
     }
 
     function showError(msg) {
       const errEl = document.getElementById('authError');
-      errEl.textContent = msg || '아이디 또는 비밀번호가 일치하지 않습니다.';
+      errEl.textContent = msg || '이메일 또는 비밀번호가 일치하지 않습니다.';
       errEl.classList.add('show');
       setTimeout(() => errEl.classList.remove('show'), 4000);
     }
 
+    function friendlyAuthError(code) {
+      switch (code) {
+        case 'auth/invalid-email': return '이메일 형식이 올바르지 않습니다.';
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential': return '이메일 또는 비밀번호가 일치하지 않습니다.';
+        case 'auth/too-many-requests': return '시도 횟수 초과. 잠시 후 다시 시도해주세요.';
+        case 'auth/network-request-failed': return '네트워크 오류. 인터넷 연결을 확인해주세요.';
+        default: return '로그인 실패 (' + (code || '알 수 없는 오류') + ')';
+      }
+    }
+
     async function tryLogin() {
       const btn = document.getElementById('authSubmit');
-      const id = document.getElementById('authId').value.trim();
+      const email = document.getElementById('authId').value.trim();
       const pw = document.getElementById('authPw').value.trim();
-      if (!id || !pw) { showError('아이디와 비밀번호를 입력해주세요.'); return; }
+      if (!email || !pw) { showError('이메일과 비밀번호를 입력해주세요.'); return; }
       btn.disabled = true; btn.textContent = '확인 중...';
       try {
-        const [idH, pwH] = await Promise.all([sha256(id), sha256(pw)]);
-        if (idH === ID_HASH && pwH === PW_HASH) {
-          sessionStorage.setItem(TOKEN_KEY, TOKEN_VALUE);
-          unlock();
-        } else {
-          showError();
-          document.getElementById('authPw').value = '';
-          document.getElementById('authPw').focus();
-        }
+        const auth = await getAuthInstance();
+        const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+        await signInWithEmailAndPassword(auth, email, pw);
+        unlock();
       } catch(e) {
-        showError('오류: ' + e.message);
+        showError(friendlyAuthError(e.code));
+        document.getElementById('authPw').value = '';
+        document.getElementById('authPw').focus();
       }
       btn.disabled = false; btn.textContent = '로그인';
     }
 
-    // 이미 인증된 세션이면 바로 통과
-    if (sessionStorage.getItem(TOKEN_KEY) === TOKEN_VALUE) {
-      unlock();
-    } else {
-      // 자동 포커스
-      document.addEventListener('DOMContentLoaded', () => {
-        const idInput = document.getElementById('authId');
-        if (idInput) idInput.focus();
-      });
-    }
+    // 세션 유지: Firebase가 로그인 상태를 기억 → 새로고침해도 자동 로그인
+    (async () => {
+      try {
+        const auth = await getAuthInstance();
+        const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+        onAuthStateChanged(auth, (user) => {
+          if (user) { unlock(); }
+          else {
+            lock();
+            const idInput = document.getElementById('authId');
+            if (idInput) idInput.focus();
+          }
+        });
+      } catch(e) {
+        console.warn('[auth] 초기화 실패:', e);
+        showError('인증 초기화 실패. 새로고침 해주세요.');
+      }
+    })();
 
     // 이벤트 바인딩
     document.addEventListener('DOMContentLoaded', () => {
@@ -336,8 +357,13 @@
     });
 
     // 로그아웃 전역 함수
-    window.adminLogout = function() {
+    window.adminLogout = async function() {
       if (!confirm('로그아웃 하시겠어요?')) return;
+      try {
+        const auth = await getAuthInstance();
+        const { signOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+        await signOut(auth);
+      } catch(e) { console.warn('로그아웃 오류:', e); }
       sessionStorage.removeItem(TOKEN_KEY);
       location.reload();
     };

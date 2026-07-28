@@ -63,31 +63,10 @@
   let companies = [];
   async function load() {
     try {
-      // 학습기업 정보는 users 컬렉션의 company 카테고리 + 별도 companies 컬렉션 결합
-      const [companiesSnap, usersSnap] = await Promise.all([
-        getDocs(collection(db, 'companies')).catch(() => ({ docs: [] })),
-        getDocs(collection(db, 'users'))
-      ]);
-      // companies 컬렉션 우선
-      const direct = companiesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // users의 company 카테고리에서 회사명 정보 추출 (중복 제거)
-      const fromUsers = {};
-      usersSnap.docs.forEach(d => {
-        const u = d.data();
-        if (u.category === 'company' && u.firm) {
-          if (!fromUsers[u.firm]) {
-            fromUsers[u.firm] = {
-              id: 'u_' + d.id,
-              name: u.firm,
-              dept: u.studentDept || u.dept || '',
-              role: u.role || '전담인력',
-              contact: u.role ? u.name + ' (' + u.role + ')' : '',
-              source: 'users'
-            };
-          }
-        }
-      });
-      companies = [...direct, ...Object.values(fromUsers)];
+      // 🔒 보안: companies 컬렉션만 사용 (users 전체 조회 제거 — 개인정보 보호)
+      // 학습기업 추가는 admin에서 companies 컬렉션에 직접 등록
+      const companiesSnap = await getDocs(collection(db, 'companies')).catch(() => ({ docs: [] }));
+      companies = companiesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderCompanies();
     } catch(e) {
       document.getElementById('list').innerHTML = '<div class="empty">⚠️ 불러오기 실패: ' + e.message + '</div>';
