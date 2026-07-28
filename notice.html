@@ -83,13 +83,40 @@
 </div>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, getDocs, orderBy, query, doc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, getDocs, orderBy, query, doc, updateDoc, increment, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const firebaseConfig = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   // 사용자 카테고리 확인 (재학생=student, 전담인력=company, 기타=all)
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
   const userCategory = userInfo.category || 'all';
+
+  // ── 읽음 처리 ──
+  // 공지 상세를 처음 펼칠 때 readBy에 내 deviceId 기록 + 조회수 증가
+  // (deviceId 없으면 = 미가입 상태 → 기록하지 않음)
+  const READ_KEY = 'noticeReadLocal';
+  function getLocalRead() {
+    try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); } catch { return []; }
+  }
+  async function markNoticeRead(noticeId) {
+    const myDeviceId = localStorage.getItem('deviceId');
+    if (!myDeviceId) return;                      // 미가입자는 집계 제외
+    const localRead = getLocalRead();
+    if (localRead.includes(noticeId)) return;     // 이미 기록함 → 중복 쓰기 방지
+    localRead.push(noticeId);
+    localStorage.setItem(READ_KEY, JSON.stringify(localRead));
+    try {
+      await updateDoc(doc(db, 'notices', noticeId), {
+        readBy: arrayUnion(myDeviceId),
+        viewCount: increment(1)
+      });
+    } catch(e) {
+      console.warn('읽음 기록 실패:', e);
+      // 실패 시 로컬 기록 되돌려 다음에 재시도
+      const rollback = getLocalRead().filter(id => id !== noticeId);
+      localStorage.setItem(READ_KEY, JSON.stringify(rollback));
+    }
+  }
 
   // 즐겨찾기 (localStorage)
   const FAV_KEY = 'noticeFavorites';
@@ -150,6 +177,7 @@
     const searchTerm = (document.getElementById('noticeSearch')?.value || '').trim().toLowerCase();
     const filterMode = document.getElementById('noticeFilterSelect')?.value || 'all';
     const favs = getFavorites();
+    const localRead = getLocalRead();
     let items = allNotices.slice();
     if (filterMode === 'favorite') items = items.filter(d => favs.includes(d.id));
     if (searchTerm) {
@@ -171,6 +199,8 @@
         : d.target === 'graduate' ? '<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">졸업생</span>'
         : d.target === 'prospect' ? '<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">예비신입생</span>' : '';
       const pinnedBadge = d.pinned ? '<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">📌 고정</span>' : '';
+      // 안 읽은 공지 표시
+      const unreadBadge = localRead.includes(d.id) ? '' : `<span id="unread-${d.id}" style="font-size:10px;background:#2196f3;color:white;padding:2px 7px;border-radius:5px;margin-left:4px;font-weight:700;">안 읽음</span>`;
       const isFav = favs.includes(d.id);
       const favStar = `<span onclick="toggleFavorite('${d.id}', event)" style="cursor:pointer;font-size:18px;margin-left:auto;user-select:none;color:${isFav ? '#f59e0b' : '#cbd5e0'};" title="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}">${isFav ? '⭐' : '☆'}</span>`;
       // 반응 (이모지 카운터)
@@ -187,10 +217,16 @@
       const card = document.createElement('div');
       card.className = 'notice-card';
       if (d.pinned) card.style.borderColor = '#fca5a5';
-      card.innerHTML = `<div class="notice-top"><span class="notice-badge">공지</span>${pinnedBadge}${targetBadge}<span class="notice-date">${date}</span>${favStar}</div><div class="notice-title">${d.title}</div><div class="notice-preview">${d.content}</div><div class="notice-detail" id="detail-${d.id}"><div class="notice-content">${d.content}</div>${d.images && d.images.length > 0 ? `<div class="notice-images">${d.images.map(url => `<img src="${url}" onclick="window.open('${url}')">`).join('')}</div>` : ''}${d.files && d.files.length > 0 ? `<div class="notice-files">${d.files.map(f => `<a class="notice-file" href="${f.url}" target="_blank">📎 ${f.name}</a>`).join('')}</div>` : ''}${reactionBar}</div>`;
+      card.innerHTML = `<div class="notice-top"><span class="notice-badge">공지</span>${pinnedBadge}${unreadBadge}${targetBadge}<span class="notice-date">${date}</span>${favStar}</div><div class="notice-title">${d.title}</div><div class="notice-preview">${d.content}</div><div class="notice-detail" id="detail-${d.id}"><div class="notice-content">${d.content}</div>${d.images && d.images.length > 0 ? `<div class="notice-images">${d.images.map(url => `<img src="${url}" onclick="window.open('${url}')">`).join('')}</div>` : ''}${d.files && d.files.length > 0 ? `<div class="notice-files">${d.files.map(f => `<a class="notice-file" href="${f.url}" target="_blank">📎 ${f.name}</a>`).join('')}</div>` : ''}${reactionBar}</div>`;
       card.onclick = (ev) => {
         if (ev.target.tagName === 'IMG' || ev.target.tagName === 'A' || ev.target.onclick) return;
-        document.getElementById('detail-' + d.id).classList.toggle('open');
+        const det = document.getElementById('detail-' + d.id);
+        det.classList.toggle('open');
+        if (det.classList.contains('open')) {
+          markNoticeRead(d.id);                                    // 펼칠 때만 읽음 기록
+          const ub = document.getElementById('unread-' + d.id);
+          if (ub) ub.remove();
+        }
       };
       list.appendChild(card);
     });

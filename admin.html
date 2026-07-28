@@ -494,6 +494,18 @@
   </div>
 </div>
 
+<!-- 공지 읽음 현황 모달 -->
+<div class="member-modal-overlay" id="noticeReadModal">
+  <div class="member-modal">
+    <h3>👀 공지 읽음 현황</h3>
+    <div id="noticeReadBody" style="max-height:60vh;overflow-y:auto;"></div>
+    <div class="member-modal-btns">
+      <button class="member-modal-cancel" onclick="closeNoticeReadDetail()">닫기</button>
+      <button class="member-modal-save" onclick="copyUnreadNames()">📋 미열람자 복사</button>
+    </div>
+  </div>
+</div>
+
 <!-- 캘린더 일정 수정 모달 -->
 <div class="member-modal-overlay" id="calEditModal">
   <div class="member-modal">
@@ -1669,6 +1681,34 @@
     return Array.from(checks).map(c => c.value);
   }
 
+  // ── 공지 읽음률 ──
+  // 공지의 target/subTarget에 해당하는 실제 대상 회원 목록을 계산
+  // (notice.html의 필터 로직과 동일하게 맞춤)
+  function getNoticeAudience(n) {
+    const t = n.target || 'all';
+    const sub = Array.isArray(n.subTarget) ? n.subTarget : [];
+    return (allMembers || []).filter(m => {
+      if (m.deleted) return false;
+      if (!(t === 'all' || t === m.category)) return false;
+      if (sub.length === 0) return true;
+      if (m.category === 'company') return true;      // 전담인력은 학과 매칭 제외
+      const key = m.category === 'student'  ? (m.grade || '')
+                : m.category === 'graduate' ? (m.dept || '')
+                : m.category === 'prospect' ? (m.interest || '') : '';
+      return key && sub.includes(key);
+    });
+  }
+  function getNoticeReadStats(n) {
+    const audience = getNoticeAudience(n);
+    const readBy = Array.isArray(n.readBy) ? n.readBy : [];
+    const readSet = new Set(readBy);
+    const readMembers   = audience.filter(m => readSet.has(m.deviceId || m.id));
+    const unreadMembers = audience.filter(m => !readSet.has(m.deviceId || m.id));
+    const total = audience.length;
+    const rate = total > 0 ? Math.round((readMembers.length / total) * 100) : 0;
+    return { total, read: readMembers.length, rate, unreadMembers };
+  }
+
   async function loadNotices() {
     const filterEl = document.getElementById('noticeListFilter');
     const filter = filterEl ? filterEl.value : 'all';
@@ -1683,6 +1723,14 @@
       const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       let notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 읽음률 계산용 회원 목록 (회원 탭이 아직 안 열렸으면 여기서 로드)
+      if (!allMembers || allMembers.length === 0) {
+        try {
+          const uSnap = await getDocs(collection(db, 'users'));
+          allMembers = uSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch(_) { /* 실패해도 목록은 표시 */ }
+      }
+      window._noticeCache = notices;
       if (filter !== 'all') {
         notices = notices.filter(n => (n.target || 'all') === filter || (n.target || 'all') === 'all');
       }
@@ -1699,10 +1747,21 @@
         const targetClass = target === 'company' ? 'company' : target === 'student' ? 'student' : target === 'graduate' ? 'graduate' : target === 'prospect' ? 'prospect' : 'all';
         const pinIcon = n.pinned ? '📌' : '📍';
         const pinLabel = n.pinned ? '핀 해제' : '핀 고정';
+        // 읽음률 배지 (클릭 → 미열람자 명단)
+        const st = getNoticeReadStats(n);
+        const rateColor = st.rate >= 70 ? { bg: '#dcfce7', fg: '#166534' }
+                        : st.rate >= 40 ? { bg: '#fef3c7', fg: '#92400e' }
+                        : { bg: '#fee2e2', fg: '#991b1b' };
+        const readBadge = st.total === 0
+          ? '<span style="font-size:11px;background:#f1f5f9;color:#64748b;padding:3px 8px;border-radius:6px;font-weight:700;">대상자 없음</span>'
+          : `<span onclick="openNoticeReadDetail('${n.id}')" title="클릭하면 미열람자 명단을 볼 수 있어요"
+              style="cursor:pointer;font-size:11px;background:${rateColor.bg};color:${rateColor.fg};padding:3px 8px;border-radius:6px;font-weight:700;">
+              👀 읽음 ${st.rate}% (${st.read}/${st.total})</span>`;
         return `<div class="notice-item" style="${n.pinned ? 'background:#fef2f2;border-left:4px solid #dc3545;' : ''}">
           <div class="notice-item-title">${n.pinned ? '📌 ' : ''}${n.title || '-'}
             <span class="notice-target-badge ${targetClass}">${targetLabel}</span>
           </div>
+          <div style="margin:6px 0 2px;">${readBadge}</div>
           <div class="notice-item-meta">
             <span>${n.createdAt?.toDate ? n.createdAt.toDate().toLocaleDateString('ko-KR') : '-'}</span>
             <span style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -1731,6 +1790,73 @@
       await writeLog('update', 'notice', id, isPinned ? '핀 해제' : '핀 고정');
       loadNotices();
     } catch(e) { alert('핀 변경 실패: ' + e.message); }
+  }
+
+  // ── 공지 읽음 현황 모달 ──
+  let _unreadNamesCache = '';
+  function openNoticeReadDetail(id) {
+    const n = (window._noticeCache || []).find(x => x.id === id);
+    if (!n) return;
+    const st = getNoticeReadStats(n);
+    const barColor = st.rate >= 70 ? '#22c55e' : st.rate >= 40 ? '#f59e0b' : '#ef4444';
+    // 미열람자 카테고리별 그룹핑
+    const catLabel = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력' };
+    const groups = {};
+    st.unreadMembers.forEach(m => {
+      const c = m.category || 'etc';
+      (groups[c] = groups[c] || []).push(m);
+    });
+    _unreadNamesCache = st.unreadMembers
+      .map(m => `${m.name || '이름없음'}${m.phone ? ' (' + m.phone + ')' : ''}`).join('\n');
+
+    const groupHtml = Object.keys(groups).length === 0
+      ? '<div style="text-align:center;padding:24px;color:#16a34a;font-weight:700;">🎉 대상자 전원이 읽었어요!</div>'
+      : Object.entries(groups).map(([cat, list]) => `
+          <div style="margin-top:14px;">
+            <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">
+              ${catLabel[cat] || '기타'} · ${list.length}명
+            </div>
+            ${list.map(m => `
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border-radius:8px;margin-bottom:5px;">
+                <span style="font-weight:600;font-size:13px;color:#1e293b;">${m.name || '이름없음'}</span>
+                <span style="font-size:11px;color:#94a3b8;">${m.grade || m.dept || m.interest || ''}</span>
+                ${m.oneSignalId ? '' : '<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:5px;font-weight:700;">알림 미수신</span>'}
+                ${m.phone ? `<a href="tel:${m.phone}" style="margin-left:auto;font-size:11px;background:#e3f2fd;color:#1565c0;padding:3px 8px;border-radius:6px;text-decoration:none;font-weight:700;">📞 ${m.phone}</a>` : ''}
+              </div>`).join('')}
+          </div>`).join('');
+
+    document.getElementById('noticeReadBody').innerHTML = `
+      <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">${n.title || '-'}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">
+        ${n.createdAt?.toDate ? n.createdAt.toDate().toLocaleString('ko-KR') : '-'}
+      </div>
+      <div style="background:#f1f5f9;border-radius:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#334155;margin-bottom:8px;">
+          <span>읽음률</span><span style="color:${barColor};">${st.rate}%</span>
+        </div>
+        <div style="height:10px;background:#e2e8f0;border-radius:6px;overflow:hidden;">
+          <div style="height:100%;width:${st.rate}%;background:${barColor};border-radius:6px;transition:width .3s;"></div>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:10px;font-size:12px;color:#64748b;">
+          <span>대상 <b style="color:#1e293b;">${st.total}명</b></span>
+          <span>읽음 <b style="color:#16a34a;">${st.read}명</b></span>
+          <span>미열람 <b style="color:#dc2626;">${st.unreadMembers.length}명</b></span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.5;">
+        ※ 공지 상세를 펼쳐본 시점부터 집계됩니다. 이 기능 적용 이전에 등록된 공지는 읽음 수가 0으로 표시될 수 있어요.
+      </div>
+      ${groupHtml}`;
+    document.getElementById('noticeReadModal').classList.add('show');
+  }
+  function closeNoticeReadDetail() {
+    document.getElementById('noticeReadModal').classList.remove('show');
+  }
+  function copyUnreadNames() {
+    if (!_unreadNamesCache) { alert('미열람자가 없어요 🎉'); return; }
+    navigator.clipboard.writeText(_unreadNamesCache)
+      .then(() => alert('미열람자 명단을 복사했어요'))
+      .catch(() => alert('복사 실패 — 직접 확인해주세요'));
   }
 
   async function postNotice() {
