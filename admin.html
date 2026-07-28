@@ -326,12 +326,18 @@
       btn.disabled = false; btn.textContent = '로그인';
     }
 
+    // 실제 Firebase 로그인 상태 (전역) — 데이터 로딩 가드가 이 값을 확인
+    window.__fbAdminUser = null;
+    window.__fbAuthReady = false;
+
     // 세션 유지: Firebase가 로그인 상태를 기억 → 새로고침해도 자동 로그인
     (async () => {
       try {
         const auth = await getAuthInstance();
         const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
         onAuthStateChanged(auth, (user) => {
+          window.__fbAdminUser = user || null;
+          window.__fbAuthReady = true;
           if (user) { unlock(); }
           else {
             lock();
@@ -341,6 +347,7 @@
         });
       } catch(e) {
         console.warn('[auth] 초기화 실패:', e);
+        window.__fbAuthReady = true;
         showError('인증 초기화 실패. 새로고침 해주세요.');
       }
     })();
@@ -1150,22 +1157,25 @@
     if (tab === 'library') loadLibrary();
     if (tab === 'logs') loadLogs();
   }
-  // 관리자 인증 가드 — 로그인 후에만 자동 로딩 실행
+  // 관리자 인증 가드 — 실제 Firebase 로그인(request.auth) 확인
+  // ⚠️ sessionStorage 토큰이 아니라 Firebase Auth의 실제 로그인 상태를 기준으로 판정
+  //    (그래야 Firestore 요청에 인증이 실려 permission-denied가 안 남)
   function isAdminAuthed() {
-    try {
-      const v = sessionStorage.getItem('au_admin_auth');
-      return !!v && v.length === 32;  // ID_HASH(16) + PW_HASH(16) = 32자
-    } catch(e) { return false; }
+    return !!window.__fbAdminUser;
   }
-  // 인증 통과까지 대기 후 자동 실행
+  // Firebase 로그인 확정까지 대기 후 자동 실행
   function runAfterAuth(fn) {
     if (isAdminAuthed()) { fn(); return; }
     const iv = setInterval(() => {
-      if (isAdminAuthed()) {
+      // 인증 준비 완료 + 로그인 사용자 존재 시 실행
+      if (window.__fbAuthReady && window.__fbAdminUser) {
         clearInterval(iv);
         fn();
+      } else if (window.__fbAuthReady && !window.__fbAdminUser) {
+        // 인증 준비됐는데 미로그인 → 로그인 게이트가 뜬 상태, 로딩 중단
+        clearInterval(iv);
       }
-    }, 500);
+    }, 300);
   }
   // 페이지 첫 진입 시 통계 자동 로드 (인증 후)
   runAfterAuth(() => {
@@ -1217,7 +1227,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'notif-hist') || initializeApp(FB_CFG, 'notif-hist');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       // Phase 2-1: 개인 모드면 target='individual', target/subTarget 비움
       const docData = {
@@ -1473,7 +1483,7 @@
         // 2. Firestore에도 추적용 저장 (취소/관리 위해)
         const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
         const { getFirestore, collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const app = getApps().find(a => a.name === 'scheduled') || initializeApp(FB_CFG, 'scheduled');
+        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
         const db = getFirestore(app);
         const ref = await addDoc(collection(db, 'scheduled_notifications'), {
           title, message, target: selectedGroup, filters,
@@ -1667,7 +1677,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'noticeApp') || initializeApp(FB_CFG, 'noticeApp');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       window._noticeDb = db; window._noticeDoc = doc; window._noticeDeleteDoc = deleteDoc;
       const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
@@ -1761,7 +1771,7 @@
       if (!window.addNoticeToFirestore) {
         const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
         const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const app = getApps().find(a => a.name === 'noticeApp') || initializeApp(FB_CFG, 'noticeApp');
+        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
         const db = getFirestore(app);
         window.addNoticeToFirestore = async (data) => {
           await addDoc(collection(db, 'notices'), { ...data, createdAt: serverTimestamp() });
@@ -1825,7 +1835,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'consulting') || initializeApp(FB_CFG, 'consulting');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       window._cDb = db; window._cDoc = doc; window._cUpdateDoc = updateDoc; window._cDeleteDoc = deleteDoc; window._cCollection = collection;
       let snapshot;
@@ -2170,7 +2180,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'logs') || initializeApp(FB_CFG, 'logs');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       await addDoc(collection(db, 'audit_logs'), {
         action, // 'delete' | 'restore' | 'update' | 'create' | 'send' | 'auto_delete'
@@ -2187,7 +2197,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, getDocs, query, orderBy, limit, where, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'logs') || initializeApp(FB_CFG, 'logs');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       window._logsDb = db; window._logsDoc = doc; window._logsDeleteDoc = deleteDoc;
       let snapshot;
@@ -2337,7 +2347,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'stats') || initializeApp(FB_CFG, 'stats');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const [usersSnap, noticesSnap, consultingSnap, librarySnap, calendarSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
@@ -2535,7 +2545,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'scheduled') || initializeApp(FB_CFG, 'scheduled');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       window._schDb = db; window._schDoc = doc; window._schDeleteDoc = deleteDoc;
       let snapshot;
@@ -2790,7 +2800,7 @@
     if (!calDb) {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'cal-admin') || initializeApp(FB_CFG, 'cal-admin');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       calDb = getFirestore(app);
     }
     loadCalendarEvents();
@@ -3250,7 +3260,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
 
       let success = 0, fail = 0;
@@ -3376,7 +3386,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
 
       let success = 0, fail = 0;
@@ -3436,7 +3446,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const resourceType = libUploadedUrl ? 'cloudinary' : 'manual';
       // 서브 카테고리 (재학생만 의미 있음)
@@ -3483,7 +3493,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a => a.name === 'libApp') || initializeApp(FB_CFG, 'libApp');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       window._libDb = db; window._libDoc = doc; window._libDeleteDoc = deleteDoc;
 
