@@ -81,6 +81,14 @@
       box-shadow: 0 2px 8px rgba(240, 68, 82, 0.3);
       animation: notifBannerSlide 0.4s ease-out;
     }
+    /* 예비신입생 전용: 더 강한 강조 (은은한 펄스) */
+    .notif-off-banner.notif-off-urgent {
+      animation: notifBannerSlide 0.4s ease-out, notifUrgentPulse 2s ease-in-out infinite;
+    }
+    @keyframes notifUrgentPulse {
+      0%, 100% { box-shadow: 0 2px 8px rgba(240, 68, 82, 0.35); }
+      50% { box-shadow: 0 4px 18px rgba(240, 68, 82, 0.6); }
+    }
     .notif-off-banner-inner {
       max-width: 480px;
       margin: 0 auto;
@@ -797,7 +805,81 @@
     applyMenuByCategory(userInfo.category);
     requestPermissionAndSetTags(userInfo);
     showToast(`${userInfo.name}님 등록 완료! 🎉`, 'success');
-    setTimeout(() => { checkAndShowInstallGuide(true); }, 2500);
+    // 예비신입생: 합격·모집 소식 놓치지 않도록 알림 안내 강화
+    if (userInfo.category === 'prospect') {
+      setTimeout(() => { showProspectNotifyGuide(); }, 1200);
+    } else {
+      setTimeout(() => { checkAndShowInstallGuide(true); }, 2500);
+    }
+  }
+
+  // ============ 예비신입생 전용: 알림 필수 안내 ============
+  function showProspectNotifyGuide() {
+    const device = detectDevice();
+    const installed = isStandalone();
+    let bodyHtml = '';
+    if (device === 'ios' && !installed) {
+      // 아이폰 미설치 → 설치가 알림의 전제조건
+      bodyHtml = `
+        <p style="font-size:14px;color:#334155;line-height:1.65;margin:0 0 14px;">
+          아이폰은 <b>홈 화면에 앱을 설치</b>해야 합격·모집 알림을 받을 수 있어요.
+        </p>
+        <div style="background:#EEF4FF;border-radius:12px;padding:14px;text-align:left;font-size:13px;color:#1e3a8a;line-height:1.7;">
+          <b>설치 방법 (30초)</b><br>
+          1. 하단 <b>공유 버튼</b> <span style="font-size:15px;">⬆️</span> 누르기<br>
+          2. <b>"홈 화면에 추가"</b> 선택<br>
+          3. 홈 화면 아이콘으로 다시 열기<br>
+          4. 알림 <b>"허용"</b> 누르기
+        </div>`;
+    } else if (device === 'android' && !installed) {
+      bodyHtml = `
+        <p style="font-size:14px;color:#334155;line-height:1.65;margin:0 0 14px;">
+          <b>앱으로 설치</b>하면 합격·모집 알림을 놓치지 않아요.
+        </p>
+        <div style="background:#E8F7F1;border-radius:12px;padding:14px;text-align:left;font-size:13px;color:#065f46;line-height:1.7;">
+          <b>설치 방법</b><br>
+          1. 아래 <b>"앱 설치하기"</b> 버튼 누르기<br>
+          2. 설치 후 알림 <b>"허용"</b> 누르기
+        </div>`;
+    } else {
+      // 이미 설치됨 → 알림 권한만 재확인
+      bodyHtml = `
+        <p style="font-size:14px;color:#334155;line-height:1.65;margin:0 0 6px;">
+          합격 발표·모집 일정·설명회 소식을<br><b>실시간 알림</b>으로 받아보세요.
+        </p>
+        <p style="font-size:12.5px;color:#64748b;line-height:1.5;margin:0;">
+          알림을 켜두면 중요한 안내를 놓치지 않아요.
+        </p>`;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'prospectNotifyOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;z-index:10000;padding:24px;';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:20px;max-width:360px;width:100%;padding:26px 22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.25);">
+        <div style="font-size:44px;margin-bottom:8px;">🔔</div>
+        <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:12px;letter-spacing:-0.3px;">알림을 켜주세요!</div>
+        ${bodyHtml}
+        <button id="prospectNotifyPrimary" style="width:100%;margin-top:18px;padding:14px;background:#3182F6;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">
+          ${(device !== 'other' && !installed) ? '📱 설치 방법 보기' : '🔔 알림 켜기'}
+        </button>
+        <button id="prospectNotifyLater" style="width:100%;margin-top:8px;padding:11px;background:transparent;color:#94a3b8;border:none;font-size:13px;cursor:pointer;font-family:inherit;">나중에 할게요</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('prospectNotifyPrimary').addEventListener('click', () => {
+      overlay.remove();
+      if (device !== 'other' && !installed) {
+        checkAndShowInstallGuide(true);
+      } else {
+        // 알림 권한 재요청
+        try {
+          OneSignalDeferred.push(async function(OneSignal) {
+            try { await OneSignal.Notifications.requestPermission(); } catch(e) {}
+            setTimeout(() => { try { updateStatus(OneSignal.User.PushSubscription.optedIn); } catch(e) {} }, 1500);
+          });
+        } catch(e) {}
+      }
+    });
+    document.getElementById('prospectNotifyLater').addEventListener('click', () => overlay.remove());
   }
 
   // ============ 알림 권한 요청 + Firebase 저장 ============
@@ -1011,8 +1093,21 @@
     const subBtn = document.getElementById('subscribeBtn'), unsubBtn = document.getElementById('unsubscribeBtn');
     const banner = document.getElementById('notifOffBanner');
     // Phase B: 알림 OFF 배너 — 가입한 사용자가 알림 권한 없을 때만 표시
-    const hasUserInfo = !!(JSON.parse(localStorage.getItem('userInfo') || '{}').category);
-    if (banner) banner.style.display = (!subscribed && hasUserInfo) ? 'block' : 'none';
+    const _ui = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    const hasUserInfo = !!_ui.category;
+    if (banner) {
+      banner.style.display = (!subscribed && hasUserInfo) ? 'block' : 'none';
+      // 예비신입생: 합격·모집 소식 강조 문구로 교체
+      if (!subscribed && _ui.category === 'prospect') {
+        const strongEl = banner.querySelector('.notif-off-text strong');
+        const spanEl = banner.querySelector('.notif-off-text span');
+        if (strongEl) strongEl.textContent = '🔔 합격·모집 알림이 꺼져 있어요';
+        if (spanEl) spanEl.innerHTML = '중요한 입학 소식을 놓칠 수 있어요 · <u>지금 켜기</u>';
+        banner.classList.add('notif-off-urgent');
+      } else if (banner.classList.contains('notif-off-urgent')) {
+        banner.classList.remove('notif-off-urgent');
+      }
+    }
     if (subscribed) {
       dot.classList.add('active'); text.textContent = '알림 수신 중 ✅';
       sub.textContent = '공지사항 알림을 받을 준비가 되었습니다';
