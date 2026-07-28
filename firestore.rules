@@ -101,6 +101,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── 시험 일정 (중간·기말·외부평가·학습활동서) ──
+    // 학과 구분 없이 전체 공개, 등록·수정은 관리자만
+    match /exam_schedules/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ── 학습기업 디렉토리 ──
     match /companies/{id} {
       allow read: if true;

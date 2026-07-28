@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시험 일정 - AU 일학습병행</title>
+<meta name="theme-color" content="#2196f3">
+<script src="device-check.js" data-auto-block></script>
+<script src="dark-mode.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  :root { --navy:#1976d2; --blue:#2196f3; --accent:#e8a020; --light:#f0f4f8; --gray:#8a9ab5; --green:#10b981; --red:#ef4444; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Noto Sans KR', sans-serif; background:var(--light); min-height:100vh; }
+  .header { background:var(--blue); padding:20px 24px; display:flex; align-items:center; gap:12px; }
+  .back-btn { background:rgba(255,255,255,0.2); color:white; width:36px; height:36px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; text-decoration:none; flex-shrink:0; }
+  .header-badge { background:var(--accent); color:white; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
+  .header h1 { color:white; font-size:18px; font-weight:700; }
+  .container { max-width:700px; margin:0 auto; padding:20px 16px 80px; }
+
+  /* 가장 가까운 시험 하이라이트 */
+  .next-hero { background:linear-gradient(135deg,#1976d2,#42a5f5); border-radius:16px; padding:20px; color:white; margin-bottom:18px; box-shadow:0 6px 18px rgba(25,118,210,0.28); }
+  .next-hero .cap { font-size:11px; font-weight:700; opacity:0.85; letter-spacing:0.5px; }
+  .next-hero .ttl { font-size:19px; font-weight:700; margin:6px 0 4px; }
+  .next-hero .meta { font-size:13px; opacity:0.92; }
+  .next-hero .dday { font-size:32px; font-weight:700; line-height:1.1; margin-top:10px; }
+
+  .toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .filter-chip { padding:8px 14px; border:1.5px solid #e4eaf4; border-radius:20px; font-size:13px; background:white; font-family:inherit; font-weight:600; color:#64748b; cursor:pointer; }
+  .filter-chip.active { background:var(--blue); border-color:var(--blue); color:white; }
+
+  .exam-card { background:white; border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(33,150,243,0.08); margin-bottom:12px; border-left:4px solid var(--blue); }
+  .exam-card.soon { border-left-color:var(--red); }
+  .exam-card.done { opacity:0.55; border-left-color:var(--gray); }
+  .exam-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .type-badge { font-size:11px; padding:3px 9px; border-radius:6px; font-weight:700; }
+  .dday-badge { margin-left:auto; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#475569; }
+  .dday-badge.urgent { background:#fee2e2; color:#991b1b; }
+  .dday-badge.today { background:var(--red); color:white; }
+  .dday-badge.ing { background:#d1fae5; color:#065f46; }
+  .exam-title { font-size:16px; font-weight:700; color:#1a202c; margin-bottom:8px; }
+  .exam-info { display:grid; grid-template-columns:auto 1fr; gap:5px 14px; font-size:13px; color:#4a5568; }
+  .exam-info .label { color:var(--gray); font-weight:500; white-space:nowrap; }
+  .exam-desc { font-size:13px; color:#4a5568; line-height:1.6; white-space:pre-wrap; margin-top:10px; padding-top:10px; border-top:1px solid #f0f0f0; }
+  .apply-open { display:inline-block; font-size:11px; font-weight:700; background:#d1fae5; color:#065f46; padding:2px 8px; border-radius:5px; margin-left:6px; }
+
+  .section-title { font-size:13px; font-weight:700; color:#64748b; margin:22px 0 10px; }
+  .toggle-past { width:100%; padding:12px; background:white; border:1.5px solid #e4eaf4; border-radius:12px; font-family:inherit; font-size:13px; font-weight:600; color:#64748b; cursor:pointer; }
+  .empty { text-align:center; padding:60px 20px; color:var(--gray); }
+  .info-box { background:#e3f2fd; padding:12px 16px; border-radius:10px; font-size:13px; color:#0d47a1; margin-bottom:14px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="index.html" class="back-btn" aria-label="홈으로">←</a>
+  <div class="header-badge">시험</div>
+  <h1>시험 일정</h1>
+</div>
+<div class="container">
+  <div class="info-box">
+    📝 중간·기말고사, 외부평가, 학습활동서 마무리 일정을 한눈에 확인할 수 있어요.
+  </div>
+  <div id="hero"></div>
+  <div class="toolbar" id="filterBar"></div>
+  <div id="list"><div class="empty">불러오는 중...</div></div>
+  <div id="pastWrap"></div>
+</div>
+
+<script type="module">
+  import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  const firebaseConfig = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 시험 유형 정의 (관리자 등록 옵션과 동일하게 유지할 것)
+  const TYPES = {
+    '중간고사':        { icon:'📖', bg:'#e3f2fd', fg:'#1565c0' },
+    '기말고사':        { icon:'📚', bg:'#ede9fe', fg:'#5b21b6' },
+    '외부평가(지필)':  { icon:'🎓', bg:'#fef3c7', fg:'#92400e' },
+    '외부평가(실무)':  { icon:'🛠️', bg:'#ffedd5', fg:'#9a3412' },
+    '학습활동서 마무리': { icon:'📋', bg:'#d1fae5', fg:'#065f46' }
+  };
+
+  let allExams = [];
+  let activeFilter = 'all';
+  let showPast = false;
+
+  // ── 날짜 헬퍼 (전부 로컬 자정 기준으로 계산) ──
+  function today0() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+  function parseDate(s) {
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  }
+  function diffDays(target) {
+    return Math.round((target - today0()) / 86400000);
+  }
+  function fmt(s) {
+    const d = parseDate(s);
+    if (!d) return '-';
+    const w = ['일','월','화','수','목','금','토'][d.getDay()];
+    return `${d.getMonth()+1}월 ${d.getDate()}일(${w})`;
+  }
+
+  // 시험 상태 계산: 종료 / 진행중 / 예정
+  function getStatus(e) {
+    const start = parseDate(e.startDate);
+    const end = parseDate(e.endDate || e.startDate);
+    if (!start) return { kind:'none', label:'', days:9999 };
+    const dStart = diffDays(start);
+    const dEnd = end ? diffDays(end) : dStart;
+    if (dEnd < 0) return { kind:'done', label:'종료', days:dEnd };
+    if (dStart <= 0 && dEnd >= 0) {
+      return dStart === 0 && dEnd === 0
+        ? { kind:'today', label:'오늘', days:0 }
+        : { kind:'ing', label:'진행 중', days:0 };
+    }
+    return { kind:'upcoming', label:`D-${dStart}`, days:dStart };
+  }
+  // 접수 기간이 열려 있는지
+  function isApplyOpen(e) {
+    if (!e.applyStart || !e.applyEnd) return false;
+    const s = diffDays(parseDate(e.applyStart));
+    const en = diffDays(parseDate(e.applyEnd));
+    return s <= 0 && en >= 0;
+  }
+
+  async function load() {
+    try {
+      const snap = await getDocs(collection(db, 'exam_schedules'));
+      allExams = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(e => e.startDate);
+      allExams.sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
+      renderFilters();
+      render();
+    } catch(e) {
+      document.getElementById('list').innerHTML =
+        '<div class="empty">⚠️ 불러오기 실패: ' + e.message + '</div>';
+    }
+  }
+
+  function renderFilters() {
+    const used = ['all', ...Object.keys(TYPES).filter(t => allExams.some(e => e.type === t))];
+    document.getElementById('filterBar').innerHTML = used.map(t => {
+      const label = t === 'all' ? '전체' : `${TYPES[t].icon} ${t}`;
+      return `<button class="filter-chip ${activeFilter === t ? 'active' : ''}" data-t="${t}">${label}</button>`;
+    }).join('');
+    document.querySelectorAll('.filter-chip').forEach(btn => {
+      btn.onclick = () => { activeFilter = btn.dataset.t; renderFilters(); render(); };
+    });
+  }
+
+  function card(e) {
+    const st = getStatus(e);
+    const ty = TYPES[e.type] || { icon:'📝', bg:'#f1f5f9', fg:'#475569' };
+    const ddayCls = st.kind === 'done' ? '' : st.kind === 'today' ? 'today'
+                  : st.kind === 'ing' ? 'ing' : (st.days <= 7 ? 'urgent' : '');
+    const cardCls = st.kind === 'done' ? 'done' : (st.kind !== 'upcoming' || st.days <= 7 ? 'soon' : '');
+    const isRange = e.endDate && e.endDate !== e.startDate;
+    const dateStr = isRange ? `${fmt(e.startDate)} ~ ${fmt(e.endDate)}` : fmt(e.startDate);
+    const applyStr = (e.applyStart && e.applyEnd)
+      ? `${fmt(e.applyStart)} ~ ${fmt(e.applyEnd)}${isApplyOpen(e) ? '<span class="apply-open">접수 중</span>' : ''}`
+      : '';
+    return `<div class="exam-card ${cardCls}">
+      <div class="exam-top">
+        <span class="type-badge" style="background:${ty.bg};color:${ty.fg};">${ty.icon} ${e.type || '시험'}</span>
+        <span class="dday-badge ${ddayCls}">${st.label}</span>
+      </div>
+      <div class="exam-title">${e.title || '-'}</div>
+      <div class="exam-info">
+        <span class="label">일시</span><span>${dateStr}${e.time && !isRange ? ' ' + e.time : ''}</span>
+        ${e.location ? `<span class="label">장소</span><span>${e.location}</span>` : ''}
+        ${applyStr ? `<span class="label">접수</span><span>${applyStr}</span>` : ''}
+      </div>
+      ${e.description ? `<div class="exam-desc">${e.description}</div>` : ''}
+    </div>`;
+  }
+
+  function render() {
+    const listEl = document.getElementById('list');
+    const pastEl = document.getElementById('pastWrap');
+    const heroEl = document.getElementById('hero');
+    let items = allExams.slice();
+    if (activeFilter !== 'all') items = items.filter(e => e.type === activeFilter);
+
+    const upcoming = items.filter(e => getStatus(e).kind !== 'done');
+    const past = items.filter(e => getStatus(e).kind === 'done').reverse();
+
+    // 가장 가까운 시험 강조 (필터 무관하게 전체 기준)
+    const nextAll = allExams.filter(e => getStatus(e).kind !== 'done')[0];
+    if (nextAll) {
+      const st = getStatus(nextAll);
+      const ty = TYPES[nextAll.type] || { icon:'📝' };
+      heroEl.innerHTML = `<div class="next-hero">
+        <div class="cap">가장 가까운 시험</div>
+        <div class="ttl">${ty.icon} ${nextAll.title || '-'}</div>
+        <div class="meta">${nextAll.type || ''} · ${fmt(nextAll.startDate)}${nextAll.location ? ' · ' + nextAll.location : ''}</div>
+        <div class="dday">${st.kind === 'today' ? '오늘' : st.kind === 'ing' ? '진행 중' : st.label}</div>
+      </div>`;
+    } else {
+      heroEl.innerHTML = '';
+    }
+
+    listEl.innerHTML = upcoming.length
+      ? upcoming.map(card).join('')
+      : '<div class="empty">📭 예정된 시험 일정이 없어요</div>';
+
+    if (past.length === 0) { pastEl.innerHTML = ''; return; }
+    pastEl.innerHTML = showPast
+      ? `<div class="section-title">지난 일정 ${past.length}개</div>${past.map(card).join('')}
+         <button class="toggle-past" id="togglePast">▲ 지난 일정 접기</button>`
+      : `<button class="toggle-past" id="togglePast">▼ 지난 일정 ${past.length}개 보기</button>`;
+    document.getElementById('togglePast').onclick = () => { showPast = !showPast; render(); };
+  }
+
+  load();
+</script>
+<!-- 알림 종 위젯 -->
+<script type="module" src="./js/notification-bell.js"></script>
+</body>
+</html>
