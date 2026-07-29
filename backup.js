@@ -44,7 +44,10 @@ async function backupCollection(name) {
 }
 
 async function main() {
-  const today = new Date().toISOString().split('T')[0];
+  // 백업은 한국시간 새벽 3시(UTC 18시)에 돌기 때문에 UTC 날짜를 쓰면
+  // 파일명이 실제 실행일보다 하루 이르게 찍힌다 → 한국 시각 기준으로 계산
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const today = kst.toISOString().split('T')[0];
   const backupDir = path.join(__dirname, 'backups');
   if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
 

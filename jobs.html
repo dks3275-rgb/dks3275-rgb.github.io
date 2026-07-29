@@ -80,13 +80,33 @@
       document.getElementById('list').innerHTML = '<div class="empty">⚠️ 불러오기 실패: ' + e.message + '</div>';
     }
   }
+  // 마감일을 "그날 밤 23:59:59(한국 시각)"으로 계산.
+  // new Date('2026-08-05')는 UTC 자정으로 해석돼 한국에선 당일 오전 9시에 마감돼 버림.
+  function deadlineMs(s) {
+    if (!s) return Infinity;
+    const [y, m, d] = String(s).split('-').map(Number);
+    if (!y || !m || !d) return new Date(s).getTime();   // 다른 형식이면 기존 방식
+    return new Date(y, m - 1, d, 23, 59, 59).getTime();
+  }
+  function fmtDeadline(s) {
+    const t = deadlineMs(s);
+    return isFinite(t) ? new Date(t).toLocaleDateString('ko-KR') : '-';
+  }
+  // 남은 일수는 "날짜 차이"로 계산 (시각 차이로 하면 마감 당일이 D-1로 보임)
+  function daysUntil(s) {
+    const [y, m, d] = String(s).split('-').map(Number);
+    if (!y || !m || !d) return null;
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    return Math.round((new Date(y, m - 1, d) - t0) / 86400000);
+  }
+
   window.renderJobs = function() {
     const search = (document.getElementById('search')?.value || '').trim().toLowerCase();
     const status = document.getElementById('status')?.value || 'active';
     const now = Date.now();
     let items = jobs.slice();
-    if (status === 'active') items = items.filter(j => !j.deadline || new Date(j.deadline).getTime() > now);
-    else if (status === 'expired') items = items.filter(j => j.deadline && new Date(j.deadline).getTime() <= now);
+    if (status === 'active') items = items.filter(j => !j.deadline || deadlineMs(j.deadline) > now);
+    else if (status === 'expired') items = items.filter(j => j.deadline && deadlineMs(j.deadline) <= now);
     if (search) {
       items = items.filter(j => {
         const hay = `${j.company || ''} ${j.title || ''} ${j.content || ''} ${j.position || ''}`.toLowerCase();
@@ -100,19 +120,19 @@
     }
     items.sort((a, b) => {
       // 마감 임박 우선, 그 다음 최신순
-      const aT = a.deadline ? new Date(a.deadline).getTime() : Infinity;
-      const bT = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+      const aT = a.deadline ? deadlineMs(a.deadline) : Infinity;
+      const bT = b.deadline ? deadlineMs(b.deadline) : Infinity;
       if (aT !== bT) return aT - bT;
       return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
     });
     document.getElementById('list').innerHTML = items.map(j => {
-      const deadlineMs = j.deadline ? new Date(j.deadline).getTime() : null;
-      const isExpired = deadlineMs && deadlineMs < now;
-      const daysLeft = deadlineMs ? Math.ceil((deadlineMs - now) / (24 * 60 * 60 * 1000)) : null;
+      const dMs = j.deadline ? deadlineMs(j.deadline) : null;
+      const isExpired = dMs && dMs < now;
+      const daysLeft = j.deadline ? daysUntil(j.deadline) : null;
       const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3;
       const cardClass = isExpired ? 'job-card expired' : (isUrgent ? 'job-card urgent' : 'job-card');
       const badges = [];
-      if (isUrgent && !isExpired) badges.push(`<span class="job-badge badge-urgent">⏰ D-${daysLeft}</span>`);
+      if (isUrgent && !isExpired) badges.push(`<span class="job-badge badge-urgent">⏰ ${daysLeft === 0 ? '오늘 마감' : 'D-' + daysLeft}</span>`);
       if (isExpired) badges.push(`<span class="job-badge badge-deadline">마감</span>`);
       if (j.target === 'graduate') badges.push(`<span class="job-badge badge-graduate">졸업생</span>`);
       const safeContent = (j.content || '').replace(/</g, '&lt;');
@@ -128,7 +148,7 @@
           ${j.position ? `<span class="label">직무</span><span>${j.position}</span>` : ''}
           ${j.location ? `<span class="label">근무지</span><span>${j.location}</span>` : ''}
           ${j.salary ? `<span class="label">급여</span><span>${j.salary}</span>` : ''}
-          ${j.deadline ? `<span class="label">마감일</span><span>${new Date(j.deadline).toLocaleDateString('ko-KR')}</span>` : ''}
+          ${j.deadline ? `<span class="label">마감일</span><span>${fmtDeadline(j.deadline)}</span>` : ''}
         </div>
         ${safeContent ? `<div class="job-content">${safeContent}</div>` : ''}
         ${j.applyUrl ? `<a href="${j.applyUrl}" target="_blank" class="job-link">📨 지원하기</a>` : ''}

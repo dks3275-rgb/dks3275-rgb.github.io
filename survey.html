@@ -333,7 +333,9 @@ let userName = '';
 async function init() {
   // 앱 가입 시 저장된 이름+학과 자동 로드
   try {
-    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    // localStorage가 손상돼도 페이지 전체가 멈추지 않도록 방어
+    let userInfo = {};
+    try { userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}') || {}; } catch { userInfo = {}; }
     userName = userInfo.name || '';
     const grade = userInfo.grade || '';
     if(grade.includes('P-TECH 1')) userDept='ptech1';

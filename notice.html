@@ -88,7 +88,9 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   // 사용자 카테고리 확인 (재학생=student, 전담인력=company, 기타=all)
-  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+  // localStorage가 손상돼도 페이지 전체가 멈추지 않도록 방어
+  let userInfo = {};
+  try { userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}') || {}; } catch { userInfo = {}; }
   const userCategory = userInfo.category || 'all';
 
   // ── 읽음 처리 ──

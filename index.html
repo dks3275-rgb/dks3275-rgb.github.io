@@ -1295,12 +1295,16 @@
         .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
       if (!next) return;
 
+      // exam-schedule.html의 getStatus()와 같은 규칙으로 라벨 결정
       const dStart = dd(parse(next.startDate));
+      const dEnd = dd(parse(next.endDate || next.startDate));
       let label, cls;
-      if (dStart <= 0) { label = '진행 중'; cls = 'today'; }
-      else if (dStart <= 7) { label = 'D-' + dStart; cls = 'urgent'; }
+      if (dStart <= 0) {
+        // 오늘 하루짜리면 D-DAY, 여러 날 이어지는 중이면 진행 중
+        label = (dStart === 0 && dEnd === 0) ? 'D-DAY' : '진행 중';
+        cls = 'today';
+      } else if (dStart <= 7) { label = 'D-' + dStart; cls = 'urgent'; }
       else { label = 'D-' + dStart; cls = ''; }
-      if (dStart === 0) label = 'D-DAY';
 
       cards.forEach(card => {
         const pill = document.createElement('div');

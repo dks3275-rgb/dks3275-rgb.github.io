@@ -57,7 +57,10 @@ function getUserSubKey(userInfo) {
 
 // 사용자에게 보일 알림인지 판단 (target + subTarget + recipientUserIds 매칭)
 // Phase 2-2: recipientUserIds 추가. 있으면 본인 deviceId 포함된 경우만 보임 (개인 알림)
-function matchesUser(target, subTarget, userInfo, recipientUserIds) {
+// kind: 'notice' | 'library' | 'notification'
+//   library의 target 'all'은 "전체"가 아니라 "재학생+전담인력(산업안전보건)"을 뜻함.
+//   library.html의 필터와 반드시 같은 규칙을 써야 알림만 뜨고 자료는 없는 상황을 막을 수 있음.
+function matchesUser(target, subTarget, userInfo, recipientUserIds, kind) {
   const userCategory = userInfo && userInfo.category;
   if (!userCategory) return false;          // 카테고리 미설정 → 안 보임
 
@@ -68,7 +71,14 @@ function matchesUser(target, subTarget, userInfo, recipientUserIds) {
   }
 
   // 1. 카테고리 매칭
-  const targetOk = !target || target === 'all' || target === userCategory;
+  let targetOk;
+  if (kind === 'library') {
+    // 자료실: 'all' = 재학생+전담인력 전용 (졸업생·예비신입생은 제외)
+    targetOk = target === userCategory
+      || (target === 'all' && (userCategory === 'student' || userCategory === 'company'));
+  } else {
+    targetOk = !target || target === 'all' || target === userCategory;
+  }
   if (!targetOk) return false;
 
   // 2. subTarget 비어있음 → 카테고리 전체 통과 (옛 동작)
@@ -96,7 +106,7 @@ async function fetchAllItems(db, userInfo) {
       const ts = typeof data.createdAt === 'number' ? data.createdAt
               : (data.createdAt?.toMillis?.() ?? 0);
       if (ts < cutoff) return;
-      if (!matchesUser(data.target, data.subTarget, userInfo, data.recipientUserIds)) return;
+      if (!matchesUser(data.target, data.subTarget, userInfo, data.recipientUserIds, 'notice')) return;
       items.push({
         id: 'notice_' + d.id,
         kind: 'notice',
@@ -117,7 +127,7 @@ async function fetchAllItems(db, userInfo) {
       const ts = typeof data.createdAt === 'number' ? data.createdAt
               : (data.createdAt?.toMillis?.() ?? 0);
       if (ts < cutoff) return;
-      if (!matchesUser(data.target, data.subTarget, userInfo, data.recipientUserIds)) return;
+      if (!matchesUser(data.target, data.subTarget, userInfo, data.recipientUserIds, 'library')) return;
       items.push({
         id: 'lib_' + d.id,
         kind: 'library',
@@ -139,7 +149,7 @@ async function fetchAllItems(db, userInfo) {
       const ts = data.displayAt || data.createdAt || 0;
       if (ts < cutoff) return;
       if (ts > now) return;                       // 미래 예약 → 시간 안 됨
-      if (!matchesUser(data.target, data.subTarget, userInfo, data.recipientUserIds)) return;
+      if (!matchesUser(data.target, data.subTarget, userInfo, data.recipientUserIds, 'notification')) return;
       items.push({
         id: 'push_' + d.id,
         kind: 'push',
