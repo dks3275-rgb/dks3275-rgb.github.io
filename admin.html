@@ -881,20 +881,25 @@
 
     <!-- ═══ 시험 일정 관리 ═══ -->
     <div class="card">
-      <div class="card-title">📝 시험 일정 등록</div>
+      <div class="card-title">🗓️ D-day 일정 등록</div>
       <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0d47a1;line-height:1.6;">
-        📌 여기 등록한 일정은 앱의 <b>시험 일정</b> 화면에 D-day와 함께 표시됩니다.<br>
+        📌 여기 등록한 일정은 앱의 <b>주요 일정</b> 화면과 메인 화면 카드에 <b>D-day</b>로 표시됩니다.<br>
         <small style="opacity:0.85;">※ 학과 구분 없이 전체 공개됩니다. 대상이 정해진 일정은 제목에 학과를 적어주세요.</small>
       </div>
       <input type="hidden" id="examEditId" value="">
       <div class="form-group">
-        <label class="form-label">시험 유형</label>
+        <label class="form-label">일정 유형</label>
         <select class="form-input" id="exam-type">
+          <option value="개강">🌱 개강</option>
           <option value="중간고사">📖 중간고사</option>
           <option value="기말고사">📚 기말고사</option>
-          <option value="외부평가(지필)">🎓 외부평가 (지필)</option>
-          <option value="외부평가(실무)">🛠️ 외부평가 (실무)</option>
+          <option value="외부평가">🎓 외부평가</option>
           <option value="학습활동서 마무리">📋 학습활동서 마무리</option>
+          <option value="제출 마감">⏰ 제출 마감</option>
+          <option value="행사">🎉 행사</option>
+          <option value="특강·보충">💡 특강·보충</option>
+          <option value="종강">🏁 종강</option>
+          <option value="기타">📌 기타</option>
         </select>
       </div>
       <div class="form-group">
@@ -952,7 +957,7 @@
           </optgroup>
         </select>
       </div>
-      <button class="send-btn" onclick="saveExamSchedule()" id="examSaveBtn">📝 시험 일정 등록</button>
+      <button class="send-btn" onclick="saveExamSchedule()" id="examSaveBtn">🗓️ D-day 일정 등록</button>
       <button class="send-btn" onclick="cancelExamEdit()" id="examCancelBtn"
         style="display:none;background:#94a3b8;margin-top:8px;">취소 (새 일정 등록으로)</button>
       <div class="result-box" id="examResult"></div>
@@ -960,7 +965,7 @@
 
     <div class="card">
       <div class="card-title">
-        📋 등록된 시험 일정
+        📋 등록된 D-day 일정
         <button class="refresh-btn" onclick="loadExamSchedules()">🔄 새로고침</button>
       </div>
       <div id="examList"><div class="empty-history">불러오는 중...</div></div>
@@ -3142,11 +3147,16 @@
   // ══════════ 시험 일정 (exam_schedules) ══════════
   // 학생 화면: exam-schedule.html · 학과 구분 없이 전체 공개
   const EXAM_TYPE_COLORS = {
+    '개강': '#166534',
     '중간고사': '#1565c0',
     '기말고사': '#5b21b6',
-    '외부평가(지필)': '#92400e',
-    '외부평가(실무)': '#9a3412',
-    '학습활동서 마무리': '#065f46'
+    '외부평가': '#92400e',
+    '학습활동서 마무리': '#065f46',
+    '제출 마감': '#991b1b',
+    '행사': '#9d174d',
+    '특강·보충': '#075985',
+    '종강': '#334155',
+    '기타': '#4c1d95'
   };
 
   // 오늘 날짜를 YYYY-MM-DD로 (toISOString은 UTC라 KST 새벽 0~9시에 하루 밀림)
