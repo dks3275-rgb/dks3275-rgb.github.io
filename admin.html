@@ -2987,7 +2987,7 @@
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
       const { getFirestore, getDoc, setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const app = getApps().find(a=>a.name==='survey') || initializeApp(FB_CFG,'survey');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const statuses = await Promise.all(SURVEY_LIST.map(s => getDoc(doc(db,'surveyConfig',s.id))));
       list.innerHTML = SURVEY_LIST.map((s,i) => { const isOpen = statuses[i].exists() ? statuses[i].data().open : false; return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f0f0f0"><div><div style="font-weight:700;font-size:14px">${s.name}</div><div style="font-size:12px;color:#718096;margin-top:2px">${s.desc}</div></div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:12px;font-weight:700;color:${isOpen?'#38a169':'#a0aec0'}">${isOpen?'● 진행중':'● 준비중'}</span><button onclick="toggleSurvey('${s.id}',${!isOpen})" style="padding:8px 18px;border-radius:8px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;background:${isOpen?'#fff5f5':'#f0fff4'};color:${isOpen?'#c53030':'#276749'}">${isOpen?'닫기':'열기'}</button></div></div>`; }).join('');

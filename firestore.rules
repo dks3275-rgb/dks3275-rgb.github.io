@@ -96,9 +96,17 @@ service cloud.firestore {
     }
 
     // ── 일정 캘린더 ──
+    // 일정 본문은 관리자만 등록/수정, 댓글(하위 컬렉션)은 사용자도 작성 가능
+    // ⚠️ 하위 컬렉션은 상위 match에 포함되지 않으므로 반드시 따로 선언해야 함
     match /calendar_events/{id} {
       allow read: if true;
       allow write: if isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if true;
+        allow update, delete: if isAdmin();
+      }
     }
 
     // ── 시험 일정 (중간·기말·외부평가·학습활동서) ──
