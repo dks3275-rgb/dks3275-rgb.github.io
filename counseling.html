@@ -657,10 +657,31 @@ async function loadStudents() {
       const us = await getDocs(query(collection(db, 'users'), where('category', '==', 'student')));
       list = us.docs.map(d => {
         const v = d.data();
-        return { id:d.id, src:'users', name:v.name || '', dept:v.grade || '', firm:'' };
+        return {
+          id: d.id, src: 'users',
+          name: v.name || '', dept: v.grade || '', firm: '',
+          deleted: v.deleted === true,          // 휴지통에 넣은 계정은 제외해야 함
+          oneSignalId: v.oneSignalId || '',
+          lastSeen: v.lastSeen || v.updatedAt || ''
+        };
       });
     }
-    students = list.filter(s => s.name && !s.deleted)
+    // 휴지통 계정 제외
+    let alive = list.filter(s => s.name && !s.deleted);
+    // 아직 정리 안 된 중복이 있어도 드롭다운에는 한 명만 뜨게 (알림 살아있는 것 → 최근 접속 순)
+    const byPerson = new Map();
+    alive.forEach(s => {
+      const key = `${s.name}|${s.dept || ''}`;
+      const prev = byPerson.get(key);
+      if (!prev) { byPerson.set(key, s); return; }
+      const better = (a, b) => {
+        const oa = a.oneSignalId ? 1 : 0, ob = b.oneSignalId ? 1 : 0;
+        if (oa !== ob) return oa > ob ? a : b;
+        return (Date.parse(a.lastSeen || 0) || 0) >= (Date.parse(b.lastSeen || 0) || 0) ? a : b;
+      };
+      byPerson.set(key, better(prev, s));
+    });
+    students = Array.from(byPerson.values())
       .sort((a, b) => (a.dept || '').localeCompare(b.dept || '', 'ko') || a.name.localeCompare(b.name, 'ko'));
     renderStudentOptions('');
   } catch(e) {
