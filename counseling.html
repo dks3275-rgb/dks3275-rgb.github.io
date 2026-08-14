@@ -616,6 +616,81 @@ function buildRecordFields() {
     };
   });
 }
+// ── 판단·계획·사후보고서 칸에도 같은 도움말을 붙인다 ──
+// [입력칸 id, 안내 제목, 안내 줄들, 적을 내용, 빠른 입력 버튼]
+const GUIDES = [
+  ['judgement', '🧭 이렇게 정리하세요',
+    ['위에서 확인한 사실 중 <b>무엇이 문제로 보이는지</b>를 먼저 씁니다.',
+     '그 원인이 어디에 있는지 구분합니다 — 개인 / 기업 / 학교·제도.',
+     '체크리스트에서 나온 신호와 연결해서 씁니다.'],
+    '평가는 여기에만 씁니다. 위 면담 기록은 들은 사실만 남겨주세요.',
+    ['근태 문제', '기업 적응 어려움', '학업·근로 병행 부담', '개인 사정', '제도 이해 부족', '현재 특이 문제 없음']],
+
+  ['followup', '🧭 이렇게 정리하세요',
+    ['<b>누가 · 무엇을 · 언제까지</b> 할지 적습니다.',
+     '학생에게 할 것 / 기업에 확인할 것 / 학교가 조치할 것으로 나눠 적으면 좋습니다.',
+     '위험군이면 <b>2주 이내 사후 조치</b>가 필요합니다.'],
+    '예) 2주 내 재면담 예정 / 기업 담당자에게 근무시간 조정 협의 요청',
+    ['2주 내 재면담', '기업 담당자 유선 확인', '학습활동서 작성 지도', '출결 집중 관리', '경과 관찰', '조치 불필요']],
+
+  ['afterCause', '🧭 이렇게 정리하세요',
+    ['<b>언제부터 어떤 신호</b>가 있었는지 시간 순으로 씁니다.',
+     '직접 원인과 배경 원인을 나눠 씁니다.',
+     '앞선 면담 기록에서 근거를 가져오면 좋습니다.'],
+    '예) 9월부터 지각 반복 → 야간 근무 후 등교 부담이 배경 원인',
+    ['근태 악화', '기업 부적응', '학업 부담', '건강 문제', '진로 변경', '가정·경제 사정']],
+
+  ['afterHistory', '🧭 이렇게 정리하세요',
+    ['<b>날짜 + 무엇을 했는지 + 결과</b>를 시간 순으로 씁니다.',
+     '면담, 유선 연락, 기업 협의, 학습 지원 등 모두 포함합니다.',
+     '조치했는데 효과가 없었다면 그것도 적어주세요.'],
+    '예) 9/12 1차 면담 → 9/20 기업 담당자 협의(근무시간 조정) → 9/30 재면담',
+    ['1차 면담 실시', '기업 담당자 협의', '보호자 연락', '학습 지원 연계', '출결 개선 지도']],
+
+  ['afterPlan', '🧭 이렇게 정리하세요',
+    ['<b>같은 일이 반복되지 않으려면 무엇을 바꿔야 하는지</b> 씁니다.',
+     '이 학생 개별 조치 + 운영·제도 차원 개선으로 나눠 적으면 좋습니다.',
+     '다른 학생에게도 해당된다면 그 점을 명시해주세요.'],
+    '예) 야간 근무 학습근로자는 배정 전 근무시간 사전 협의 필요',
+    ['정기 면담 주기 단축', '기업 사전 협의 강화', '입학 전 안내 보완', '멘토링 연계', '유사 사례 모니터링']]
+];
+
+function buildGuides() {
+  GUIDES.forEach(([id, head, lines, writes, chips]) => {
+    const ta = $(id);
+    if (!ta) return;
+    const label = ta.parentElement.querySelector('.label');
+    if (label) {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'help-btn'; btn.textContent = '? 작성 도움말';
+      btn.onclick = () => {
+        const open = box.classList.toggle('open');
+        btn.textContent = open ? '✕ 도움말 닫기' : '? 작성 도움말';
+      };
+      label.appendChild(btn);
+    }
+    const box = document.createElement('div');
+    box.className = 'help-box';
+    box.innerHTML = `<div class="help-h">${head}</div>`
+      + lines.map(l => `<div class="help-write">· ${l}</div>`).join('')
+      + `<div class="help-h" style="margin-top:9px;">✍️ 참고</div><div class="help-write">${writes}</div>`;
+    ta.parentElement.insertBefore(box, ta);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'chips';
+    wrap.innerHTML = chips.map(c => `<button type="button" class="chip" data-txt="${c}">${c}</button>`).join('');
+    wrap.querySelectorAll('.chip').forEach(b => {
+      b.onclick = () => {
+        const cur = ta.value.trim();
+        if (cur.includes(b.dataset.txt)) return;
+        ta.value = cur ? cur + ' / ' + b.dataset.txt : b.dataset.txt;
+        ta.focus(); saveDraft();
+      };
+    });
+    ta.parentElement.insertBefore(wrap, ta);
+  });
+}
+
 function buildAfterCats() {
   $('afterCats').innerHTML = AFTER_CATS.map(c =>
     `<label class="chk-item" style="width:auto;margin:0;padding:8px 12px;">
@@ -1103,6 +1178,7 @@ function renderRecords() {
 buildChecklist();
 buildRecordFields();
 buildAfterCats();
+buildGuides();
 updateRisk();
 $('meetDate').value = localToday();
 renderCounselorList();
