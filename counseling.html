@@ -174,6 +174,11 @@
         <input type="date" class="input" id="meetDate">
       </div>
     </div>
+    <div class="field">
+      <label class="label">면담자 <span class="hint">(상담을 진행한 담당자 이름)</span></label>
+      <input type="text" class="input" id="counselor" placeholder="예: 홍길동" list="counselorList">
+      <datalist id="counselorList"></datalist>
+    </div>
     <div id="histWrap"></div>
   </div>
 
@@ -359,6 +364,25 @@ function localToday() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+// 계정을 4명이 함께 쓰므로 "누가 상담했는지"는 면담자 이름으로 남긴다.
+// 한 번 쓴 이름은 기기에 기억해두고 다음부터 자동 채움 + 선택 목록으로 제공.
+const CS_KEY = 'counselorNames';
+function counselorNames() {
+  try { return JSON.parse(localStorage.getItem(CS_KEY) || '[]'); } catch { return []; }
+}
+function rememberCounselor(name) {
+  if (!name) return;
+  const list = counselorNames().filter(n => n !== name);
+  list.unshift(name);
+  localStorage.setItem(CS_KEY, JSON.stringify(list.slice(0, 8)));
+  renderCounselorList();
+}
+function renderCounselorList() {
+  const names = counselorNames();
+  $('counselorList').innerHTML = names.map(n => `<option value="${n}">`).join('');
+  if (!$('counselor').value && names[0]) $('counselor').value = names[0];
+}
+
 let toastTimer = null;
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -549,7 +573,7 @@ async function loadHistory(s) {
             </span>
             ${c.after && c.after.kind ? `<span class="risk-badge" style="background:#ede9fe;color:#5b21b6;font-size:11px;padding:2px 9px;">${c.after.kind}</span>` : ''}
           </div>
-          <div class="hist-meta">${c.meetType || ''} · ${c.meetWay || ''} · 작성 ${c.authorEmail || '-'}</div>
+          <div class="hist-meta">${c.meetType || ''} · ${c.meetWay || ''} · 면담자 ${c.counselor || c.authorEmail || '-'}</div>
         </div>`;
       }).join('');
     wrap.querySelectorAll('[data-load]').forEach(el => {
@@ -572,6 +596,7 @@ function collect() {
     studentId: t.studentId, studentName: t.name, dept: t.dept, manualEntry: t.manual,
     firm: $('firmName').value.trim(),
     meetDate: $('meetDate').value,
+    counselor: $('counselor').value.trim(),
     meetType: $('meetType').value, meetWay: $('meetWay').value, meetBg: $('meetBg').value.trim(),
     checks, riskCount: checks.length, riskLabel: riskLevel(checks.length).label,
     record: rec,
@@ -594,6 +619,7 @@ function collect() {
 function loadInto(c) {
   $('firmName').value = c.firm || '';
   $('meetDate').value = c.meetDate || localToday();
+  if (c.counselor) $('counselor').value = c.counselor;
   $('meetType').value = c.meetType || '정기';
   $('meetWay').value = c.meetWay || '대면';
   $('meetBg').value = c.meetBg || '';
@@ -655,6 +681,8 @@ $('saveBtn').onclick = async () => {
   const d = collect();
   if (!d.studentName) { toast('학습근로자를 선택해주세요'); return; }
   if (!d.meetDate) { toast('면담 일자를 입력해주세요'); return; }
+  if (!d.counselor) { toast('면담자 이름을 입력해주세요'); $('counselor').focus(); return; }
+  rememberCounselor(d.counselor);
   const btn = $('saveBtn'); btn.disabled = true; btn.textContent = '저장 중...';
   try {
     d.authorEmail = currentUser ? currentUser.email : '';
@@ -684,7 +712,7 @@ $('printBtn').onclick = () => {
     <b>학습근로자명</b> ${d.studentName || '-'} (${d.dept || '-'})<br>
     <b>면담 일자</b> ${d.meetDate || '-'} &nbsp;|&nbsp;
     <b>면담 구분</b> ${d.meetType} &nbsp;|&nbsp; <b>면담 방식</b> ${d.meetWay}<br>
-    <b>면담자</b> ${currentUser ? currentUser.email : '-'} &nbsp;|&nbsp;
+    <b>면담자</b> ${d.counselor || '-'} &nbsp;|&nbsp;
     <b>위험도</b> 체크 ${d.riskCount}개 · ${d.riskLabel}`;
   $('printHead').style.display = 'block';
   window.print();
@@ -697,7 +725,8 @@ buildRecordFields();
 buildAfterCats();
 updateRisk();
 $('meetDate').value = localToday();
-['firmName','meetDate','meetBg','judgement','followup','joinType','afterDate','afterCause','afterHistory','afterPlan','manualName','manualDept']
+renderCounselorList();
+['firmName','meetDate','counselor','meetBg','judgement','followup','joinType','afterDate','afterCause','afterHistory','afterPlan','manualName','manualDept']
   .forEach(id => { const el = $(id); if (el) el.oninput = saveDraft; });
 $('meetType').onchange = saveDraft; $('meetWay').onchange = saveDraft;
 setTimeout(restoreDraft, 800);
