@@ -1216,6 +1216,22 @@
 <!-- 가입자 현황 탭 -->
 <div class="tab-content" id="tab-members">
   <div class="container">
+
+    <!-- ═══ 중복 가입자 정리 ═══ -->
+    <div class="card">
+      <div class="card-title">
+        🔁 중복 가입자 정리
+        <button class="refresh-btn" onclick="scanDuplicates()">🔍 다시 검사</button>
+      </div>
+      <div style="background:#fff7ed;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#9a3412;line-height:1.65;">
+        같은 사람이 폰·태블릿에서 각각 가입하거나 앱을 다시 설치하면 계정이 따로 만들어집니다.<br>
+        <b>이름 + 학과</b>가 같은 계정을 묶어서 보여드립니다.<br>
+        <small style="opacity:0.9;">⚠️ <b>지금도 쓰는 기기를 정리하면</b> 그 학생은 앱을 열 때 재가입 안내를 받고 알림이 끊깁니다.
+        <b>알림 구독이 없거나 오래 접속 안 한 계정</b>만 정리해주세요.</small>
+      </div>
+      <div id="dupList"><div class="empty-history">🔍 다시 검사를 눌러주세요</div></div>
+    </div>
+
     <div class="card">
       <div class="card-title">
         👥 가입자 현황
@@ -4391,6 +4407,129 @@
       console.warn('OneSignal 차단 실패:', e);
       return false;
     }
+  }
+
+  // ══════════ 중복 가입자 정리 ══════════
+  // 같은 사람이 여러 기기로 가입해 생긴 계정을 묶어서 보여준다.
+  // "지금 쓰는 기기"를 정리하면 학생이 재가입 안내를 받게 되므로,
+  // 알림 구독 여부와 마지막 접속을 나란히 보여주고 판단은 사람이 하게 한다.
+  function dupKey(m) {
+    const n = (m.name || '').trim();
+    if (!n) return null;
+    if (m.category === 'student')  return `student|${n}|${m.grade || ''}`;
+    if (m.category === 'graduate') return `graduate|${n}|${m.dept || ''}`;
+    if (m.category === 'prospect') return `prospect|${n}|${m.interest || ''}`;
+    if (m.category === 'company')  return `company|${n}|${m.firm || ''}`;
+    return null;
+  }
+  function seenScore(m) {              // 최근에 쓴 계정일수록 큰 값
+    const t = m.lastSeen ? Date.parse(m.lastSeen) : 0;
+    if (t) return t;
+    return m.updatedAt ? Date.parse(m.updatedAt) || 0 : 0;
+  }
+  function fmtDay(v) {
+    if (!v) return null;
+    const t = typeof v === 'number' ? v : Date.parse(v);
+    if (!t) return null;
+    const days = Math.floor((Date.now() - t) / 86400000);
+    const d = new Date(t).toLocaleDateString('ko-KR', { year:'2-digit', month:'2-digit', day:'2-digit' });
+    return `${d} (${days === 0 ? '오늘' : days + '일 전'})`;
+  }
+
+  async function scanDuplicates() {
+    const el = document.getElementById('dupList');
+    if (!el) return;
+    el.innerHTML = '<div class="empty-history">검사 중...</div>';
+    if (!allMembers || allMembers.length === 0) await loadMembers();
+
+    const groups = {};
+    (allMembers || []).filter(m => !m.deleted).forEach(m => {
+      const k = dupKey(m);
+      if (!k) return;
+      (groups[k] = groups[k] || []).push(m);
+    });
+    const dups = Object.entries(groups).filter(([, list]) => list.length > 1);
+    if (dups.length === 0) {
+      el.innerHTML = '<div class="empty-history">✅ 중복으로 보이는 계정이 없어요</div>';
+      return;
+    }
+    // 남길 후보를 위로: 알림 구독 있는 것 → 최근에 쓴 것 순
+    dups.forEach(([, list]) => list.sort((a, b) => {
+      const sa = a.oneSignalId ? 1 : 0, sb = b.oneSignalId ? 1 : 0;
+      if (sa !== sb) return sb - sa;
+      return seenScore(b) - seenScore(a);
+    }));
+
+    const total = dups.reduce((s, [, l]) => s + l.length - 1, 0);
+    el.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:12px;">
+        중복 의심 ${dups.length}명 · 정리 대상 ${total}개 계정
+      </div>`
+      + dups.map(([key, list]) => {
+        const [cat, name, sub] = key.split('|');
+        const catLabel = { student:'🎓 재학생', graduate:'🎉 졸업생', prospect:'🌱 예비신입생', company:'🏢 전담인력' }[cat] || cat;
+        return `<div style="border:1.5px solid #e4eaf4;border-radius:12px;padding:14px;margin-bottom:12px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${name}</div>
+          <div style="font-size:12px;color:#718096;margin-bottom:10px;">${catLabel}${sub ? ' · ' + sub : ''} · 계정 ${list.length}개</div>
+          ${list.map((m, i) => {
+            const seen = fmtDay(m.lastSeen);
+            const joined = fmtDay(m.createdAt);
+            const alive = !!m.oneSignalId;
+            return `<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:9px;margin-bottom:6px;cursor:pointer;background:${i === 0 ? '#ecfdf5' : '#f8fafc'};">
+              <input type="checkbox" class="dup-chk" value="${m.deviceId}" ${i === 0 ? '' : 'checked'} style="width:18px;height:18px;margin-top:2px;flex-shrink:0;">
+              <span style="flex:1;font-size:12.5px;line-height:1.6;">
+                ${i === 0 ? '<b style="color:#059669;">남길 계정 (추천)</b><br>' : ''}
+                <span style="font-size:11px;padding:2px 7px;border-radius:5px;font-weight:700;background:${alive ? '#d1fae5' : '#fee2e2'};color:${alive ? '#065f46' : '#991b1b'};">
+                  ${alive ? '🔔 알림 구독중' : '🔕 알림 없음'}</span>
+                <span style="color:#4a5568;"> 마지막 접속 ${seen || '기록 없음'}</span><br>
+                <span style="color:#8a9ab5;">가입 ${joined || '-'} · ID ${String(m.deviceId).slice(0, 14)}…</span>
+              </span>
+            </label>`;
+          }).join('')}
+        </div>`;
+      }).join('')
+      + `<button class="send-btn" onclick="trashSelectedDuplicates()" style="background:#dc2626;">
+           🗑️ 체크한 계정을 휴지통으로
+         </button>
+         <div style="font-size:11.5px;color:#8a9ab5;margin-top:8px;line-height:1.5;">
+           초록색 = 남길 계정으로 추천된 것(체크 해제 상태). 판단이 서지 않으면 체크를 풀어 두세요.
+         </div>`;
+  }
+
+  async function trashSelectedDuplicates() {
+    const ids = Array.from(document.querySelectorAll('.dup-chk:checked')).map(c => c.value);
+    if (ids.length === 0) { alert('체크한 계정이 없어요'); return; }
+    const names = ids.map(id => (allMembers.find(m => m.deviceId === id) || {}).name || '?');
+    if (!await customConfirm({
+      title: '중복 계정 정리',
+      message: `${ids.length}개 계정을 휴지통으로 옮길까요?<br><br>
+        <span style="font-size:12px;">${names.slice(0, 10).join(', ')}${names.length > 10 ? ' 외 ' + (names.length - 10) + '개' : ''}</span>
+        <br><br>🗑️ 30일 보관 후 자동 삭제 (그 전에는 복원 가능)<br>🔕 알림 발송 즉시 차단`,
+      confirmText: '🗑️ 휴지통으로', danger: true
+    })) return;
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const db = getFirestore(app);
+      let ok = 0, fail = 0;
+      for (const id of ids) {
+        const m = allMembers.find(x => x.deviceId === id);
+        try {
+          await updateDoc(doc(db, 'users', id), {
+            deleted: true, deletedAt: Date.now(),
+            _dupCleanup: true,
+            _origCategory: m?.category || null, _origDept: m?.dept || m?.grade || null, _origRole: m?.role || null
+          });
+          if (m?.oneSignalId) { try { await blockOneSignalSubscription(m.oneSignalId, m.name || ''); } catch(_) {} }
+          ok++;
+        } catch(_) { fail++; }
+      }
+      await writeLog('delete', 'member', 'dup-cleanup', `중복 계정 정리 ${ok}개${fail ? ` (실패 ${fail})` : ''}`);
+      await loadMembers();
+      scanDuplicates();
+      alert(`✅ ${ok}개 계정을 휴지통으로 옮겼어요${fail ? `\n⚠️ ${fail}개 실패` : ''}`);
+    } catch(e) { alert('❌ 정리 실패: ' + e.message); }
   }
 
   async function deleteMember(deviceId) {

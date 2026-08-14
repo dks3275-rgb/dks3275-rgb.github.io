@@ -95,6 +95,25 @@
            opacity:0; pointer-events:none; transition:opacity .2s; }
   .toast.show { opacity:1; }
   .draft-note { font-size:11.5px; color:var(--warn); margin-top:8px; display:none; }
+  .mode-bar { background:#fef3c7; border:1.5px solid #fcd34d; color:#92400e; border-radius:12px;
+              padding:11px 14px; font-size:13px; margin-bottom:12px; display:flex;
+              align-items:center; gap:10px; flex-wrap:wrap; }
+  .mode-btn { margin-left:auto; background:white; border:1.5px solid #fcd34d; color:#92400e;
+              padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700;
+              font-family:inherit; cursor:pointer; }
+  .view-switch { display:flex; gap:8px; margin-bottom:12px; }
+  .view-switch button { flex:1; padding:11px; border:1.5px solid var(--line); background:white;
+                        border-radius:11px; font-family:inherit; font-size:13.5px; font-weight:700;
+                        color:var(--gray); cursor:pointer; }
+  .view-switch button.on { background:var(--navy); border-color:var(--navy); color:white; }
+  .rec-item { border:1.5px solid var(--line); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
+  .rec-top { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:5px; }
+  .rec-name { font-size:14.5px; font-weight:700; }
+  .rec-act { display:flex; gap:6px; margin-top:9px; }
+  .rec-act button { flex:1; padding:8px; border:1.5px solid var(--line); background:white;
+                    border-radius:8px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; }
+  .rec-act .del { color:var(--danger); border-color:#fecaca; }
+  .overdue { background:#fef2f2; border-color:#fecaca; }
 
   /* ── 이력 ── */
   .hist-item { border-left:3px solid var(--blue); background:#f8fafc; border-radius:0 10px 10px 0;
@@ -109,10 +128,13 @@
     body { background:white; }
     .header, .tabs, .btn-row, .risk-box, .no-print, #authGate { display:none !important; }
     .tab-panel { display:block !important; page-break-inside:avoid; }
-    .card { box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:10px; }
+    .card { box-shadow:none; border:1px solid #ccc; margin-bottom:10px; }
     .container { max-width:100%; padding:0; }
     .chk-item { background:none; padding:4px 0; }
-    textarea.input { border:none; padding:0; min-height:0; height:auto; }
+    .chk-group { page-break-inside:avoid; }
+    .field { page-break-inside:avoid; }
+    /* 높이는 인쇄 직전 JS가 내용에 맞춰 늘려준다 (min-height를 0으로 두지 않음) */
+    textarea.input { border:none; padding:0; resize:none; overflow:visible; }
   }
 </style>
 </head>
@@ -140,11 +162,41 @@
 </div>
 
 <div class="container">
+  <div class="view-switch no-print">
+    <button class="on" id="viewWriteBtn">✍️ 상담 작성</button>
+    <button id="viewListBtn">📚 기록 보기</button>
+  </div>
+
+  <!-- ══════ 기록 보기 ══════ -->
+  <div id="listView" class="no-print" style="display:none;">
+    <div class="card">
+      <div class="card-title">
+        📚 면담일지 기록
+        <button class="mode-btn" style="margin-left:auto;" id="recReload">🔄 새로고침</button>
+      </div>
+      <input type="text" class="input" id="recSearch" placeholder="🔍 이름 · 학습기업 · 면담자 검색" style="margin-bottom:9px;">
+      <select class="input" id="recFilter" style="margin-bottom:12px;">
+        <option value="all">전체 보기</option>
+        <option value="overdue">⚠️ 위험군인데 사후 보고서 미작성</option>
+        <option value="high">위험군만</option>
+        <option value="warn">주의 이상</option>
+      </select>
+      <div id="recList"><div class="empty">불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <div id="writeView">
   <!-- ── 대상 선택 ── -->
+  <div class="mode-bar no-print" id="editBar" style="display:none;">
+    ✏️ <b id="editWho">기존 기록</b> 수정 중입니다. 저장하면 이 기록이 바뀝니다.
+    <button class="mode-btn" id="newBtn">🆕 새 상담 시작</button>
+  </div>
+
   <div class="card no-print" id="pickCard">
     <div class="card-title">👤 상담 대상</div>
     <div class="field">
       <label class="label">학습근로자</label>
+      <input type="text" class="input" id="studentSearch" placeholder="🔍 이름으로 찾기" style="margin-bottom:8px;">
       <select class="input" id="studentPick"><option value="">불러오는 중...</option></select>
     </div>
     <div class="field" id="manualWrap" style="display:none;">
@@ -296,6 +348,7 @@
     <button class="btn btn-primary" id="saveBtn">💾 저장</button>
   </div>
   <div class="draft-note" id="draftNote"></div>
+  </div><!-- /writeView -->
 </div>
 
 <div class="toast" id="toast"></div>
@@ -304,7 +357,7 @@
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, query, where, serverTimestamp }
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
@@ -522,22 +575,46 @@ async function loadStudents() {
     }
     students = list.filter(s => s.name && !s.deleted)
       .sort((a, b) => (a.dept || '').localeCompare(b.dept || '', 'ko') || a.name.localeCompare(b.name, 'ko'));
-    sel.innerHTML = '<option value="">— 학습근로자 선택 —</option>'
-      + students.map((s, i) => `<option value="${i}">${s.name} (${s.dept || '학과 미상'})</option>`).join('')
-      + '<option value="manual">✏️ 명단에 없음 — 직접 입력</option>';
+    renderStudentOptions('');
   } catch(e) {
     sel.innerHTML = '<option value="manual">✏️ 직접 입력 (명단 불러오기 실패)</option>';
     toast('명단을 불러오지 못했어요: ' + e.message);
   }
+  // 명단을 다 채운 다음에 임시저장 복원 (순서가 바뀌면 학생이 안 잡힘)
+  if (!draftChecked) { draftChecked = true; restoreDraft(); }
 }
+let draftChecked = false;
+// 이름으로 명단 좁히기 (명단이 커져도 찾기 쉽게)
+$('studentSearch').oninput = () => renderStudentOptions($('studentSearch').value.trim());
+function renderStudentOptions(kw) {
+  const sel = $('studentPick');
+  const keep = sel.value;
+  const k = (kw || '').toLowerCase();
+  const shown = students.filter(s => !k || (s.name + ' ' + (s.dept||'') + ' ' + (s.firm||'')).toLowerCase().includes(k));
+  sel.innerHTML = '<option value="">— 학습근로자 선택 —</option>'
+    + shown.map(s => `<option value="${s.id}">${s.name} (${s.dept || '학과 미상'})</option>`).join('')
+    + '<option value="manual">✏️ 명단에 없음 — 직접 입력</option>';
+  if (Array.from(sel.options).some(o => o.value === keep)) sel.value = keep;
+}
+
+// 대상이 바뀌면 작성 중이던 내용이 섞이지 않도록 폼 전체를 비운다.
+let lastPick = '';
 $('studentPick').onchange = () => {
   const v = $('studentPick').value;
+  if (v !== lastPick && hasContent() &&
+      !confirm('상담 대상을 바꾸면 지금까지 입력한 내용이 지워집니다.\n계속할까요?')) {
+    $('studentPick').value = lastPick;      // 되돌리기
+    return;
+  }
+  lastPick = v;
+  clearForm();                              // editingId도 여기서 초기화됨
   $('manualWrap').style.display = v === 'manual' ? 'block' : 'none';
-  if (v !== '' && v !== 'manual') {
-    const s = students[Number(v)];
-    if (s && s.firm) $('firmName').value = s.firm;
+  if (v && v !== 'manual') {
+    const s = students.find(x => x.id === v);
+    $('firmName').value = (s && s.firm) ? s.firm : '';
     loadHistory(s);
   } else {
+    $('firmName').value = '';
     $('histWrap').innerHTML = '';
   }
   saveDraft();
@@ -547,10 +624,50 @@ function currentTarget() {
   if (v === 'manual') {
     return { studentId:'', name:$('manualName').value.trim(), dept:$('manualDept').value, manual:true };
   }
-  const s = students[Number(v)];
+  const s = students.find(x => x.id === v);
   return s ? { studentId:s.id, name:s.name, dept:s.dept || '', manual:false }
            : { studentId:'', name:'', dept:'', manual:false };
 }
+
+// 입력된 내용이 있는지 (경고를 띄울지 판단)
+function hasContent() {
+  if (checkedKeys().length > 0) return true;
+  const texts = ['meetBg','judgement','followup','afterCause','afterHistory','afterPlan'];
+  if (texts.some(id => ($(id).value || '').trim())) return true;
+  return Array.from(document.querySelectorAll('[data-rec]')).some(el => el.value.trim());
+}
+
+// 폼 비우기 — 대상/면담자/면담일자는 유지, 나머지는 전부 초기화
+function clearForm() {
+  document.querySelectorAll('[data-chk]').forEach(cb => {
+    cb.checked = false; cb.closest('.chk-item').classList.remove('on');
+  });
+  updateRisk();
+  document.querySelectorAll('[data-rec]').forEach(el => { el.value = ''; });
+  ['meetBg','judgement','followup','joinType','afterDate','afterCause','afterHistory','afterPlan']
+    .forEach(id => { $(id).value = ''; });
+  $('meetType').value = '정기'; $('meetWay').value = '대면';
+  $('afterKind').value = ''; $('afterKind').onchange();
+  document.querySelectorAll('[data-acat]').forEach(cb => {
+    cb.checked = false; cb.closest('.chk-item').classList.remove('on');
+  });
+  setEditing(null);
+}
+
+// 수정 모드 표시 — 지금 무엇을 저장하게 되는지 항상 보이게 한다
+function setEditing(id, who) {
+  editingId = id || null;
+  const bar = $('editBar');
+  if (editingId) { bar.style.display = 'flex'; $('editWho').textContent = who || '기존 기록'; }
+  else { bar.style.display = 'none'; }
+}
+$('newBtn').onclick = () => {
+  if (hasContent() && !confirm('작성 중인 내용을 지우고 새 상담을 시작할까요?')) return;
+  clearForm();
+  localStorage.removeItem(DRAFT_KEY);
+  $('draftNote').style.display = 'none';
+  toast('새 상담을 시작합니다');
+};
 
 // ══════════ 상담 이력 ══════════
 async function loadHistory(s) {
@@ -579,7 +696,7 @@ async function loadHistory(s) {
     wrap.querySelectorAll('[data-load]').forEach(el => {
       el.onclick = () => {
         const c = list.find(x => x.id === el.dataset.load);
-        if (c && confirm('이 상담 기록을 불러올까요?\n(작성 중인 내용은 사라집니다)')) loadInto(c);
+        if (c && confirm('이 상담 기록을 불러와 수정할까요?\n(작성 중인 내용은 사라집니다)')) { loadInto(c); toast('불러왔어요'); }
       };
     });
   } catch(e) { wrap.innerHTML = '<div class="empty">이력을 불러오지 못했어요</div>'; }
@@ -643,8 +760,7 @@ function loadInto(c) {
     cb.checked = Array.isArray(a.cats) && a.cats.includes(cb.dataset.acat);
     cb.closest('.chk-item').classList.toggle('on', cb.checked);
   });
-  editingId = c.id;
-  toast('불러왔어요. 저장하면 이 기록이 수정됩니다.');
+  if (c.id) { setEditing(c.id, `${c.studentName || ''} · ${c.meetDate || ''}`); loadedSnapshot = c; }
 }
 
 // ══════════ 임시 저장 (기기에 보관) ══════════
@@ -662,21 +778,34 @@ function saveDraft() {
     } catch(_) {}
   }, 600);
 }
+// 명단을 다 불러온 뒤에 실행해야 학생 선택이 제대로 복원된다
 function restoreDraft() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch(_) {}
   if (!d || !d.data) return;
   const ageH = (Date.now() - (d.at || 0)) / 3600000;
   if (ageH > 24) { localStorage.removeItem(DRAFT_KEY); return; }   // 하루 지난 임시본은 폐기
-  if (!confirm('작성하다 만 면담일지가 있어요. 이어서 작성할까요?')) { localStorage.removeItem(DRAFT_KEY); return; }
-  if (d.pick) { $('studentPick').value = d.pick; $('studentPick').onchange(); }
+  const who = d.data.studentName || '이름 미입력';
+  if (!confirm(`작성하다 만 면담일지가 있어요.\n\n대상: ${who}\n작성: ${new Date(d.at).toLocaleString('ko-KR')}\n\n이어서 작성할까요?`)) {
+    localStorage.removeItem(DRAFT_KEY); return;
+  }
+  // pick은 학생 문서 ID(안정적인 값)로 저장됨 → 명단 순서가 바뀌어도 안전
+  if (d.pick) {
+    if (Array.from($('studentPick').options).some(o => o.value === d.pick)) $('studentPick').value = d.pick;
+    else if (d.data.manualEntry) $('studentPick').value = 'manual';
+    lastPick = $('studentPick').value;
+    $('manualWrap').style.display = $('studentPick').value === 'manual' ? 'block' : 'none';
+    const s = students.find(x => x.id === d.pick);
+    if (s) loadHistory(s);
+  }
   if (d.data.manualEntry) { $('manualName').value = d.data.studentName || ''; $('manualDept').value = d.data.dept || ''; }
   loadInto(d.data);
-  editingId = d.editingId || null;
+  setEditing(d.editingId || null, `${who} · ${d.data.meetDate || ''}`);
 }
 
 // ══════════ 저장 ══════════
 let editingId = null;
+let loadedSnapshot = null;   // 불러온 원본 (대상이 바뀌었는지 판단용)
 $('saveBtn').onclick = async () => {
   const d = collect();
   if (!d.studentName) { toast('학습근로자를 선택해주세요'); return; }
@@ -688,12 +817,30 @@ $('saveBtn').onclick = async () => {
     d.authorEmail = currentUser ? currentUser.email : '';
     d.authorUid = currentUser ? currentUser.uid : '';
     if (editingId) {
+      // 수정 모드일 때 대상이 바뀌었으면 남의 기록을 덮어쓰는 것 → 반드시 확인
+      const orig = loadedSnapshot;
+      if (orig && orig.studentName && orig.studentName !== d.studentName) {
+        if (!confirm(`불러온 기록은 "${orig.studentName}" 님의 것입니다.\n"${d.studentName}" 님의 내용으로 덮어쓸까요?\n\n[취소]를 누르면 새 기록으로 저장합니다.`)) {
+          setEditing(null);
+          const ref2 = await addDoc(collection(db, 'counseling'), { ...d, createdAt: serverTimestamp() });
+          setEditing(ref2.id, `${d.studentName} · ${d.meetDate}`);
+          loadedSnapshot = { ...d, id: ref2.id };
+          toast('✅ 새 기록으로 저장했어요');
+          localStorage.removeItem(DRAFT_KEY);
+          $('draftNote').style.display = 'none';
+          if (d.studentId) loadHistory({ id: d.studentId });
+          btn.disabled = false; btn.textContent = '💾 저장';
+          return;
+        }
+      }
       await updateDoc(doc(db, 'counseling', editingId), { ...d, updatedAt: serverTimestamp() });
+      loadedSnapshot = { ...d, id: editingId };
       toast('✅ 수정했어요');
     } else {
       const ref = await addDoc(collection(db, 'counseling'), { ...d, createdAt: serverTimestamp() });
-      editingId = ref.id;
-      toast('✅ 저장했어요');
+      setEditing(ref.id, `${d.studentName} · ${d.meetDate}`);
+      loadedSnapshot = { ...d, id: ref.id };
+      toast('✅ 저장했어요 · 이어서 수정할 수 있어요');
     }
     localStorage.removeItem(DRAFT_KEY);
     $('draftNote').style.display = 'none';
@@ -715,9 +862,134 @@ $('printBtn').onclick = () => {
     <b>면담자</b> ${d.counselor || '-'} &nbsp;|&nbsp;
     <b>위험도</b> 체크 ${d.riskCount}개 · ${d.riskLabel}`;
   $('printHead').style.display = 'block';
+  // textarea는 height:auto가 안 먹어서 인쇄 시 내용이 잘린다 → 내용 높이만큼 강제로 펼침
+  const areas = Array.from(document.querySelectorAll('textarea.input'));
+  const saved = areas.map(a => a.style.height);
+  areas.forEach(a => { a.style.height = 'auto'; a.style.height = (a.scrollHeight + 4) + 'px'; });
   window.print();
-  setTimeout(() => { $('printHead').style.display = 'none'; }, 400);
+  setTimeout(() => {
+    $('printHead').style.display = 'none';
+    areas.forEach((a, i) => { a.style.height = saved[i]; });
+  }, 400);
 };
+
+// ══════════ 기록 보기 (전체 조회 · 검색 · 삭제) ══════════
+let allRecords = [];
+function switchView(mode) {
+  const write = mode === 'write';
+  $('writeView').style.display = write ? 'block' : 'none';
+  $('listView').style.display = write ? 'none' : 'block';
+  $('viewWriteBtn').classList.toggle('on', write);
+  $('viewListBtn').classList.toggle('on', !write);
+  if (!write) loadRecords();
+}
+$('viewWriteBtn').onclick = () => switchView('write');
+$('viewListBtn').onclick = () => switchView('list');
+$('recReload').onclick = () => loadRecords(true);
+$('recSearch').oninput = renderRecords;
+$('recFilter').onchange = renderRecords;
+
+async function loadRecords(force) {
+  const el = $('recList');
+  if (allRecords.length && !force) { renderRecords(); return; }
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
+  try {
+    const snap = await getDocs(collection(db, 'counseling'));
+    allRecords = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+      .sort((a, b) => (b.meetDate || '').localeCompare(a.meetDate || ''));
+    renderRecords();
+  } catch(e) { el.innerHTML = '<div class="empty">불러오기 실패: ' + e.message + '</div>'; }
+}
+// 위험군인데 사후 보고서가 없고 2주가 지난 건
+function isOverdue(c) {
+  if ((c.riskCount || 0) < RISK_HIGH) return false;
+  if (c.after && c.after.kind) return false;
+  if (!c.meetDate) return false;
+  const [y, m, d] = c.meetDate.split('-').map(Number);
+  if (!y) return false;
+  const t0 = new Date(); t0.setHours(0,0,0,0);
+  return Math.round((t0 - new Date(y, m-1, d)) / 86400000) > 14;
+}
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y) return null;
+  const t0 = new Date(); t0.setHours(0,0,0,0);
+  return Math.round((t0 - new Date(y, m-1, d)) / 86400000);
+}
+function renderRecords() {
+  const el = $('recList');
+  const kw = ($('recSearch').value || '').trim().toLowerCase();
+  const f = $('recFilter').value;
+  let items = allRecords.slice();
+  if (f === 'overdue') items = items.filter(isOverdue);
+  else if (f === 'high') items = items.filter(c => (c.riskCount || 0) >= RISK_HIGH);
+  else if (f === 'warn') items = items.filter(c => (c.riskCount || 0) >= RISK_WARN);
+  if (kw) items = items.filter(c =>
+    `${c.studentName || ''} ${c.firm || ''} ${c.counselor || ''} ${c.dept || ''}`.toLowerCase().includes(kw));
+
+  const overdueN = allRecords.filter(isOverdue).length;
+  const head = `<div style="font-size:12.5px;color:#4a5568;margin-bottom:10px;">
+      전체 ${allRecords.length}건 중 ${items.length}건 표시
+      ${overdueN ? ` · <b style="color:#b91c1c;">사후 보고서 미작성 ${overdueN}건</b>` : ''}
+    </div>`;
+  if (items.length === 0) { el.innerHTML = head + '<div class="empty">📭 해당하는 기록이 없어요</div>'; return; }
+
+  el.innerHTML = head + items.map(c => {
+    const r = riskLevel(c.riskCount || 0);
+    const od = isOverdue(c);
+    const gap = daysSince(c.meetDate);
+    return `<div class="rec-item ${od ? 'overdue' : ''}">
+      <div class="rec-top">
+        <span class="rec-name">${c.studentName || '이름 없음'}</span>
+        <span class="risk-badge" style="background:${r.bg};color:${r.fg};font-size:11px;padding:2px 9px;">${r.label} ${c.riskCount || 0}</span>
+        ${c.after && c.after.kind ? `<span class="risk-badge" style="background:#ede9fe;color:#5b21b6;font-size:11px;padding:2px 9px;">${c.after.kind}</span>` : ''}
+        ${od ? `<span class="risk-badge" style="background:#dc2626;color:#fff;font-size:11px;padding:2px 9px;">사후 보고서 ${gap}일 경과</span>` : ''}
+      </div>
+      <div class="hist-meta">${c.meetDate || '-'} · ${c.dept || ''} ${c.firm ? '· ' + c.firm : ''}</div>
+      <div class="hist-meta">${c.meetType || ''} · ${c.meetWay || ''} · 면담자 ${c.counselor || '-'}</div>
+      <div class="rec-act">
+        <button data-open="${c.id}">📂 열어서 수정</button>
+        <button class="del" data-del="${c.id}">🗑️ 삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-open]').forEach(b => {
+    b.onclick = () => {
+      const c = allRecords.find(x => x.id === b.dataset.open);
+      if (!c) return;
+      switchView('write');
+      $('studentSearch').value = '';
+      renderStudentOptions('');
+      if (c.studentId && Array.from($('studentPick').options).some(o => o.value === c.studentId)) {
+        $('studentPick').value = c.studentId;
+      } else {
+        $('studentPick').value = 'manual';
+        $('manualWrap').style.display = 'block';
+        $('manualName').value = c.studentName || '';
+        $('manualDept').value = c.dept || '';
+      }
+      lastPick = $('studentPick').value;
+      loadInto(c);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
+  el.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = async () => {
+      const c = allRecords.find(x => x.id === b.dataset.del);
+      if (!c) return;
+      if (!confirm(`"${c.studentName}" 님의 ${c.meetDate} 면담일지를 삭제할까요?\n\n삭제하면 되돌릴 수 없습니다.`)) return;
+      try {
+        await deleteDoc(doc(db, 'counseling', c.id));
+        if (editingId === c.id) { clearForm(); loadedSnapshot = null; }
+        allRecords = allRecords.filter(x => x.id !== c.id);
+        renderRecords();
+        toast('삭제했어요');
+      } catch(e) { toast('삭제 실패: ' + e.message); }
+    };
+  });
+}
 
 // ══════════ 시작 ══════════
 buildChecklist();
@@ -729,7 +1001,6 @@ renderCounselorList();
 ['firmName','meetDate','counselor','meetBg','judgement','followup','joinType','afterDate','afterCause','afterHistory','afterPlan','manualName','manualDept']
   .forEach(id => { const el = $(id); if (el) el.oninput = saveDraft; });
 $('meetType').onchange = saveDraft; $('meetWay').onchange = saveDraft;
-setTimeout(restoreDraft, 800);
 </script>
 </body>
 </html>
