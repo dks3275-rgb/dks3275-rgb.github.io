@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>면담일지 - AU 일학습병행</title>
+<meta name="theme-color" content="#1976d2">
+<meta name="robots" content="noindex, nofollow">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+  :root { --navy:#1976d2; --blue:#2196f3; --light:#f0f4f8; --gray:#8a9ab5;
+          --line:#e4eaf4; --text:#1a202c; --sub:#4a5568;
+          --ok:#10b981; --warn:#f59e0b; --danger:#ef4444; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--light); color:var(--text); min-height:100vh; }
+
+  /* ── 로그인 게이트 ── */
+  #authGate { position:fixed; inset:0; background:#0f2540; z-index:9999; display:flex;
+              align-items:center; justify-content:center; padding:20px; }
+  .auth-box { background:white; border-radius:18px; padding:32px 26px; width:100%; max-width:380px;
+              box-shadow:0 10px 40px rgba(0,0,0,0.3); }
+  .auth-box h2 { font-size:19px; margin-bottom:6px; }
+  .auth-box p { font-size:13px; color:var(--gray); margin-bottom:20px; line-height:1.5; }
+  .auth-box input { width:100%; padding:13px 14px; border:1.5px solid var(--line); border-radius:10px;
+                    font-size:15px; font-family:inherit; margin-bottom:10px; }
+  .auth-box button { width:100%; padding:14px; background:var(--navy); color:white; border:none;
+                     border-radius:10px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
+  .auth-box button:disabled { background:var(--gray); }
+  .auth-err { color:var(--danger); font-size:13px; margin-bottom:10px; display:none; }
+
+  /* ── 헤더 ── */
+  .header { background:var(--navy); padding:14px 16px; display:flex; align-items:center; gap:10px;
+            position:sticky; top:0; z-index:50; }
+  .header h1 { color:white; font-size:16px; font-weight:700; }
+  .back-btn { background:rgba(255,255,255,0.2); color:white; width:34px; height:34px; border-radius:9px;
+              font-size:17px; display:flex; align-items:center; justify-content:center;
+              text-decoration:none; flex-shrink:0; }
+  .who { margin-left:auto; font-size:11px; color:rgba(255,255,255,0.85); text-align:right; line-height:1.3; }
+  .logout-btn { background:none; border:1px solid rgba(255,255,255,0.4); color:white; font-size:11px;
+                padding:3px 8px; border-radius:6px; cursor:pointer; font-family:inherit; margin-top:3px; }
+
+  .container { max-width:820px; margin:0 auto; padding:16px 14px 60px; }
+  .card { background:white; border-radius:14px; padding:18px; margin-bottom:14px;
+          box-shadow:0 2px 8px rgba(33,150,243,0.07); }
+  .card-title { font-size:15px; font-weight:700; margin-bottom:14px; display:flex;
+                align-items:center; gap:8px; flex-wrap:wrap; }
+  .field { margin-bottom:14px; }
+  .label { display:block; font-size:13px; font-weight:700; color:var(--sub); margin-bottom:6px; }
+  .hint { font-size:11.5px; color:var(--gray); font-weight:400; }
+  .input, select.input, textarea.input {
+    width:100%; padding:11px 13px; border:1.5px solid var(--line); border-radius:10px;
+    font-size:14px; font-family:inherit; background:white; color:var(--text); }
+  textarea.input { min-height:84px; resize:vertical; line-height:1.6; }
+  .input:focus { outline:none; border-color:var(--blue); }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:520px) { .row2 { grid-template-columns:1fr; } }
+
+  /* ── 탭 ── */
+  .tabs { display:flex; background:white; border-radius:12px; padding:5px; margin-bottom:14px;
+          box-shadow:0 2px 8px rgba(33,150,243,0.07); }
+  .tab { flex:1; padding:11px 6px; border:none; background:none; font-family:inherit; font-size:13px;
+         font-weight:700; color:var(--gray); border-radius:9px; cursor:pointer; }
+  .tab.active { background:var(--navy); color:white; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* ── 체크리스트 ── */
+  .chk-group { margin-bottom:16px; }
+  .chk-group-title { font-size:13px; font-weight:700; color:var(--navy); margin-bottom:8px;
+                     padding-bottom:6px; border-bottom:1.5px solid var(--line); }
+  .chk-item { display:flex; align-items:flex-start; gap:10px; padding:11px 12px; border-radius:10px;
+              cursor:pointer; margin-bottom:5px; background:#f8fafc; transition:background .12s; }
+  .chk-item:hover { background:#eef2f7; }
+  .chk-item.on { background:#fef2f2; }
+  .chk-item input { width:19px; height:19px; margin-top:1px; flex-shrink:0; accent-color:var(--danger); }
+  .chk-item span { font-size:13.5px; line-height:1.5; }
+
+  .risk-box { position:sticky; bottom:0; background:white; border-top:2px solid var(--line);
+              padding:13px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+              border-radius:0 0 14px 14px; margin:0 -18px -18px; }
+  .risk-count { font-size:22px; font-weight:700; }
+  .risk-badge { font-size:13px; font-weight:700; padding:5px 13px; border-radius:20px; }
+  .risk-note { font-size:12px; color:var(--sub); flex:1; min-width:180px; line-height:1.45; }
+
+  /* ── 버튼 ── */
+  .btn { padding:14px; border:none; border-radius:11px; font-size:15px; font-weight:700;
+         font-family:inherit; cursor:pointer; width:100%; }
+  .btn-primary { background:var(--navy); color:white; }
+  .btn-ghost { background:white; color:var(--sub); border:1.5px solid var(--line); }
+  .btn-row { display:flex; gap:10px; margin-top:6px; }
+  .btn:disabled { opacity:0.55; }
+
+  .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:#1a202c;
+           color:white; padding:12px 22px; border-radius:24px; font-size:13.5px; z-index:900;
+           opacity:0; pointer-events:none; transition:opacity .2s; }
+  .toast.show { opacity:1; }
+  .draft-note { font-size:11.5px; color:var(--warn); margin-top:8px; display:none; }
+
+  /* ── 이력 ── */
+  .hist-item { border-left:3px solid var(--blue); background:#f8fafc; border-radius:0 10px 10px 0;
+               padding:12px 14px; margin-bottom:9px; cursor:pointer; }
+  .hist-item .top { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:4px; }
+  .hist-date { font-size:12px; color:var(--gray); }
+  .hist-meta { font-size:12.5px; color:var(--sub); }
+  .empty { text-align:center; padding:40px 16px; color:var(--gray); font-size:13.5px; }
+
+  /* ── 인쇄 ── */
+  @media print {
+    body { background:white; }
+    .header, .tabs, .btn-row, .risk-box, .no-print, #authGate { display:none !important; }
+    .tab-panel { display:block !important; page-break-inside:avoid; }
+    .card { box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:10px; }
+    .container { max-width:100%; padding:0; }
+    .chk-item { background:none; padding:4px 0; }
+    textarea.input { border:none; padding:0; min-height:0; height:auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ 로그인 ══════════ -->
+<div id="authGate">
+  <div class="auth-box">
+    <h2>📋 면담일지</h2>
+    <p>AU 일학습병행 공동훈련센터<br>담당자 계정으로 로그인해주세요.</p>
+    <div class="auth-err" id="authErr"></div>
+    <input type="email" id="authId" placeholder="이메일" autocomplete="username">
+    <input type="password" id="authPw" placeholder="비밀번호" autocomplete="current-password">
+    <button id="authSubmit">로그인</button>
+  </div>
+</div>
+
+<div class="header">
+  <a href="admin.html" class="back-btn" aria-label="관리자로">←</a>
+  <h1>학습근로자 면담일지</h1>
+  <div class="who">
+    <div id="whoEmail">-</div>
+    <button class="logout-btn" id="logoutBtn">로그아웃</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- ── 대상 선택 ── -->
+  <div class="card no-print" id="pickCard">
+    <div class="card-title">👤 상담 대상</div>
+    <div class="field">
+      <label class="label">학습근로자</label>
+      <select class="input" id="studentPick"><option value="">불러오는 중...</option></select>
+    </div>
+    <div class="field" id="manualWrap" style="display:none;">
+      <div class="row2">
+        <div>
+          <label class="label">이름 (직접 입력)</label>
+          <input type="text" class="input" id="manualName" placeholder="학습근로자명">
+        </div>
+        <div>
+          <label class="label">학과</label>
+          <select class="input" id="manualDept">
+            <option value="">선택</option>
+            <option>P-TECH 1학년</option><option>P-TECH 2학년</option>
+            <option>전문대 마케팅경영학과</option><option>전문대 호텔관광학과</option>
+            <option>전문대 호텔조리학과</option><option>전문대 회계세무학과</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label class="label">학습기업명</label>
+        <input type="text" class="input" id="firmName" placeholder="학습기업명">
+      </div>
+      <div class="field">
+        <label class="label">면담 일자</label>
+        <input type="date" class="input" id="meetDate">
+      </div>
+    </div>
+    <div id="histWrap"></div>
+  </div>
+
+  <!-- ── 인쇄용 머리말 ── -->
+  <div class="card" id="printHead" style="display:none;">
+    <div style="text-align:center;font-weight:700;font-size:17px;margin-bottom:4px;">AU 일학습병행 공동훈련센터</div>
+    <div style="text-align:center;font-weight:700;font-size:15px;margin-bottom:12px;">학습근로자 면담일지</div>
+    <div id="printMeta" style="font-size:13px;line-height:1.8;"></div>
+  </div>
+
+  <div class="tabs no-print">
+    <button class="tab active" data-tab="check">① 체크리스트</button>
+    <button class="tab" data-tab="record">② 면담기록</button>
+    <button class="tab" data-tab="after">③ 사후 보고서</button>
+  </div>
+
+  <!-- ══════ 탭1: 위험도 체크리스트 ══════ -->
+  <div class="tab-panel active" id="panel-check">
+    <div class="card">
+      <div class="card-title">⚠️ 위험도 판정 체크리스트</div>
+      <div id="chkList"></div>
+      <div class="risk-box">
+        <span class="risk-count" id="riskCount">0</span>
+        <span class="risk-badge" id="riskBadge">관찰</span>
+        <span class="risk-note" id="riskNote">해당하는 항목을 체크해주세요.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 탭2: 면담기록 ══════ -->
+  <div class="tab-panel" id="panel-record">
+    <div class="card">
+      <div class="card-title">📝 기본 정보</div>
+      <div class="row2">
+        <div class="field">
+          <label class="label">면담 구분</label>
+          <select class="input" id="meetType">
+            <option>정기</option><option>지도</option><option>경고</option><option>기타</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">면담 방식</label>
+          <select class="input" id="meetWay">
+            <option>대면</option><option>전화</option><option>온라인</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">면담 배경</label>
+        <textarea class="input" id="meetBg" style="min-height:60px;" placeholder="면담을 하게 된 배경"></textarea>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">💬 면담 기록 <span class="hint">(발언 중심)</span></div>
+      <div id="recordFields"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔍 면담자 판단 · 후속 계획</div>
+      <div class="field">
+        <label class="label">면담자 판단 <span class="hint">(문제점 원인)</span></label>
+        <textarea class="input" id="judgement"></textarea>
+      </div>
+      <div class="field">
+        <label class="label">후속 관리 계획</label>
+        <textarea class="input" id="followup"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ 탭3: 사후 보고서 ══════ -->
+  <div class="tab-panel" id="panel-after">
+    <div class="card">
+      <div class="card-title">📄 사후 보고서 <span class="hint">(필요 시에만 작성)</span></div>
+      <div class="field">
+        <label class="label">보고서 유형</label>
+        <select class="input" id="afterKind">
+          <option value="">작성 안 함</option>
+          <option value="중도탈락">중도탈락 사후 분석 보고서</option>
+          <option value="위험군">위험군 사후 조치 보고서 (2주 이내)</option>
+        </select>
+      </div>
+      <div id="afterBody" style="display:none;">
+        <div class="row2">
+          <div class="field">
+            <label class="label">참여유형</label>
+            <input type="text" class="input" id="joinType" placeholder="예: 재학생단계 / P-TECH">
+          </div>
+          <div class="field" id="afterDateWrap" style="display:none;">
+            <label class="label">사후 조치 면담일</label>
+            <input type="date" class="input" id="afterDate">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" id="afterCatLabel">탈락 유형</label>
+          <div id="afterCats" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+        </div>
+        <div class="field">
+          <label class="label">원인 분석</label>
+          <textarea class="input" id="afterCause"></textarea>
+        </div>
+        <div class="field">
+          <label class="label" id="afterHistLabel">기존 조치 이력</label>
+          <textarea class="input" id="afterHistory"></textarea>
+        </div>
+        <div class="field">
+          <label class="label">사후 개선 방향</label>
+          <textarea class="input" id="afterPlan"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row no-print">
+    <button class="btn btn-ghost" id="printBtn">🖨️ 인쇄 · PDF</button>
+    <button class="btn btn-primary" id="saveBtn">💾 저장</button>
+  </div>
+  <div class="draft-note" id="draftNote"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, query, where, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
+const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ══════════ 서식 정의 (업로드된 양식 원문 그대로) ══════════
+const CHECKLIST = [
+  { group: '출석 근태 관련', items: [
+    'OFF-JT 지각, 조퇴가 월 3회 이상 발생',
+    'OFF-JT 결석 이력이 있음',
+    '비콘 누락이 반복적으로 발생 (월 3회 이상)',
+    '누적 출석률 80% 미만 가능성 있음',
+    '기업 근무시간과 학교 수업 일정 충돌 지속 (OFF-JT 전날 근무 일정 포함)'
+  ]},
+  { group: '학습 참여 및 태도', items: [
+    '학습일지 미작성 또는 지연',
+    '학습일지 내용 반복 혹은 형식적'
+  ]},
+  { group: '기업 적응 및 현장 문제', items: [
+    '야간, 과다 근무 등으로 피로 누적',
+    '기업 담당자로부터 지적 발생',
+    '현장 내 인간관계 문제 발생',
+    '기업 불만 표출'
+  ]},
+  { group: '의사소통 및 심리적 신호 발생', items: [
+    '학교 연락에 대한 회신 지연 또는 연락 두절',
+    '면담 요청에 회피',
+    '그만두고 싶다, 힘들다는 직접적 표현 여부',
+    '제도, 규정에 대한 불만 표현 증가'
+  ]},
+  { group: '개인 사정 및 외부 환경', items: [
+    '건강 문제로 인한 지속 어려움',
+    '진로 변경 의사 표명',
+    '가정, 경제, 주거 등 개인 사정 변화',
+    '학업, 근로 병행 부담 지속 호소'
+  ]}
+];
+const RECORD_FIELDS = [
+  ['work',    '근무현황',            '어떤 근무 / 어떤 식으로 하는지 / 적응도 등'],
+  ['relation','회사 내 대인관계, 인간관계', ''],
+  ['hrd',     'HRD담당자, 기업현장교사 확인', ''],
+  ['beacon',  '비콘 출결 안내',       '훈련시간, 출석입력요청대장 등'],
+  ['ojt',     'OJT에 대한 기본적인 이해도', ''],
+  ['guide',   '학습안내서 / 학습활동서 활용법', ''],
+  ['ask',     '건의사항 및 애로사항',  ''],
+  ['free',    '하고싶은 말',          '']
+];
+const AFTER_CATS = ['근태', '적응', '학업', '개인사유', '기타', '해당없음'];
+// 위험도 기준: 0~2 관찰 / 3~5 주의 / 6 이상 위험군
+const RISK_WARN = 3, RISK_HIGH = 6;
+
+// ══════════ 유틸 ══════════
+const $ = id => document.getElementById(id);
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ══════════ 로그인 ══════════
+function authMsg(code) {
+  switch (code) {
+    case 'auth/invalid-email': return '이메일 형식이 올바르지 않습니다.';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential': return '이메일 또는 비밀번호가 일치하지 않습니다.';
+    case 'auth/too-many-requests': return '시도 횟수 초과. 잠시 후 다시 시도해주세요.';
+    case 'auth/network-request-failed': return '네트워크 오류. 인터넷 연결을 확인해주세요.';
+    default: return '로그인 실패 (' + (code || '알 수 없는 오류') + ')';
+  }
+}
+$('authSubmit').onclick = async () => {
+  const btn = $('authSubmit'), err = $('authErr');
+  const email = $('authId').value.trim(), pw = $('authPw').value.trim();
+  if (!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요.'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = '확인 중...';
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+    err.style.display = 'none';
+  } catch(e) {
+    err.textContent = authMsg(e.code); err.style.display = 'block';
+    $('authPw').value = ''; $('authPw').focus();
+  }
+  btn.disabled = false; btn.textContent = '로그인';
+};
+$('authPw').onkeydown = e => { if (e.key === 'Enter') $('authSubmit').click(); };
+$('logoutBtn').onclick = () => signOut(auth);
+
+let currentUser = null;
+onAuthStateChanged(auth, user => {
+  currentUser = user || null;
+  if (user) {
+    $('authGate').style.display = 'none';
+    $('whoEmail').textContent = user.email || '';
+    loadStudents();
+  } else {
+    $('authGate').style.display = 'flex';
+    $('whoEmail').textContent = '-';
+  }
+});
+
+// ══════════ 화면 그리기 ══════════
+function buildChecklist() {
+  $('chkList').innerHTML = CHECKLIST.map((g, gi) => `
+    <div class="chk-group">
+      <div class="chk-group-title">${g.group}</div>
+      ${g.items.map((t, ii) => `
+        <label class="chk-item" data-k="${gi}_${ii}">
+          <input type="checkbox" data-chk="${gi}_${ii}">
+          <span>${t}</span>
+        </label>`).join('')}
+    </div>`).join('');
+  document.querySelectorAll('[data-chk]').forEach(cb => {
+    cb.onchange = () => {
+      cb.closest('.chk-item').classList.toggle('on', cb.checked);
+      updateRisk(); saveDraft();
+    };
+  });
+}
+function checkedKeys() {
+  return Array.from(document.querySelectorAll('[data-chk]:checked')).map(c => c.dataset.chk);
+}
+function riskLevel(n) {
+  if (n >= RISK_HIGH) return { label:'위험군', bg:'#fee2e2', fg:'#991b1b',
+    note:'⚠️ 위험군입니다. 2주 이내에 <b>③ 사후 보고서</b>(위험군 사후 조치)를 작성해주세요.' };
+  if (n >= RISK_WARN) return { label:'주의', bg:'#fef3c7', fg:'#92400e',
+    note:'주의 단계입니다. 면담 기록을 상세히 남기고 후속 계획을 세워주세요.' };
+  return { label:'관찰', bg:'#dcfce7', fg:'#166534', note:'현재 특이 위험 신호는 낮습니다.' };
+}
+function updateRisk() {
+  const n = checkedKeys().length;
+  const r = riskLevel(n);
+  $('riskCount').textContent = n;
+  $('riskCount').style.color = r.fg;
+  const b = $('riskBadge');
+  b.textContent = r.label; b.style.background = r.bg; b.style.color = r.fg;
+  $('riskNote').innerHTML = r.note;
+}
+function buildRecordFields() {
+  $('recordFields').innerHTML = RECORD_FIELDS.map(([k, title, hint]) => `
+    <div class="field">
+      <label class="label">${title}${hint ? ` <span class="hint">(${hint})</span>` : ''}</label>
+      <textarea class="input" data-rec="${k}"></textarea>
+    </div>`).join('');
+  document.querySelectorAll('[data-rec]').forEach(t => { t.oninput = saveDraft; });
+}
+function buildAfterCats() {
+  $('afterCats').innerHTML = AFTER_CATS.map(c =>
+    `<label class="chk-item" style="width:auto;margin:0;padding:8px 12px;">
+       <input type="checkbox" data-acat="${c}"><span>${c}</span>
+     </label>`).join('');
+  document.querySelectorAll('[data-acat]').forEach(cb => { cb.onchange = saveDraft; });
+}
+$('afterKind').onchange = () => {
+  const v = $('afterKind').value;
+  $('afterBody').style.display = v ? 'block' : 'none';
+  $('afterDateWrap').style.display = v === '위험군' ? 'block' : 'none';
+  $('afterCatLabel').textContent = v === '위험군' ? '문제 유형' : '탈락 유형';
+  $('afterHistLabel').textContent = v === '위험군' ? '조치 이력' : '기존 조치 이력';
+  saveDraft();
+};
+
+// 탭 전환
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $('panel-' + t.dataset.tab).classList.add('active');
+  };
+});
+
+// ══════════ 학습근로자 명단 ══════════
+let students = [];
+async function loadStudents() {
+  const sel = $('studentPick');
+  try {
+    // workers(센터 등록 명단) 우선, 없으면 users의 재학생으로 대체
+    let list = [];
+    try {
+      const ws = await getDocs(collection(db, 'workers'));
+      list = ws.docs.map(d => ({ id:d.id, src:'workers', ...d.data() }));
+    } catch(_) {}
+    if (list.length === 0) {
+      const us = await getDocs(query(collection(db, 'users'), where('category', '==', 'student')));
+      list = us.docs.map(d => {
+        const v = d.data();
+        return { id:d.id, src:'users', name:v.name || '', dept:v.grade || '', firm:'' };
+      });
+    }
+    students = list.filter(s => s.name && !s.deleted)
+      .sort((a, b) => (a.dept || '').localeCompare(b.dept || '', 'ko') || a.name.localeCompare(b.name, 'ko'));
+    sel.innerHTML = '<option value="">— 학습근로자 선택 —</option>'
+      + students.map((s, i) => `<option value="${i}">${s.name} (${s.dept || '학과 미상'})</option>`).join('')
+      + '<option value="manual">✏️ 명단에 없음 — 직접 입력</option>';
+  } catch(e) {
+    sel.innerHTML = '<option value="manual">✏️ 직접 입력 (명단 불러오기 실패)</option>';
+    toast('명단을 불러오지 못했어요: ' + e.message);
+  }
+}
+$('studentPick').onchange = () => {
+  const v = $('studentPick').value;
+  $('manualWrap').style.display = v === 'manual' ? 'block' : 'none';
+  if (v !== '' && v !== 'manual') {
+    const s = students[Number(v)];
+    if (s && s.firm) $('firmName').value = s.firm;
+    loadHistory(s);
+  } else {
+    $('histWrap').innerHTML = '';
+  }
+  saveDraft();
+};
+function currentTarget() {
+  const v = $('studentPick').value;
+  if (v === 'manual') {
+    return { studentId:'', name:$('manualName').value.trim(), dept:$('manualDept').value, manual:true };
+  }
+  const s = students[Number(v)];
+  return s ? { studentId:s.id, name:s.name, dept:s.dept || '', manual:false }
+           : { studentId:'', name:'', dept:'', manual:false };
+}
+
+// ══════════ 상담 이력 ══════════
+async function loadHistory(s) {
+  const wrap = $('histWrap');
+  if (!s || !s.id) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<div class="empty">이력 확인 중...</div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'counseling'), where('studentId', '==', s.id)));
+    const list = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+      .sort((a, b) => (b.meetDate || '').localeCompare(a.meetDate || ''));
+    if (list.length === 0) { wrap.innerHTML = '<div class="empty">📭 이전 상담 기록이 없어요</div>'; return; }
+    wrap.innerHTML = `<div class="label" style="margin-top:6px;">이전 상담 ${list.length}건</div>`
+      + list.slice(0, 6).map(c => {
+        const r = riskLevel(c.riskCount || 0);
+        return `<div class="hist-item" data-load="${c.id}">
+          <div class="top">
+            <span class="hist-date">${c.meetDate || '-'}</span>
+            <span class="risk-badge" style="background:${r.bg};color:${r.fg};font-size:11px;padding:2px 9px;">
+              ${r.label} ${c.riskCount || 0}
+            </span>
+            ${c.after && c.after.kind ? `<span class="risk-badge" style="background:#ede9fe;color:#5b21b6;font-size:11px;padding:2px 9px;">${c.after.kind}</span>` : ''}
+          </div>
+          <div class="hist-meta">${c.meetType || ''} · ${c.meetWay || ''} · 작성 ${c.authorEmail || '-'}</div>
+        </div>`;
+      }).join('');
+    wrap.querySelectorAll('[data-load]').forEach(el => {
+      el.onclick = () => {
+        const c = list.find(x => x.id === el.dataset.load);
+        if (c && confirm('이 상담 기록을 불러올까요?\n(작성 중인 내용은 사라집니다)')) loadInto(c);
+      };
+    });
+  } catch(e) { wrap.innerHTML = '<div class="empty">이력을 불러오지 못했어요</div>'; }
+}
+
+// ══════════ 폼 ↔ 데이터 ══════════
+function collect() {
+  const t = currentTarget();
+  const rec = {};
+  document.querySelectorAll('[data-rec]').forEach(el => { rec[el.dataset.rec] = el.value.trim(); });
+  const checks = checkedKeys();
+  const kind = $('afterKind').value;
+  const data = {
+    studentId: t.studentId, studentName: t.name, dept: t.dept, manualEntry: t.manual,
+    firm: $('firmName').value.trim(),
+    meetDate: $('meetDate').value,
+    meetType: $('meetType').value, meetWay: $('meetWay').value, meetBg: $('meetBg').value.trim(),
+    checks, riskCount: checks.length, riskLabel: riskLevel(checks.length).label,
+    record: rec,
+    judgement: $('judgement').value.trim(),
+    followup: $('followup').value.trim()
+  };
+  if (kind) {
+    data.after = {
+      kind,
+      joinType: $('joinType').value.trim(),
+      afterDate: $('afterDate').value,
+      cats: Array.from(document.querySelectorAll('[data-acat]:checked')).map(c => c.dataset.acat),
+      cause: $('afterCause').value.trim(),
+      history: $('afterHistory').value.trim(),
+      plan: $('afterPlan').value.trim()
+    };
+  }
+  return data;
+}
+function loadInto(c) {
+  $('firmName').value = c.firm || '';
+  $('meetDate').value = c.meetDate || localToday();
+  $('meetType').value = c.meetType || '정기';
+  $('meetWay').value = c.meetWay || '대면';
+  $('meetBg').value = c.meetBg || '';
+  document.querySelectorAll('[data-chk]').forEach(cb => {
+    cb.checked = Array.isArray(c.checks) && c.checks.includes(cb.dataset.chk);
+    cb.closest('.chk-item').classList.toggle('on', cb.checked);
+  });
+  updateRisk();
+  document.querySelectorAll('[data-rec]').forEach(el => { el.value = (c.record || {})[el.dataset.rec] || ''; });
+  $('judgement').value = c.judgement || '';
+  $('followup').value = c.followup || '';
+  const a = c.after || {};
+  $('afterKind').value = a.kind || '';
+  $('afterKind').onchange();
+  $('joinType').value = a.joinType || '';
+  $('afterDate').value = a.afterDate || '';
+  $('afterCause').value = a.cause || '';
+  $('afterHistory').value = a.history || '';
+  $('afterPlan').value = a.plan || '';
+  document.querySelectorAll('[data-acat]').forEach(cb => {
+    cb.checked = Array.isArray(a.cats) && a.cats.includes(cb.dataset.acat);
+    cb.closest('.chk-item').classList.toggle('on', cb.checked);
+  });
+  editingId = c.id;
+  toast('불러왔어요. 저장하면 이 기록이 수정됩니다.');
+}
+
+// ══════════ 임시 저장 (기기에 보관) ══════════
+const DRAFT_KEY = 'counselingDraft';
+let draftTimer = null;
+function saveDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        at: Date.now(), pick: $('studentPick').value, editingId, data: collect()
+      }));
+      $('draftNote').textContent = '📝 임시 저장됨 · ' + new Date().toLocaleTimeString('ko-KR');
+      $('draftNote').style.display = 'block';
+    } catch(_) {}
+  }, 600);
+}
+function restoreDraft() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch(_) {}
+  if (!d || !d.data) return;
+  const ageH = (Date.now() - (d.at || 0)) / 3600000;
+  if (ageH > 24) { localStorage.removeItem(DRAFT_KEY); return; }   // 하루 지난 임시본은 폐기
+  if (!confirm('작성하다 만 면담일지가 있어요. 이어서 작성할까요?')) { localStorage.removeItem(DRAFT_KEY); return; }
+  if (d.pick) { $('studentPick').value = d.pick; $('studentPick').onchange(); }
+  if (d.data.manualEntry) { $('manualName').value = d.data.studentName || ''; $('manualDept').value = d.data.dept || ''; }
+  loadInto(d.data);
+  editingId = d.editingId || null;
+}
+
+// ══════════ 저장 ══════════
+let editingId = null;
+$('saveBtn').onclick = async () => {
+  const d = collect();
+  if (!d.studentName) { toast('학습근로자를 선택해주세요'); return; }
+  if (!d.meetDate) { toast('면담 일자를 입력해주세요'); return; }
+  const btn = $('saveBtn'); btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    d.authorEmail = currentUser ? currentUser.email : '';
+    d.authorUid = currentUser ? currentUser.uid : '';
+    if (editingId) {
+      await updateDoc(doc(db, 'counseling', editingId), { ...d, updatedAt: serverTimestamp() });
+      toast('✅ 수정했어요');
+    } else {
+      const ref = await addDoc(collection(db, 'counseling'), { ...d, createdAt: serverTimestamp() });
+      editingId = ref.id;
+      toast('✅ 저장했어요');
+    }
+    localStorage.removeItem(DRAFT_KEY);
+    $('draftNote').style.display = 'none';
+    if (d.studentId) loadHistory({ id: d.studentId });
+  } catch(e) {
+    toast('저장 실패: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = '💾 저장';
+};
+
+// ══════════ 인쇄 ══════════
+$('printBtn').onclick = () => {
+  const d = collect();
+  $('printMeta').innerHTML = `
+    <b>학습기업명</b> ${d.firm || '-'} &nbsp;|&nbsp;
+    <b>학습근로자명</b> ${d.studentName || '-'} (${d.dept || '-'})<br>
+    <b>면담 일자</b> ${d.meetDate || '-'} &nbsp;|&nbsp;
+    <b>면담 구분</b> ${d.meetType} &nbsp;|&nbsp; <b>면담 방식</b> ${d.meetWay}<br>
+    <b>면담자</b> ${currentUser ? currentUser.email : '-'} &nbsp;|&nbsp;
+    <b>위험도</b> 체크 ${d.riskCount}개 · ${d.riskLabel}`;
+  $('printHead').style.display = 'block';
+  window.print();
+  setTimeout(() => { $('printHead').style.display = 'none'; }, 400);
+};
+
+// ══════════ 시작 ══════════
+buildChecklist();
+buildRecordFields();
+buildAfterCats();
+updateRisk();
+$('meetDate').value = localToday();
+['firmName','meetDate','meetBg','judgement','followup','joinType','afterDate','afterCause','afterHistory','afterPlan','manualName','manualDept']
+  .forEach(id => { const el = $(id); if (el) el.oninput = saveDraft; });
+$('meetType').onchange = saveDraft; $('meetWay').onchange = saveDraft;
+setTimeout(restoreDraft, 800);
+</script>
+</body>
+</html>

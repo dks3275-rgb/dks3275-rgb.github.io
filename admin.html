@@ -778,6 +778,66 @@
 <!-- 상담신청 탭 -->
 <div class="tab-content" id="tab-consulting">
   <div class="container">
+
+    <!-- ═══ 면담일지 바로가기 ═══ -->
+    <div class="card">
+      <div class="card-title">📋 학습근로자 면담일지</div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#0d47a1;line-height:1.6;">
+        위험도 체크리스트 · 면담기록 · 사후 보고서를 한 화면에서 작성하고 PDF로 출력합니다.<br>
+        <small style="opacity:0.85;">※ 태블릿·휴대폰에서 상담 중에 바로 입력할 수 있어요. 같은 계정으로 로그인합니다.</small>
+      </div>
+      <a href="counseling.html" class="send-btn" style="display:block;text-align:center;text-decoration:none;">📋 면담일지 작성하러 가기</a>
+    </div>
+
+    <!-- ═══ 학습근로자 명단 ═══ -->
+    <div class="card">
+      <div class="card-title">
+        👷 학습근로자 명단
+        <button class="refresh-btn" onclick="loadWorkers()">🔄 새로고침</button>
+      </div>
+      <div style="background:#fff7ed;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#9a3412;line-height:1.6;">
+        면담일지의 <b>상담 대상 드롭다운</b>에 쓰이는 명단입니다. 앱 미가입 학생도 여기에 등록하면 선택할 수 있어요.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">이름</label>
+          <input type="text" class="form-input" id="wk-name" placeholder="학습근로자명">
+        </div>
+        <div class="form-group">
+          <label class="form-label">학과</label>
+          <select class="form-input" id="wk-dept">
+            <option value="">선택</option>
+            <option>P-TECH 1학년</option><option>P-TECH 2학년</option>
+            <option>전문대 마케팅경영학과</option><option>전문대 호텔관광학과</option>
+            <option>전문대 호텔조리학과</option><option>전문대 회계세무학과</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">학습기업명</label>
+          <input type="text" class="form-input" id="wk-firm" placeholder="예: ○○호텔">
+        </div>
+        <div class="form-group">
+          <label class="form-label">연락처 (선택)</label>
+          <input type="text" class="form-input" id="wk-phone" placeholder="010-0000-0000">
+        </div>
+      </div>
+      <input type="hidden" id="wk-edit-id" value="">
+      <button class="send-btn" onclick="saveWorker()" id="wkSaveBtn">👷 명단에 추가</button>
+      <button class="send-btn" onclick="cancelWorkerEdit()" id="wkCancelBtn"
+        style="display:none;background:#94a3b8;margin-top:8px;">취소 (새로 추가로)</button>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
+        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(이름 · 학과 · 학습기업 · 연락처 순, 탭 또는 쉼표 구분)</span></label>
+        <textarea class="form-input" id="wk-bulk" style="min-height:90px;font-family:monospace;font-size:12px;"
+          placeholder="홍길동	전문대 호텔조리학과	○○호텔	010-1234-5678&#10;김철수	P-TECH 1학년	△△리조트"></textarea>
+        <button class="send-btn" onclick="bulkAddWorkers()" style="background:#059669;margin-top:8px;">📥 일괄 등록</button>
+      </div>
+      <div class="result-box" id="wkResult"></div>
+      <div id="workerList" style="margin-top:16px;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+
     <div class="card">
       <div class="card-title">💬 상담 신청 내역</div>
       <div class="consulting-toolbar">
@@ -2047,7 +2107,149 @@
   function showNoticeResult(msg, type) { const box = document.getElementById('noticeResult'); box.textContent = msg; box.className = 'result-box ' + type; setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 5000); }
 
   // ── 상담 ──
+  // ══════════ 학습근로자 명단 (workers) ══════════
+  // 면담일지(counseling.html)의 상담 대상 드롭다운 소스
+  let allWorkers = [];
+  const WK_DEPTS = ['P-TECH 1학년','P-TECH 2학년','전문대 마케팅경영학과','전문대 호텔관광학과','전문대 호텔조리학과','전문대 회계세무학과'];
+
+  function showWkResult(msg, type) {
+    const box = document.getElementById('wkResult');
+    if (!box) return;
+    box.textContent = msg; box.className = 'result-box ' + type;
+    setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 4000);
+  }
+  async function wkDb() {
+    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+    return getFirestore(app);
+  }
+  function cancelWorkerEdit() {
+    document.getElementById('wk-edit-id').value = '';
+    document.getElementById('wkSaveBtn').textContent = '👷 명단에 추가';
+    document.getElementById('wkCancelBtn').style.display = 'none';
+    ['wk-name','wk-firm','wk-phone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('wk-dept').value = '';
+  }
+  async function saveWorker() {
+    const name = document.getElementById('wk-name').value.trim();
+    const dept = document.getElementById('wk-dept').value;
+    const firm = document.getElementById('wk-firm').value.trim();
+    const phone = document.getElementById('wk-phone').value.trim();
+    const editId = document.getElementById('wk-edit-id').value;
+    if (!name) { showWkResult('이름을 입력해주세요!', 'error'); return; }
+    if (!dept) { showWkResult('학과를 선택해주세요!', 'error'); return; }
+    try {
+      const db = await wkDb();
+      const { collection, addDoc, doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const data = { name, dept, firm, phone };
+      if (editId) {
+        await updateDoc(doc(db, 'workers', editId), { ...data, updatedAt: serverTimestamp() });
+        await writeLog('update', 'worker', editId, `학습근로자 수정: ${name}`);
+        showWkResult('✅ 수정했어요', 'success');
+        cancelWorkerEdit();
+      } else {
+        // 같은 이름+학과가 이미 있으면 막기
+        if (allWorkers.some(w => w.name === name && w.dept === dept)) {
+          showWkResult('⚠️ 같은 이름·학과가 이미 등록되어 있어요', 'error'); return;
+        }
+        const ref = await addDoc(collection(db, 'workers'), { ...data, createdAt: serverTimestamp() });
+        await writeLog('create', 'worker', ref.id, `학습근로자 등록: ${name}`);
+        showWkResult('✅ 명단에 추가했어요', 'success');
+        ['wk-name','wk-firm','wk-phone'].forEach(id => document.getElementById(id).value = '');
+      }
+      loadWorkers();
+    } catch(e) { showWkResult('❌ 오류: ' + e.message, 'error'); }
+  }
+  // 엑셀 붙여넣기: 이름 · 학과 · 학습기업 · 연락처 (탭 또는 쉼표 구분)
+  async function bulkAddWorkers() {
+    const raw = document.getElementById('wk-bulk').value.trim();
+    if (!raw) { showWkResult('붙여넣을 내용이 없어요', 'error'); return; }
+    const rows = raw.split('\n').map(r => r.trim()).filter(Boolean);
+    const parsed = [], skipped = [];
+    rows.forEach((r, i) => {
+      const c = r.split(/\t|,/).map(x => x.trim());
+      const name = c[0] || '', dept = c[1] || '';
+      if (!name) { skipped.push(`${i+1}행: 이름 없음`); return; }
+      if (!WK_DEPTS.includes(dept)) { skipped.push(`${i+1}행 "${name}": 학과 인식 불가 (${dept || '비어있음'})`); return; }
+      if (allWorkers.some(w => w.name === name && w.dept === dept)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨`); return; }
+      if (parsed.some(p => p.name === name && p.dept === dept)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 중복`); return; }
+      parsed.push({ name, dept, firm: c[2] || '', phone: c[3] || '' });
+    });
+    if (parsed.length === 0) { showWkResult('등록할 수 있는 행이 없어요 — ' + skipped.join(' / '), 'error'); return; }
+    if (!await customConfirm({ title:'명단 일괄 등록',
+      message: `${parsed.length}명을 등록할까요?` + (skipped.length ? `<br><br><b>건너뜀 ${skipped.length}건</b><br><span style="font-size:12px;">${skipped.slice(0,8).join('<br>')}${skipped.length>8?'<br>…':''}</span>` : ''),
+      confirmText:'📥 등록' })) return;
+    try {
+      const db = await wkDb();
+      const { collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      for (const p of parsed) await addDoc(collection(db, 'workers'), { ...p, createdAt: serverTimestamp() });
+      await writeLog('create', 'worker', 'bulk', `학습근로자 일괄 등록 ${parsed.length}명`);
+      document.getElementById('wk-bulk').value = '';
+      showWkResult(`✅ ${parsed.length}명 등록${skipped.length ? ` · ${skipped.length}건 건너뜀` : ''}`, 'success');
+      loadWorkers();
+    } catch(e) { showWkResult('❌ 오류: ' + e.message, 'error'); }
+  }
+  async function loadWorkers() {
+    const el = document.getElementById('workerList');
+    if (!el) return;
+    el.innerHTML = '<div class="empty-history">불러오는 중...</div>';
+    try {
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(collection(db, 'workers'));
+      allWorkers = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.dept || '').localeCompare(b.dept || '', 'ko') || (a.name || '').localeCompare(b.name || '', 'ko'));
+      if (allWorkers.length === 0) {
+        el.innerHTML = '<div class="empty-history">등록된 학습근로자가 없어요<br><small>위에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
+        return;
+      }
+      const byDept = {};
+      allWorkers.forEach(w => { (byDept[w.dept || '학과 미상'] = byDept[w.dept || '학과 미상'] || []).push(w); });
+      el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">총 ${allWorkers.length}명</div>`
+        + Object.entries(byDept).map(([d, list]) => `
+          <div style="margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:700;color:#1976d2;margin-bottom:6px;">${d} · ${list.length}명</div>
+            ${list.map(w => `
+              <div class="cal-event-item" style="border-left-color:#1976d2;">
+                <div class="cal-event-info">
+                  <div class="cal-event-title">${w.name}</div>
+                  <div class="cal-event-meta">${w.firm || '학습기업 미입력'}${w.phone ? ' · ' + w.phone : ''}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                  <button onclick="editWorker('${w.id}')" class="member-edit-btn">✏️ 수정</button>
+                  <button onclick="deleteWorker('${w.id}')" class="delete-btn">삭제</button>
+                </div>
+              </div>`).join('')}
+          </div>`).join('');
+    } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
+  }
+  function editWorker(id) {
+    const w = allWorkers.find(x => x.id === id);
+    if (!w) return;
+    document.getElementById('wk-edit-id').value = id;
+    document.getElementById('wk-name').value = w.name || '';
+    document.getElementById('wk-dept').value = w.dept || '';
+    document.getElementById('wk-firm').value = w.firm || '';
+    document.getElementById('wk-phone').value = w.phone || '';
+    document.getElementById('wkSaveBtn').textContent = '💾 수정 내용 저장';
+    document.getElementById('wkCancelBtn').style.display = 'block';
+    document.getElementById('wk-name').scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+  async function deleteWorker(id) {
+    const w = allWorkers.find(x => x.id === id);
+    if (!await customConfirm({ title:'명단에서 삭제', message:`"${w ? w.name : ''}" 님을 명단에서 뺄까요?<br><small>이미 작성된 면담일지는 그대로 남습니다.</small>`, confirmText:'🗑️ 삭제', danger:true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'workers', id));
+      await writeLog('delete', 'worker', id, `학습근로자 삭제: ${w ? w.name : id}`);
+      loadWorkers();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
   async function loadConsulting() {
+    loadWorkers();
     document.getElementById('consultingList').innerHTML = '<div class="c-loading">📋 불러오는 중...</div>';
     document.getElementById('consultingCount').textContent = '불러오는 중...';
     try {

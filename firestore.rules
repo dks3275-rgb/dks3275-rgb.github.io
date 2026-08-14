@@ -54,6 +54,17 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // ── 면담일지 (매우 민감: 심리·개인 사정 포함) ──
+    // 로그인한 센터 담당자만 읽고 쓸 수 있음. 학생 앱에서는 접근 불가.
+    match /counseling/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── 학습근로자 명단 (상담 대상 드롭다운 소스) ──
+    match /workers/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // ── 관리자 활동 로그 ──
     match /audit_logs/{id} {
       allow read, write: if isAdmin();
