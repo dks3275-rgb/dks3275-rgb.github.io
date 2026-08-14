@@ -114,6 +114,23 @@
                     border-radius:8px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; }
   .rec-act .del { color:var(--danger); border-color:#fecaca; }
   .overdue { background:#fef2f2; border-color:#fecaca; }
+  /* 작성 도움말 */
+  .help-btn { background:none; border:none; color:var(--blue); font-size:11.5px; font-weight:700;
+              font-family:inherit; cursor:pointer; padding:2px 5px; margin-left:5px; }
+  .help-box { display:none; background:#eff6ff; border-left:3px solid var(--blue); border-radius:0 9px 9px 0;
+              padding:11px 13px; margin-bottom:8px; font-size:12.5px; line-height:1.65; }
+  .help-box.open { display:block; }
+  .help-h { font-weight:700; color:#1e40af; font-size:11.5px; margin-bottom:4px; }
+  .help-ask { color:#1e3a8a; padding-left:4px; }
+  .help-write { color:#334155; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:7px; }
+  .chip { background:#f1f5f9; border:1px solid var(--line); color:var(--sub); font-size:11.5px;
+          font-weight:600; padding:5px 10px; border-radius:16px; font-family:inherit; cursor:pointer; }
+  .chip:active { background:var(--blue); color:white; }
+  .rule-box { background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; padding:13px 15px;
+              margin-bottom:14px; font-size:12.5px; color:#92400e; line-height:1.7; }
+  .rule-box b { color:#78350f; }
+  @media print { .help-btn, .help-box, .chips, .rule-box { display:none !important; } }
 
   /* ── 이력 ── */
   .hist-item { border-left:3px solid var(--blue); background:#f8fafc; border-radius:0 10px 10px 0;
@@ -285,6 +302,12 @@
     </div>
     <div class="card">
       <div class="card-title">💬 면담 기록 <span class="hint">(발언 중심)</span></div>
+      <div class="rule-box no-print">
+        <b>📌 작성 원칙</b><br>
+        ① 학생이 한 말은 <b>따옴표로 그대로</b> — “일이 너무 많아 힘들다”고 함<br>
+        ② <b>사실과 판단을 나눕니다</b> — 평가·해석은 아래 ‘면담자 판단’란에. 여기는 들은 것만<br>
+        ③ 해당 없으면 <b>“특이사항 없음”</b>이라고 적어주세요. 빈칸은 안 물어본 건지 없는 건지 구분이 안 됩니다
+      </div>
       <div id="recordFields"></div>
     </div>
     <div class="card">
@@ -397,15 +420,47 @@ const CHECKLIST = [
     '학업, 근로 병행 부담 지속 호소'
   ]}
 ];
+// [키, 제목, 부제, 이렇게 물어보세요, 이런 걸 적으세요, 빠른 입력 버튼]
 const RECORD_FIELDS = [
-  ['work',    '근무현황',            '어떤 근무 / 어떤 식으로 하는지 / 적응도 등'],
-  ['relation','회사 내 대인관계, 인간관계', ''],
-  ['hrd',     'HRD담당자, 기업현장교사 확인', ''],
-  ['beacon',  '비콘 출결 안내',       '훈련시간, 출석입력요청대장 등'],
-  ['ojt',     'OJT에 대한 기본적인 이해도', ''],
-  ['guide',   '학습안내서 / 학습활동서 활용법', ''],
-  ['ask',     '건의사항 및 애로사항',  ''],
-  ['free',    '하고싶은 말',          '']
+  ['work', '근무현황', '어떤 근무 / 어떤 식으로 하는지 / 적응도 등',
+    ['요즘 어떤 업무를 주로 하세요?', '하루 일과가 어떻게 되나요?', '일은 좀 익숙해지셨어요?'],
+    '담당 업무, 근무 형태(주간·교대), 주당 근무시간, 본인이 말한 적응 정도',
+    ['적응 양호', '업무 익숙해지는 중', '업무 과중 호소', '교대 근무', '특이사항 없음']],
+
+  ['relation', '회사 내 대인관계, 인간관계', '',
+    ['같이 일하는 분들과는 어떠세요?', '모르는 게 있을 때 물어볼 사람은 있나요?'],
+    '사수·동료와의 관계, 어려움 유무, 도움을 받을 사람이 있는지',
+    ['원만함', '물어볼 사람 있음', '어려움 호소', '특이사항 없음']],
+
+  ['hrd', 'HRD담당자, 기업현장교사 확인', '',
+    ['기업현장교사님이 누구신지 아세요?', 'OJT 지도는 받고 계세요?'],
+    '현장교사를 알고 있는지, 실제 지도 빈도, 담당자 변경 여부',
+    ['현장교사 인지함', '현장교사 모름 → 안내함', '담당자 변경됨', '특이사항 없음']],
+
+  ['beacon', '비콘 출결 안내', '훈련시간, 출석입력요청대장 등',
+    ['출퇴근 찍는 건 잘 되나요?', '누락된 날 있었어요?'],
+    '누락 여부와 원인, 훈련시간 인지 여부, 출석입력요청대장 작성법 안내 여부',
+    ['누락 없음', '누락 발생 → 대장 작성 안내', '훈련시간 재안내', '특이사항 없음']],
+
+  ['ojt', 'OJT에 대한 기본적인 이해도', '',
+    ['지금 배우는 능력단위가 뭔지 아세요?', 'OJT가 어떤 건지 설명해주실 수 있어요?'],
+    '이해 수준, 잘못 알고 있던 부분, 다시 안내한 내용',
+    ['이해하고 있음', '일부 혼동 → 재안내', '재안내함', '특이사항 없음']],
+
+  ['guide', '학습안내서 / 학습활동서 활용법', '',
+    ['학습안내서 보신 적 있으세요?', '작성하다 막히는 부분 있나요?'],
+    '활용 여부, 작성 시점, 안내한 내용',
+    ['활용 중', '미활용 → 사용법 안내', '작성 지연', '특이사항 없음']],
+
+  ['ask', '건의사항 및 애로사항', '',
+    ['학교나 회사에 바라는 점 있으세요?', '불편한 점은 없으세요?'],
+    '학생이 말한 그대로. 요구사항과 감정 표현을 구분해서 적기',
+    ['건의사항 없음', '학교에 건의', '기업에 건의', '특이사항 없음']],
+
+  ['free', '하고싶은 말', '',
+    ['마지막으로 더 하고 싶은 말 있으세요?'],
+    '자유 발언. 없으면 "특이사항 없음"',
+    ['특이사항 없음']]
 ];
 const AFTER_CATS = ['근태', '적응', '학업', '개인사유', '기타', '해당없음'];
 // 위험도 기준: 0~2 관찰 / 3~5 주의 / 6 이상 위험군
@@ -522,12 +577,44 @@ function updateRisk() {
   $('riskNote').innerHTML = r.note;
 }
 function buildRecordFields() {
-  $('recordFields').innerHTML = RECORD_FIELDS.map(([k, title, hint]) => `
+  $('recordFields').innerHTML = RECORD_FIELDS.map(([k, title, hint, asks, writes, chips]) => `
     <div class="field">
-      <label class="label">${title}${hint ? ` <span class="hint">(${hint})</span>` : ''}</label>
+      <label class="label">
+        ${title}${hint ? ` <span class="hint">(${hint})</span>` : ''}
+        <button type="button" class="help-btn" data-help="${k}">? 작성 도움말</button>
+      </label>
+      <div class="help-box" id="help-${k}">
+        <div class="help-h">🗣 이렇게 물어보세요</div>
+        ${asks.map(a => `<div class="help-ask">“${a}”</div>`).join('')}
+        <div class="help-h" style="margin-top:9px;">✍️ 이런 걸 적으세요</div>
+        <div class="help-write">${writes}</div>
+      </div>
+      <div class="chips">
+        ${chips.map(c => `<button type="button" class="chip" data-chip="${k}" data-txt="${c}">${c}</button>`).join('')}
+      </div>
       <textarea class="input" data-rec="${k}"></textarea>
     </div>`).join('');
+
   document.querySelectorAll('[data-rec]').forEach(t => { t.oninput = saveDraft; });
+  document.querySelectorAll('[data-help]').forEach(b => {
+    b.onclick = () => {
+      const box = $('help-' + b.dataset.help);
+      const open = box.classList.toggle('open');
+      b.textContent = open ? '✕ 도움말 닫기' : '? 작성 도움말';
+    };
+  });
+  // 자주 쓰는 표현 — 누르면 뒤에 이어 붙는다 (이미 있으면 무시)
+  document.querySelectorAll('[data-chip]').forEach(b => {
+    b.onclick = () => {
+      const ta = document.querySelector(`[data-rec="${b.dataset.chip}"]`);
+      const txt = b.dataset.txt;
+      const cur = ta.value.trim();
+      if (cur.includes(txt)) return;
+      ta.value = cur ? cur + (cur.endsWith('.') || cur.endsWith('음') ? ' / ' : ' / ') + txt : txt;
+      ta.focus();
+      saveDraft();
+    };
+  });
 }
 function buildAfterCats() {
   $('afterCats').innerHTML = AFTER_CATS.map(c =>
