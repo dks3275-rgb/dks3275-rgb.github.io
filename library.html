@@ -168,6 +168,8 @@
         allResources = all.filter(r => r.target === 'prospect');
       } else if (userCategory === 'graduate') {
         allResources = all.filter(r => r.target === 'graduate');
+      } else if (userCategory === 'teacher') {
+        allResources = all.filter(r => r.target === 'teacher');
       } else {
         // student (재학생)
         allResources = all.filter(r => r.target === 'student' || r.target === 'all');

@@ -481,6 +481,7 @@
       <button type="button" class="notice-target-btn" data-edit-target="graduate" onclick="setNoticeEditTarget('graduate',this)">🎉 졸업생</button>
       <button type="button" class="notice-target-btn" data-edit-target="prospect" onclick="setNoticeEditTarget('prospect',this)">🌱 예비신입생</button>
       <button type="button" class="notice-target-btn" data-edit-target="company" onclick="setNoticeEditTarget('company',this)">🏢 전담인력</button>
+      <button type="button" class="notice-target-btn" data-edit-target="teacher" onclick="setNoticeEditTarget('teacher',this)">🧑‍🏫 교·강사</button>
     </div>
     <input type="hidden" id="editNoticeTarget" value="all" />
     <div class="member-modal-label">제목</div>
@@ -719,6 +720,7 @@
         <button class="notice-target-btn" id="ntBtn-graduate" onclick="selectNoticeTarget('graduate', this)">🎉 졸업생</button>
         <button class="notice-target-btn" id="ntBtn-prospect" onclick="selectNoticeTarget('prospect', this)">🌱 예비신입생</button>
         <button class="notice-target-btn" id="ntBtn-company" onclick="selectNoticeTarget('company', this)">🏢 전담인력</button>
+        <button class="notice-target-btn" id="ntBtn-teacher" onclick="selectNoticeTarget('teacher', this)">🧑‍🏫 교·강사</button>
       </div>
       <input type="hidden" id="noticeTarget" value="all" />
     </div>
@@ -753,6 +755,7 @@
         <option value="graduate">🎉 졸업생</option>
         <option value="prospect">🌱 예비신입생</option>
         <option value="company">🏢 전담인력</option>
+        <option value="teacher">🧑‍🏫 교·강사</option>
       </select>
     </div>
     <div id="noticeList"><div class="empty-history">불러오는 중...</div></div>
@@ -924,6 +927,7 @@
             <option value="카테고리:graduate">🎉 졸업생 전체</option>
             <option value="카테고리:prospect">🌱 예비신입생 전체</option>
             <option value="카테고리:company">🏢 전담인력 전체</option>
+            <option value="카테고리:teacher">🧑‍🏫 교·강사 전체</option>
           </optgroup>
         </select>
       </div>
@@ -1053,6 +1057,7 @@
           <button class="notice-target-btn" id="libBtn-graduate" onclick="selectLibTarget('graduate',this)">🎉 졸업생</button>
           <button class="notice-target-btn" id="libBtn-prospect" onclick="selectLibTarget('prospect',this)">🌱 예비신입생</button>
           <button class="notice-target-btn" id="libBtn-company" onclick="selectLibTarget('company',this)">🏢 전담인력</button>
+          <button class="notice-target-btn" id="libBtn-teacher" onclick="selectLibTarget('teacher',this)">🧑‍🏫 교·강사</button>
           <button class="notice-target-btn" id="libBtn-all" onclick="selectLibTarget('all',this)">🛡️ 산업안전보건 (재학생+전담인력)</button>
         </div>
         <input type="hidden" id="libTarget" value="student" />
@@ -1203,6 +1208,7 @@
             <option value="graduate">🎉 졸업생</option>
             <option value="prospect">🌱 예비신입생</option>
             <option value="company">🏢 전담인력</option>
+            <option value="teacher">🧑‍🏫 교·강사</option>
             <option value="shared">🛡️ 산업안전보건 (공유)</option>
           </select>
           <button class="refresh-btn" onclick="loadLibrary()">🔄 새로고침</button>
@@ -1247,6 +1253,7 @@
             <option value="graduate">🎉 졸업생</option>
             <option value="prospect">🌱 예비 신입생</option>
             <option value="company">🏢 전담인력</option>
+            <option value="teacher">🧑‍🏫 교·강사</option>
             <option value="unsubscribed">🔕 알림 미구독자만</option>
             <option value="trash">🗑️ 휴지통</option>
           </select>
@@ -1490,7 +1497,7 @@
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#999;font-size:12px;">검색 결과 없음</div>';
       return;
     }
-    const catLabel = c => c === 'student' ? '🎓 재학생' : c === 'graduate' ? '🎉 졸업생' : c === 'prospect' ? '🌱 예비신입생' : c === 'company' ? '🏢 전담인력' : '';
+    const catLabel = c => c === 'student' ? '🎓 재학생' : c === 'graduate' ? '🎉 졸업생' : c === 'prospect' ? '🌱 예비신입생' : c === 'company' ? '🏢 전담인력' : c === 'teacher' ? '🧑‍🏫 교·강사' : '';
     const subInfo = u => u.category === 'student' ? (u.grade || '')
                        : u.category === 'graduate' ? (u.dept || '')
                        : u.category === 'prospect' ? (u.interest || '')
@@ -1911,7 +1918,7 @@
       });
       listEl.innerHTML = notices.map(n => {
         const target = n.target || 'all';
-        const targetLabel = target === 'company' ? '🏢 전담인력' : target === 'student' ? '🎓 재학생' : target === 'graduate' ? '🎉 졸업생' : target === 'prospect' ? '🌱 예비신입생' : '📣 전체';
+        const targetLabel = target === 'company' ? '🏢 전담인력' : target === 'student' ? '🎓 재학생' : target === 'graduate' ? '🎉 졸업생' : target === 'prospect' ? '🌱 예비신입생' : target === 'teacher' ? '🧑‍🏫 교·강사' : '📣 전체';
         const targetClass = target === 'company' ? 'company' : target === 'student' ? 'student' : target === 'graduate' ? 'graduate' : target === 'prospect' ? 'prospect' : 'all';
         const pinIcon = n.pinned ? '📌' : '📍';
         const pinLabel = n.pinned ? '핀 해제' : '핀 고정';
@@ -1968,7 +1975,7 @@
     const st = getNoticeReadStats(n);
     const barColor = st.rate >= 70 ? '#22c55e' : st.rate >= 40 ? '#f59e0b' : '#ef4444';
     // 미열람자 카테고리별 그룹핑
-    const catLabel = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력' };
+    const catLabel = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력', teacher: '🧑‍🏫 교·강사' };
     const groups = {};
     st.unreadMembers.forEach(m => {
       const c = m.category || 'etc';
@@ -2860,7 +2867,7 @@
         return t > sevenDaysAgo;
       }).length;
       // 카테고리 차트 함수
-      const categoryNames = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력', other: '❓ 기타' };
+      const categoryNames = { student: '🎓 재학생', graduate: '🎉 졸업생', prospect: '🌱 예비신입생', company: '🏢 전담인력', teacher: '🧑‍🏫 교·강사', other: '❓ 기타' };
       const totalUsers = users.length;
       const catBars = Object.entries(cat).filter(([_, v]) => v > 0).map(([k, v]) => {
         const pct = totalUsers > 0 ? (v / totalUsers * 100).toFixed(1) : 0;
@@ -4127,7 +4134,7 @@
       if (items.length === 0) { listEl.innerHTML = '<div class="empty-history">등록된 자료가 없어요</div>'; return; }
 
       listEl.innerHTML = items.map(item => {
-        const targetLabel = item.target === 'company' ? '🏢 전담인력' : item.target === 'student' ? '🎓 재학생' : item.target === 'graduate' ? '🎉 졸업생' : item.target === 'prospect' ? '🌱 예비신입생' : item.target === 'all' ? '🛡️ 산업안전보건' : '📣 전체';
+        const targetLabel = item.target === 'company' ? '🏢 전담인력' : item.target === 'student' ? '🎓 재학생' : item.target === 'graduate' ? '🎉 졸업생' : item.target === 'prospect' ? '🌱 예비신입생' : item.target === 'teacher' ? '🧑‍🏫 교·강사' : item.target === 'all' ? '🛡️ 산업안전보건' : '📣 전체';
         const targetClass = item.target === 'company' ? 'company' : item.target === 'student' ? 'student' : item.target === 'graduate' ? 'graduate' : item.target === 'prospect' ? 'prospect' : 'all';
         const fileIcon = item.fileType?.includes('pdf') ? '📄' : item.fileType?.startsWith('image') ? '🖼️' : '📁';
         const sizeMB = item.fileSize ? (item.fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';
@@ -4808,7 +4815,7 @@
            ℹ️ 휴지통의 가입자는 30일 후 자동 영구 삭제됩니다. 알림 발송도 차단된 상태입니다.
          </div>` +
         pageItems.map(m => {
-          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : '🌱 예비 신입생';
+          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'teacher' ? '🧑‍🏫 교·강사' : '🌱 예비 신입생';
           const deletedDate = m.deletedAt ? new Date(m.deletedAt).toLocaleString('ko-KR', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
           let daysLeft = 30;
           if (m.deletedAt) {
@@ -4847,7 +4854,7 @@
            • 안드로이드: 알림 권한 거부했거나 브라우저에서만 접속</span>
          </div>` +
         pageItems.map(m => {
-          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : '🌱 예비 신입생';
+          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'teacher' ? '🧑‍🏫 교·강사' : '🌱 예비 신입생';
           const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : '#d1fae5';
           const catTextColor = m.category === 'student' ? '#1565c0' : m.category === 'graduate' ? '#92400e' : m.category === 'company' ? '#5b21b6' : '#065f46';
           // 부가 정보
@@ -4886,7 +4893,7 @@
     }
 
     const html = pageItems.map(m => {
-      const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : '🌱 예비 신입생';
+      const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생' : m.category === 'company' ? '🏢 전담인력' : m.category === 'teacher' ? '🧑‍🏫 교·강사' : '🌱 예비 신입생';
       const catColor = m.category === 'student' ? '#e3f2fd' : m.category === 'graduate' ? '#fef3c7' : m.category === 'company' ? '#ede9fe' : '#d1fae5';
       const catTextColor = m.category === 'student' ? '#1565c0' : m.category === 'graduate' ? '#92400e' : m.category === 'company' ? '#5b21b6' : '#065f46';
       const borderColor = m.category === 'student' ? '#2196f3' : m.category === 'graduate' ? '#f59e0b' : m.category === 'company' ? '#7c3aed' : '#10b981';

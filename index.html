@@ -126,6 +126,7 @@
     .badge-graduate { background: #FFF4E6; color: #B36500; }
     .badge-prospect { background: #DEFCEF; color: #007A5C; }
     .badge-company { background: #EFE9FE; color: #5A3FCE; }
+    .badge-teacher { background: #E7F9F1; color: #0E8A5F; }
     .edit-btn { margin-left: auto; background: var(--tk-bg); border: 1px solid var(--tk-border); color: var(--tk-text-sub); font-size: 12px; padding: 7px 12px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 500; transition: all 0.15s; }
     .edit-btn:hover { background: var(--tk-surface); border-color: var(--tk-border-strong); }
     .container { max-width: 480px; margin: 0 auto; padding: 16px 16px 50px; }
@@ -320,6 +321,11 @@
         <div class="cat-info"><div class="cat-name">학습기업 전담인력</div><div class="cat-desc">HRD담당자 · 기업현장교사</div></div>
         <div class="cat-arrow">›</div>
       </button>
+      <button class="category-btn" onclick="selectCategory('teacher')">
+        <div class="cat-icon">🧑‍🏫</div>
+        <div class="cat-info"><div class="cat-name">교·강사</div><div class="cat-desc">일학습병행 교육 담당 교·강사</div></div>
+        <div class="cat-arrow">›</div>
+      </button>
     </div>
   </div>
   <!-- 학습기업 전담인력 -->
@@ -359,6 +365,16 @@
       <button class="grade-btn" onclick="selectGrade('전문대 호텔관광학과', this)"><span class="g-icon">🏨</span>호텔관광학과</button>
     </div>
     <button class="modal-submit" onclick="submitStudent()">✅ 등록하기</button>
+    <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
+  </div>
+  <!-- 교·강사 -->
+  <div class="modal" id="modalStep2Teacher" style="display:none;">
+    <div class="modal-logo">🧑‍🏫 교·강사 가입</div>
+    <h2>정보를 <span>입력</span>해주세요</h2>
+    <p class="modal-sub">알림 수신을 위해 이름을 입력해주세요</p>
+    <div class="modal-label">이름</div>
+    <input class="modal-input" type="text" id="teacherName" placeholder="이름을 입력해주세요" maxlength="10" />
+    <button class="modal-submit" onclick="submitTeacher()">✅ 등록하기</button>
     <button class="modal-back" onclick="goBackToStep1()">← 카테고리 다시 선택</button>
   </div>
   <!-- 졸업생 -->
@@ -518,6 +534,21 @@
   <div class="section-title">메뉴</div>
   <!-- 재학생 메뉴 -->
   <div class="info-grid" id="menuStudent" style="display:none;">
+    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
+    <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
+    <a class="info-card examsched-card" href="exam-schedule.html"><div class="icon">🗓️</div><div class="label">다가오는 일정</div><div class="value" data-exam-sub>D-day 확인하기</div></a>
+    <a class="info-card calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학사 일정</div><div class="value">캘린더 바로가기</div></a>
+    <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">모의시험 풀기</div><div class="value">외부평가</div></a>
+    <a class="info-card full survey-card" href="survey.html"><div class="icon">📋</div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></a>
+    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
+    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
+    <div class="school-pill-wrap">
+      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
+      <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
+    </div>
+  </div>
+  <!-- 교·강사 메뉴 (재학생과 동일 구성) -->
+  <div class="info-grid" id="menuTeacher" style="display:none;">
     <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
     <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
     <a class="info-card examsched-card" href="exam-schedule.html"><div class="icon">🗓️</div><div class="label">다가오는 일정</div><div class="value" data-exam-sub>D-day 확인하기</div></a>
@@ -696,12 +727,14 @@
     else if (category === 'graduate') document.getElementById('modalStep2Graduate').style.display = 'block';
     else if (category === 'prospect') document.getElementById('modalStep2Prospect').style.display = 'block';
     else if (category === 'company') document.getElementById('modalStep2Company').style.display = 'block';
+    else if (category === 'teacher') document.getElementById('modalStep2Teacher').style.display = 'block';
   }
   function goBackToStep1() {
     document.getElementById('modalStep2Student').style.display = 'none';
     document.getElementById('modalStep2Graduate').style.display = 'none';
     document.getElementById('modalStep2Prospect').style.display = 'none';
     document.getElementById('modalStep2Company').style.display = 'none';
+    document.getElementById('modalStep2Teacher').style.display = 'none';
     const comm = document.getElementById('modalStep2Community');
     if (comm) comm.style.display = 'none';
     document.getElementById('modalStep1').style.display = 'block';
@@ -723,6 +756,7 @@
     if (stepCompany) stepCompany.style.display = 'none';
     const stepCommunity = document.getElementById('modalStep2Community');
     if (stepCommunity) stepCommunity.style.display = 'none';
+    document.getElementById('modalStep2Teacher').style.display = 'none';
     const saved = localStorage.getItem('userInfo');
     if (saved) {
       const info = JSON.parse(saved);
@@ -756,11 +790,22 @@
         document.getElementById('companyFirm').value = info.firm || '';
         document.getElementById('companyRole').value = info.role || '';
         document.getElementById('companyStudent').value = info.student || '';
+      } else if (info.category === 'teacher') {
+        document.getElementById('modalStep1').style.display = 'none';
+        document.getElementById('modalStep2Teacher').style.display = 'block';
+        document.getElementById('teacherName').value = info.name || '';
       }
     }
   }
 
   // ============ 등록 처리 ============
+  async function submitTeacher() {
+    const name = document.getElementById('teacherName').value.trim();
+    if (!name) { showToast('이름을 입력해주세요!', 'error'); return; }
+    const userInfo = { category: 'teacher', name, grade: '교·강사' };
+    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+    finalizeRegistration(userInfo);
+  }
   async function submitStudent() {
     const name = document.getElementById('studentName').value.trim();
     if (!name) { showToast('이름을 입력해주세요!', 'error'); return; }
@@ -1076,6 +1121,9 @@
     } else if (userInfo.category === 'company') {
       badgeHtml = '<span class="user-category-badge badge-company">전담인력</span>';
       gradeText = `${userInfo.firm} · ${userInfo.role}`;
+    } else if (userInfo.category === 'teacher') {
+      badgeHtml = '<span class="user-category-badge badge-teacher">교·강사</span>';
+      gradeText = '일학습병행 교·강사';
     }
     document.getElementById('userGradeDisplay').innerHTML = badgeHtml + gradeText;
   }
@@ -1086,10 +1134,12 @@
     document.getElementById('menuGraduate').style.display = 'none';
     document.getElementById('menuProspect').style.display = 'none';
     document.getElementById('menuCompany').style.display = 'none';
+    document.getElementById('menuTeacher').style.display = 'none';
     if (category === 'student') document.getElementById('menuStudent').style.display = 'grid';
     else if (category === 'graduate') document.getElementById('menuGraduate').style.display = 'grid';
     else if (category === 'prospect') document.getElementById('menuProspect').style.display = 'grid';
     else if (category === 'company') document.getElementById('menuCompany').style.display = 'grid';
+    else if (category === 'teacher') document.getElementById('menuTeacher').style.display = 'grid';
   }
 
   function showToast(msg, type = 'info') {

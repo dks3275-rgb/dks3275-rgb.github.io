@@ -199,7 +199,8 @@
       const targetBadge = d.target === 'company' ? '<span style="font-size:10px;background:#ede9fe;color:#5b21b6;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">전담인력</span>'
         : d.target === 'student' ? '<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">재학생</span>'
         : d.target === 'graduate' ? '<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">졸업생</span>'
-        : d.target === 'prospect' ? '<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">예비신입생</span>' : '';
+        : d.target === 'prospect' ? '<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">예비신입생</span>'
+        : d.target === 'teacher' ? '<span style="font-size:10px;background:#e7f9f1;color:#0e8a5f;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">교·강사</span>' : '';
       const pinnedBadge = d.pinned ? '<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">📌 고정</span>' : '';
       // 안 읽은 공지 표시
       const unreadBadge = localRead.includes(d.id) ? '' : `<span id="unread-${d.id}" style="font-size:10px;background:#2196f3;color:white;padding:2px 7px;border-radius:5px;margin-left:4px;font-weight:700;">안 읽음</span>`;
