@@ -331,6 +331,37 @@
     window.__fbAdminUser = null;
     window.__fbAuthReady = false;
 
+    // ══ 관리자 등록 문서(admins/{uid}) 보장 ══
+    // 보안규칙이 "admins에 등록된 계정만 관리자"로 바뀌기 때문에,
+    // 로그인한 공용 관리자 계정을 admins 컬렉션에 한 번 등록해 둔다.
+    // (규칙 교체 전에 미리 만들어 둬야 잠기지 않음)
+    window.__adminDocOk = null;
+    async function ensureAdminDoc(user) {
+      if (!user) return;
+      try {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const { getFirestore, doc, getDoc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG_LOGIN);
+        const db = getFirestore(app);
+        const ref = doc(db, 'admins', user.uid);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          await setDoc(ref, {
+            email: user.email || '',
+            note: '센터 공용 관리자 계정',
+            createdAt: new Date().toISOString()
+          });
+          console.log('[admin] ✅ 관리자 등록 문서 생성됨:', user.uid);
+        } else {
+          console.log('[admin] ✅ 관리자 등록 확인됨:', user.uid);
+        }
+        window.__adminDocOk = true;
+      } catch(e) {
+        window.__adminDocOk = false;
+        console.warn('[admin] ⚠️ 관리자 등록 확인 실패:', e.code || e.message);
+      }
+    }
+
     // 세션 유지: Firebase가 로그인 상태를 기억 → 새로고침해도 자동 로그인
     (async () => {
       try {
@@ -339,7 +370,7 @@
         onAuthStateChanged(auth, (user) => {
           window.__fbAdminUser = user || null;
           window.__fbAuthReady = true;
-          if (user) { unlock(); }
+          if (user) { unlock(); ensureAdminDoc(user); }
           else {
             lock();
             const idInput = document.getElementById('authId');
