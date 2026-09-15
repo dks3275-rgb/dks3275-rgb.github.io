@@ -18,14 +18,17 @@ service cloud.firestore {
       return request.auth != null
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-    function isCompany() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/companyAccounts/$(request.auth.uid));
-    }
-    // 이 로그인 계정이 소속된 기업 ID
-    function myCompanyId() {
-      return get(/databases/$(database)/documents/companyAccounts/$(request.auth.uid)).data.companyId;
-    }
+    // ⚠️ isCompany() / myCompanyId() 는 Phase 1(기업 로그인)에서 추가한다.
+    //    Firestore 규칙은 "쓰이지 않는 함수"를 오류로 처리하므로,
+    //    실제로 참조하는 match 블록을 만들 때 같이 넣어야 한다.
+    //
+    //    function isCompany() {
+    //      return request.auth != null
+    //        && exists(/databases/$(database)/documents/companyAccounts/$(request.auth.uid));
+    //    }
+    //    function myCompanyId() {
+    //      return get(/databases/$(database)/documents/companyAccounts/$(request.auth.uid)).data.companyId;
+    //    }
 
     // ── 역할 등록부 ──
     // 관리자만 열람·발급. 본인 계정 정보는 로그인 후 스스로 읽을 수 있어야 함.
