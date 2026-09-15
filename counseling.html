@@ -215,9 +215,12 @@
       <input type="hidden" id="doEditId" value="">
       <input type="hidden" id="doStudentId" value="">
       <div class="field">
-        <label class="label">대상 학생</label>
+        <label class="label">대상 학생 <span class="hint">(가입 안 한 학생은 “직접 입력”)</span></label>
         <input type="text" class="input" id="doStudentSearch" placeholder="🔍 이름으로 찾기" style="margin-bottom:8px;">
         <select class="input" id="doStudentPick"><option value="">불러오는 중...</option></select>
+        <div id="doManualHint" style="display:none;font-size:12px;color:#9a3412;background:#fff7ed;border-radius:8px;padding:8px 11px;margin-top:8px;line-height:1.5;">
+          ✏️ <b>직접 입력 모드</b> — 아래 이름·유형·학습기업을 손으로 채워주세요. (가입 계정과 연결되지 않아 알림 차단은 적용되지 않습니다.)
+        </div>
       </div>
       <div class="row2">
         <div class="field">
@@ -1303,7 +1306,13 @@ function renderDropoutStudents(kw) {
 }
 $('doStudentPick').onchange = () => {
   const v = $('doStudentPick').value;
-  if (v && v !== 'manual') {
+  if (v === 'manual') {
+    // 가입하지 않은 학생 → 수기 작성. 자동 채움값을 비우고 이름부터 입력받는다.
+    $('doStudentId').value = '';
+    $('doName').value = ''; $('doType').value = ''; $('doFirm').value = '';
+    $('doManualHint').style.display = 'block';
+    $('doName').focus();
+  } else if (v) {
     const s = students.find(x => x.id === v);
     if (s) {
       $('doStudentId').value = s.src === 'users' ? s.id : '';   // users 문서일 때만 알림 차단 대상
@@ -1311,8 +1320,10 @@ $('doStudentPick').onchange = () => {
       $('doType').value = s.dept || '';
       if (s.firm) $('doFirm').value = s.firm;
     }
+    $('doManualHint').style.display = 'none';
   } else {
     $('doStudentId').value = '';
+    $('doManualHint').style.display = 'none';
   }
 };
 
@@ -1342,6 +1353,8 @@ function clearDropoutForm() {
   $('doKind').value = '자발적탈락'; $('doStatus').value = '조치완료';
   $('doStudentId').value = ''; $('doEditId').value = '';
   $('doStudentPick').value = '';
+  $('doStudentSearch').value = '';
+  $('doManualHint').style.display = 'none';
   $('doSaveBtn').textContent = '⚠️ 중도탈락 등록';
   $('doCancelBtn').style.display = 'none';
 }
