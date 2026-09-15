@@ -592,6 +592,7 @@
   <button onclick="switchTab('scheduled', this)">⏰ 예약</button>
   <button onclick="switchTab('survey', this)">📋 만족도</button>
   <button onclick="switchTab('consulting', this)">💬 상담</button>
+  <button onclick="switchTab('company', this)">🏢 기업</button>
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
   <button onclick="switchTab('apply', this)">📝 신청</button>
@@ -857,8 +858,12 @@
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
-          <label class="form-label">학습기업명</label>
-          <input type="text" class="form-input" id="wk-firm" placeholder="예: ○○호텔">
+          <label class="form-label">학습기업</label>
+          <select class="form-input" id="wk-firm-sel" onchange="onWorkerFirmChange()">
+            <option value="">선택 안 함</option>
+          </select>
+          <input type="text" class="form-input" id="wk-firm" placeholder="기업명 직접 입력"
+            style="margin-top:6px;display:none;">
         </div>
         <div class="form-group">
           <label class="form-label">연락처 (선택)</label>
@@ -1075,6 +1080,78 @@
         <button class="refresh-btn" onclick="loadExamSchedules()">🔄 새로고침</button>
       </div>
       <div id="examList"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 기업 탭 -->
+<div class="tab-content" id="tab-company">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">
+        🏢 학습기업 관리
+        <button class="refresh-btn" onclick="loadCompanies()">🔄 새로고침</button>
+      </div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0d47a1;line-height:1.65;">
+        여기 등록한 기업이 <b>학습근로자 명단의 소속 기업</b>과 앱의 <b>학습기업 디렉토리</b>에 함께 쓰입니다.<br>
+        <small style="opacity:0.9;">앞으로 기업 계정 발급·서류 제출도 이 기업 목록을 기준으로 연결됩니다.</small>
+      </div>
+      <input type="hidden" id="co-edit-id" value="">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">기업명</label>
+          <input type="text" class="form-input" id="co-name" placeholder="예: ○○호텔">
+        </div>
+        <div class="form-group">
+          <label class="form-label">관련 학과</label>
+          <select class="form-input" id="co-dept">
+            <option value="">선택</option>
+            <option>P-TECH 1학년</option><option>P-TECH 2학년</option>
+            <option>전문대 마케팅경영학과</option><option>전문대 호텔관광학과</option>
+            <option>전문대 호텔조리학과</option><option>전문대 회계세무학과</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">담당자 (선택)</label>
+          <input type="text" class="form-input" id="co-contact" placeholder="담당자명">
+        </div>
+        <div class="form-group">
+          <label class="form-label">직책 (선택)</label>
+          <select class="form-input" id="co-role">
+            <option value="">선택</option>
+            <option value="HRD담당자">HRD담당자</option>
+            <option value="기업현장교사">기업현장교사</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">연락처 (선택)</label>
+          <input type="text" class="form-input" id="co-phone" placeholder="02-000-0000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">분야 (선택)</label>
+          <input type="text" class="form-input" id="co-field" placeholder="예: 호텔·외식">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">주소 (선택)</label>
+        <input type="text" class="form-input" id="co-address" placeholder="기업 주소">
+      </div>
+      <button class="send-btn" onclick="saveCompany()" id="coSaveBtn">🏢 기업 등록</button>
+      <button class="send-btn" onclick="cancelCompanyEdit()" id="coCancelBtn"
+        style="display:none;background:#94a3b8;margin-top:8px;">취소 (새로 등록으로)</button>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
+        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(기업명 · 관련학과 · 담당자 · 연락처 · 분야 순, 탭 또는 쉼표 구분)</span></label>
+        <textarea class="form-input" id="co-bulk" style="min-height:90px;font-family:monospace;font-size:12px;"
+          placeholder="○○호텔	전문대 호텔조리학과	김담당	02-000-0000	호텔·외식&#10;△△리조트	P-TECH 1학년	이담당"></textarea>
+        <button class="send-btn" onclick="bulkAddCompanies()" style="background:#059669;margin-top:8px;">📥 일괄 등록</button>
+      </div>
+      <div class="result-box" id="coResult"></div>
+      <div id="companyList" style="margin-top:16px;"><div class="empty-history">불러오는 중...</div></div>
     </div>
   </div>
 </div>
@@ -1381,6 +1458,7 @@
     if (tab === 'scheduled') loadScheduledItems();
     if (tab === 'survey') loadSurveyStatus();
     if (tab === 'consulting') loadConsulting();
+    if (tab === 'company') loadCompanies();
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
     if (tab === 'apply') { loadApplications(); checkAdminTargetStatus(); }
@@ -2186,6 +2264,177 @@
   function showNoticeResult(msg, type) { const box = document.getElementById('noticeResult'); box.textContent = msg; box.className = 'result-box ' + type; setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 5000); }
 
   // ── 상담 ──
+  // ══════════ 학습기업 (companies) ══════════
+  // 학습근로자 소속·기업 계정·서류 제출이 모두 이 목록을 기준으로 연결된다.
+  // companies.html(학습기업 디렉토리)과 필드를 맞춰 둔다: name/dept/contact/role/phone/address/field
+  let allCompanies = [];
+
+  function showCoResult(msg, type) {
+    const box = document.getElementById('coResult');
+    if (!box) return;
+    box.textContent = msg; box.className = 'result-box ' + type;
+    setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 4000);
+  }
+  function cancelCompanyEdit() {
+    document.getElementById('co-edit-id').value = '';
+    document.getElementById('coSaveBtn').textContent = '🏢 기업 등록';
+    document.getElementById('coCancelBtn').style.display = 'none';
+    ['co-name','co-contact','co-phone','co-field','co-address'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('co-dept').value = '';
+    document.getElementById('co-role').value = '';
+  }
+  function readCompanyForm() {
+    return {
+      name: document.getElementById('co-name').value.trim(),
+      dept: document.getElementById('co-dept').value,
+      contact: document.getElementById('co-contact').value.trim(),
+      role: document.getElementById('co-role').value,
+      phone: document.getElementById('co-phone').value.trim(),
+      field: document.getElementById('co-field').value.trim(),
+      address: document.getElementById('co-address').value.trim()
+    };
+  }
+  async function saveCompany() {
+    const d = readCompanyForm();
+    const editId = document.getElementById('co-edit-id').value;
+    if (!d.name) { showCoResult('기업명을 입력해주세요!', 'error'); return; }
+    try {
+      const db = await wkDb();
+      const { collection, addDoc, doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      if (editId) {
+        await updateDoc(doc(db, 'companies', editId), { ...d, updatedAt: serverTimestamp() });
+        await writeLog('update', 'company', editId, `학습기업 수정: ${d.name}`);
+        showCoResult('✅ 수정했어요', 'success');
+        cancelCompanyEdit();
+      } else {
+        if (allCompanies.some(c => (c.name || '').trim() === d.name)) {
+          showCoResult('⚠️ 같은 이름의 기업이 이미 등록되어 있어요', 'error'); return;
+        }
+        const ref = await addDoc(collection(db, 'companies'), { ...d, createdAt: serverTimestamp() });
+        await writeLog('create', 'company', ref.id, `학습기업 등록: ${d.name}`);
+        showCoResult('✅ 기업을 등록했어요', 'success');
+        cancelCompanyEdit();
+      }
+      loadCompanies();
+    } catch(e) { showCoResult('❌ 오류: ' + e.message, 'error'); }
+  }
+  // 엑셀 붙여넣기: 기업명 · 관련학과 · 담당자 · 연락처 · 분야
+  async function bulkAddCompanies() {
+    const raw = document.getElementById('co-bulk').value.trim();
+    if (!raw) { showCoResult('붙여넣을 내용이 없어요', 'error'); return; }
+    const rows = raw.split('\n').map(r => r.trim()).filter(Boolean);
+    const parsed = [], skipped = [];
+    rows.forEach((r, i) => {
+      const c = r.split(/\t|,/).map(x => x.trim());
+      const name = c[0] || '';
+      if (!name) { skipped.push(`${i+1}행: 기업명 없음`); return; }
+      if (allCompanies.some(x => (x.name || '').trim() === name)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨`); return; }
+      if (parsed.some(p => p.name === name)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 중복`); return; }
+      parsed.push({ name, dept: c[1] || '', contact: c[2] || '', phone: c[3] || '', field: c[4] || '', role: '', address: '' });
+    });
+    if (parsed.length === 0) { showCoResult('등록할 수 있는 행이 없어요 — ' + skipped.join(' / '), 'error'); return; }
+    if (!await customConfirm({ title: '학습기업 일괄 등록',
+      message: `${parsed.length}곳을 등록할까요?` + (skipped.length ? `<br><br><b>건너뜀 ${skipped.length}건</b><br><span style="font-size:12px;">${skipped.slice(0,8).join('<br>')}${skipped.length>8?'<br>…':''}</span>` : ''),
+      confirmText: '📥 등록' })) return;
+    try {
+      const db = await wkDb();
+      const { collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      for (const p of parsed) await addDoc(collection(db, 'companies'), { ...p, createdAt: serverTimestamp() });
+      await writeLog('create', 'company', 'bulk', `학습기업 일괄 등록 ${parsed.length}곳`);
+      document.getElementById('co-bulk').value = '';
+      showCoResult(`✅ ${parsed.length}곳 등록${skipped.length ? ` · ${skipped.length}건 건너뜀` : ''}`, 'success');
+      loadCompanies();
+    } catch(e) { showCoResult('❌ 오류: ' + e.message, 'error'); }
+  }
+  async function loadCompanies() {
+    const el = document.getElementById('companyList');
+    try {
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(collection(db, 'companies'));
+      allCompanies = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+      refreshWorkerFirmOptions();
+      if (!el) return;
+      if (allCompanies.length === 0) {
+        el.innerHTML = '<div class="empty-history">등록된 학습기업이 없어요<br><small>위에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
+        return;
+      }
+      el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">총 ${allCompanies.length}곳</div>`
+        + allCompanies.map(c => `
+          <div class="cal-event-item" style="border-left-color:#7c5cfa;">
+            <div class="cal-event-info">
+              <div class="cal-event-title">🏢 ${c.name || '-'}</div>
+              <div class="cal-event-meta">${c.dept || '학과 미지정'}${c.contact ? ' · ' + c.contact : ''}${c.phone ? ' · ' + c.phone : ''}</div>
+              ${c.field || c.address ? `<div class="cal-event-desc">${[c.field, c.address].filter(Boolean).join(' · ')}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+              <button onclick="editCompany('${c.id}')" class="member-edit-btn">✏️ 수정</button>
+              <button onclick="deleteCompany('${c.id}')" class="delete-btn">삭제</button>
+            </div>
+          </div>`).join('');
+    } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
+  }
+  function editCompany(id) {
+    const c = allCompanies.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('co-edit-id').value = id;
+    document.getElementById('co-name').value = c.name || '';
+    document.getElementById('co-dept').value = c.dept || '';
+    document.getElementById('co-contact').value = c.contact || '';
+    document.getElementById('co-role').value = c.role || '';
+    document.getElementById('co-phone').value = c.phone || '';
+    document.getElementById('co-field').value = c.field || '';
+    document.getElementById('co-address').value = c.address || '';
+    document.getElementById('coSaveBtn').textContent = '💾 수정 내용 저장';
+    document.getElementById('coCancelBtn').style.display = 'block';
+    document.getElementById('co-name').scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+  async function deleteCompany(id) {
+    const c = allCompanies.find(x => x.id === id);
+    const linked = (allWorkers || []).filter(w => w.companyId === id).length;
+    if (!await customConfirm({ title:'학습기업 삭제',
+      message: `"${c ? c.name : ''}" 을(를) 삭제할까요?` + (linked ? `<br><br>⚠️ 이 기업에 연결된 <b>학습근로자 ${linked}명</b>의 소속 표시가 사라집니다.` : ''),
+      confirmText:'🗑️ 삭제', danger:true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'companies', id));
+      await writeLog('delete', 'company', id, `학습기업 삭제: ${c ? c.name : id}`);
+      loadCompanies();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  // 학습근로자 폼의 "학습기업" 드롭다운을 기업 목록으로 채운다.
+  // 목록에 없는 기업은 '직접 입력'으로 이름만 저장 (companyId 없음).
+  function refreshWorkerFirmOptions() {
+    const sel = document.getElementById('wk-firm-sel');
+    if (!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">선택 안 함</option>'
+      + allCompanies.map(c => `<option value="${c.id}">${c.name}${c.dept ? ' (' + c.dept + ')' : ''}</option>`).join('')
+      + '<option value="__manual__">✏️ 목록에 없음 — 직접 입력</option>';
+    if (Array.from(sel.options).some(o => o.value === keep)) sel.value = keep;
+    onWorkerFirmChange();
+  }
+  function onWorkerFirmChange() {
+    const sel = document.getElementById('wk-firm-sel');
+    const txt = document.getElementById('wk-firm');
+    if (!sel || !txt) return;
+    const manual = sel.value === '__manual__';
+    txt.style.display = manual ? 'block' : 'none';
+    if (!manual && sel.value === '') txt.value = '';
+  }
+  // 현재 폼에서 고른 기업 → { companyId, firm }
+  function currentWorkerFirm() {
+    const sel = document.getElementById('wk-firm-sel');
+    const v = sel ? sel.value : '';
+    if (v === '__manual__') return { companyId: '', firm: document.getElementById('wk-firm').value.trim() };
+    if (!v) return { companyId: '', firm: '' };
+    const c = allCompanies.find(x => x.id === v);
+    return { companyId: v, firm: c ? (c.name || '') : '' };
+  }
+
   // ══════════ 학습근로자 명단 (workers) ══════════
   // 면담일지(counseling.html)의 상담 대상 드롭다운 소스
   let allWorkers = [];
@@ -2209,11 +2458,13 @@
     document.getElementById('wkCancelBtn').style.display = 'none';
     ['wk-name','wk-firm','wk-phone'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('wk-dept').value = '';
+    document.getElementById('wk-firm-sel').value = '';
+    onWorkerFirmChange();
   }
   async function saveWorker() {
     const name = document.getElementById('wk-name').value.trim();
     const dept = document.getElementById('wk-dept').value;
-    const firm = document.getElementById('wk-firm').value.trim();
+    const { companyId, firm } = currentWorkerFirm();
     const phone = document.getElementById('wk-phone').value.trim();
     const editId = document.getElementById('wk-edit-id').value;
     if (!name) { showWkResult('이름을 입력해주세요!', 'error'); return; }
@@ -2221,7 +2472,8 @@
     try {
       const db = await wkDb();
       const { collection, addDoc, doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const data = { name, dept, firm, phone };
+      // companyId = 기업 문서 연결, firm = 표시·엑셀용 이름 복사본
+      const data = { name, dept, firm, companyId, phone };
       if (editId) {
         await updateDoc(doc(db, 'workers', editId), { ...data, updatedAt: serverTimestamp() });
         await writeLog('update', 'worker', editId, `학습근로자 수정: ${name}`);
@@ -2253,7 +2505,10 @@
       if (!WK_DEPTS.includes(dept)) { skipped.push(`${i+1}행 "${name}": 학과 인식 불가 (${dept || '비어있음'})`); return; }
       if (allWorkers.some(w => w.name === name && w.dept === dept)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨`); return; }
       if (parsed.some(p => p.name === name && p.dept === dept)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 중복`); return; }
-      parsed.push({ name, dept, firm: c[2] || '', phone: c[3] || '' });
+      // 기업명이 등록된 학습기업과 같으면 자동 연결(companyId), 아니면 이름만 저장
+      const firmName = c[2] || '';
+      const matched = firmName ? allCompanies.find(x => (x.name || '').trim() === firmName) : null;
+      parsed.push({ name, dept, firm: firmName, companyId: matched ? matched.id : '', phone: c[3] || '' });
     });
     if (parsed.length === 0) { showWkResult('등록할 수 있는 행이 없어요 — ' + skipped.join(' / '), 'error'); return; }
     if (!await customConfirm({ title:'명단 일괄 등록',
@@ -2273,6 +2528,8 @@
     const el = document.getElementById('workerList');
     if (!el) return;
     el.innerHTML = '<div class="empty-history">불러오는 중...</div>';
+    // 소속 기업 드롭다운을 채우려면 기업 목록이 먼저 필요하다
+    if (allCompanies.length === 0) { try { await loadCompanies(); } catch(_) {} }
     try {
       const db = await wkDb();
       const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -2293,7 +2550,7 @@
               <div class="cal-event-item" style="border-left-color:#1976d2;">
                 <div class="cal-event-info">
                   <div class="cal-event-title">${w.name}</div>
-                  <div class="cal-event-meta">${w.firm || '학습기업 미입력'}${w.phone ? ' · ' + w.phone : ''}</div>
+                  <div class="cal-event-meta">${w.firm || '학습기업 미입력'}${w.firm && !w.companyId ? ' <span style="color:#d97706;font-size:11px;">(미연결)</span>' : ''}${w.phone ? ' · ' + w.phone : ''}</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
                   <button onclick="editWorker('${w.id}')" class="member-edit-btn">✏️ 수정</button>
@@ -2309,7 +2566,19 @@
     document.getElementById('wk-edit-id').value = id;
     document.getElementById('wk-name').value = w.name || '';
     document.getElementById('wk-dept').value = w.dept || '';
-    document.getElementById('wk-firm').value = w.firm || '';
+    // 연결된 기업이 목록에 있으면 그걸 선택, 없으면 직접 입력으로
+    const sel = document.getElementById('wk-firm-sel');
+    if (w.companyId && allCompanies.some(c => c.id === w.companyId)) {
+      sel.value = w.companyId;
+      document.getElementById('wk-firm').value = '';
+    } else if (w.firm) {
+      sel.value = '__manual__';
+      document.getElementById('wk-firm').value = w.firm;
+    } else {
+      sel.value = '';
+      document.getElementById('wk-firm').value = '';
+    }
+    onWorkerFirmChange();
     document.getElementById('wk-phone').value = w.phone || '';
     document.getElementById('wkSaveBtn').textContent = '💾 수정 내용 저장';
     document.getElementById('wkCancelBtn').style.display = 'block';
