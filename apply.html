@@ -593,7 +593,8 @@ async function notifyAdmins(data, isUpdate) {
       include_aliases: { onesignal_id: targets },
       target_channel: 'push',
       priority: 10,
-      web_url: 'https://dks3275-rgb.github.io/admin.html'
+      url: 'https://dks3275-rgb.github.io/admin.html#apply',
+      web_url: 'https://dks3275-rgb.github.io/admin.html#apply'
     };
     await fetch(WORKER_URL, {
       method: 'POST',

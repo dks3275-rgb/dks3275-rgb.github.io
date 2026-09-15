@@ -325,7 +325,7 @@
     } catch(e) { console.warn('Firebase 저장 실패:', e); }
     const pushMsg = `${name} (${dept})\n${content.substring(0, 80)}${content.length > 80 ? '...' : ''}`;
     try {
-      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }], contents: { ko: pushMsg, en: pushMsg }, headings: { ko: '💬 1:1 상담 신청이 왔어요!', en: 'Consulting Request' } }) });
+      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }], contents: { ko: pushMsg, en: pushMsg }, headings: { ko: '💬 1:1 상담 신청이 왔어요!', en: 'Consulting Request' }, url: 'https://dks3275-rgb.github.io/admin.html#consulting', web_url: 'https://dks3275-rgb.github.io/admin.html#consulting' }) });
     } catch(e) { console.warn('알림 발송 실패:', e); }
     document.getElementById('resultMsg').innerHTML = `<strong>${name}</strong>님의 상담 신청이 접수됐어요.<br>담당자가 확인 후 연락드릴게요.`;
     document.getElementById('resultOverlay').classList.add('show');
@@ -359,7 +359,7 @@
     } catch(e) { console.warn('Firebase 저장 실패:', e); }
     const pushMsg = `🏢 ${name} (${firm} · ${role})\n[${type}] ${content.substring(0, 60)}${content.length > 60 ? '...' : ''}`;
     try {
-      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }], contents: { ko: pushMsg, en: pushMsg }, headings: { ko: '🏢 전담인력 문의가 왔어요!', en: 'Company Inquiry' } }) });
+      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }], contents: { ko: pushMsg, en: pushMsg }, headings: { ko: '🏢 전담인력 문의가 왔어요!', en: 'Company Inquiry' }, url: 'https://dks3275-rgb.github.io/admin.html#consulting', web_url: 'https://dks3275-rgb.github.io/admin.html#consulting' }) });
     } catch(e) { console.warn('알림 발송 실패:', e); }
     document.getElementById('resultMsg').innerHTML = `<strong>${name}</strong>님의 문의가 접수됐어요.<br>담당자가 확인 후 연락드릴게요.`;
     document.getElementById('resultOverlay').classList.add('show');

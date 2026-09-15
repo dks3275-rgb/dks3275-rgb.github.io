@@ -400,6 +400,7 @@
       <button class="edit-cat-btn" id="catBtnGraduate" onclick="switchEditCategory('graduate')">🎉 졸업생</button>
       <button class="edit-cat-btn" id="catBtnProspect" onclick="switchEditCategory('prospect')">🌱 예비 신입생</button>
       <button class="edit-cat-btn" id="catBtnCompany" onclick="switchEditCategory('company')">🏢 전담인력</button>
+      <button class="edit-cat-btn" id="catBtnTeacher" onclick="switchEditCategory('teacher')">🧑‍🏫 교·강사</button>
     </div>
 
     <!-- 재학생 필드 -->
@@ -460,6 +461,12 @@
       </select>
       <div class="member-modal-label">담당 학생</div>
       <input class="member-modal-input" type="text" id="editStudent" placeholder="담당 학생 이름" maxlength="50" />
+    </div>
+
+    <!-- 교·강사 필드 (이름만) -->
+    <div id="editFieldsTeacher" style="display:none;">
+      <div class="member-modal-label">이름</div>
+      <input class="member-modal-input" type="text" id="editTeacherName" placeholder="이름" maxlength="10" />
     </div>
 
     <div class="member-modal-btns">
@@ -1368,6 +1375,19 @@
   runAfterAuth(() => {
     setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);
   });
+
+  // 알림을 눌러 admin.html#consulting 같은 주소로 들어오면 해당 탭 자동 열기
+  function openTabByName(tab) {
+    const btn = Array.from(document.querySelectorAll('.tab-nav button'))
+      .find(b => (b.getAttribute('onclick') || '').includes(`'${tab}'`));
+    if (btn) switchTab(tab, btn);
+  }
+  function openTabFromHash() {
+    const tab = (location.hash || '').replace('#', '').trim();
+    if (tab && document.getElementById('tab-' + tab)) openTabByName(tab);
+  }
+  runAfterAuth(() => { setTimeout(openTabFromHash, 600); });
+  window.addEventListener('hashchange', openTabFromHash);
   // 예약 발송 자동 체크 (인증 후)
   runAfterAuth(() => {
     setTimeout(async () => {
@@ -4187,7 +4207,7 @@
     // 현재 입력된 이름 저장
     const curName = getCurrentEditName();
     // 카테고리 버튼 선택 표시
-    ['student','graduate','prospect'].forEach(c => {
+    ['student','graduate','prospect','company','teacher'].forEach(c => {
       const btn = document.getElementById('catBtn' + c.charAt(0).toUpperCase() + c.slice(1));
       if (btn) btn.classList.toggle('selected', c === cat);
     });
@@ -4195,6 +4215,8 @@
     document.getElementById('editFieldsStudent').style.display = 'none';
     document.getElementById('editFieldsGraduate').style.display = 'none';
     document.getElementById('editFieldsProspect').style.display = 'none';
+    document.getElementById('editFieldsCompany').style.display = 'none';
+    document.getElementById('editFieldsTeacher').style.display = 'none';
     // editingMember 카테고리 업데이트
     if (editingMember) editingMember.category = cat;
     const src = member || editingMember || {};
@@ -4220,6 +4242,9 @@
       document.getElementById('editFirm').value = src.firm || '';
       document.getElementById('editRole').value = src.role || 'HRD담당자';
       document.getElementById('editStudent').value = src.student || '';
+    } else if (cat === 'teacher') {
+      document.getElementById('editFieldsTeacher').style.display = 'block';
+      document.getElementById('editTeacherName').value = curName || src.name || '';
     }
   }
 
@@ -4229,6 +4254,7 @@
     if (editingMember.category === 'graduate') return document.getElementById('editGradName')?.value || '';
     if (editingMember.category === 'prospect') return document.getElementById('editProspectName')?.value || '';
     if (editingMember.category === 'company') return document.getElementById('editCompanyName')?.value || '';
+    if (editingMember.category === 'teacher') return document.getElementById('editTeacherName')?.value || '';
     return '';
   }
 
@@ -4250,11 +4276,13 @@
     document.getElementById('editFirm').value = '';
     document.getElementById('editRole').value = 'HRD담당자';
     document.getElementById('editStudent').value = '';
+    document.getElementById('editTeacherName').value = '';
     document.getElementById('editFieldsStudent').style.display = 'none';
     document.getElementById('editFieldsGraduate').style.display = 'none';
     document.getElementById('editFieldsProspect').style.display = 'none';
     document.getElementById('editFieldsCompany').style.display = 'none';
-    ['Student','Graduate','Prospect','Company'].forEach(c => {
+    document.getElementById('editFieldsTeacher').style.display = 'none';
+    ['Student','Graduate','Prospect','Company','Teacher'].forEach(c => {
       const btn = document.getElementById('catBtn' + c);
       if (btn) btn.classList.remove('selected');
     });
@@ -4276,6 +4304,7 @@
         graduate:  ['dept', 'graduateYear', 'workplace'],
         prospect:  ['phone', 'school', 'interest'],
         company:   ['firm', 'role', 'student'],
+        teacher:   [],
       };
       const ALL_FIELDS = ['grade', 'dept', 'graduateYear', 'workplace', 'phone', 'school', 'interest', 'firm', 'role', 'student'];
       const currentFields = CAT_FIELDS[cat] || [];
@@ -4308,6 +4337,8 @@
         updateData.firm = document.getElementById('editFirm').value.trim();
         updateData.role = document.getElementById('editRole').value;
         updateData.student = document.getElementById('editStudent').value.trim();
+      } else if (cat === 'teacher') {
+        updateData.name = document.getElementById('editTeacherName').value.trim();
       }
 
       if (!updateData.name) { alert('이름을 입력해주세요!'); return; }
