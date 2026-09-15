@@ -65,6 +65,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── 중도탈락 관리 (민감: 탈락 사유·개선조치) ──
+    // 로그인한 담당자만 접근. 학생 앱에서는 열 수 없음.
+    match /dropouts/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // ── 관리자 활동 로그 ──
     match /audit_logs/{id} {
       allow read, write: if isAdmin();

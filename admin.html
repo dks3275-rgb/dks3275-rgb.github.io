@@ -13,6 +13,7 @@
   <!-- OneSignal SDK (관리자 페이지 알림 구독용) -->
   <script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
@@ -860,7 +861,10 @@
             <option value="trash">🗑️ 휴지통</option>
           </select>
         </div>
-        <button class="refresh-btn" onclick="loadConsulting()">🔄 새로고침</button>
+        <div style="display:flex;gap:8px;">
+          <button class="refresh-btn" onclick="downloadConsultingExcel()" style="background:#059669;color:white;">📊 엑셀</button>
+          <button class="refresh-btn" onclick="loadConsulting()">🔄 새로고침</button>
+        </div>
       </div>
       <input type="text" id="consultingSearch" placeholder="🔍 이름·학과·내용 검색..."
         style="width:100%;padding:10px 14px;border:1.5px solid #e4eaf4;border-radius:10px;font-size:14px;margin-bottom:12px;box-sizing:border-box;"
@@ -1261,6 +1265,7 @@
             <option value="prospect">🌱 예비 신입생</option>
             <option value="company">🏢 전담인력</option>
             <option value="teacher">🧑‍🏫 교·강사</option>
+            <option value="dropout">⚠️ 중도탈락</option>
             <option value="unsubscribed">🔕 알림 미구독자만</option>
             <option value="trash">🗑️ 휴지통</option>
           </select>
@@ -2310,6 +2315,41 @@
       autoCleanTrash();
     } catch(e) { document.getElementById('consultingList').innerHTML = '<div class="empty-history">⚠️ 불러오기 실패: ' + e.message + '</div>'; }
   }
+  // 1:1 상담 내역을 엑셀로 다운로드 (휴지통 제외)
+  function downloadConsultingExcel() {
+    if (typeof XLSX === 'undefined') { alert('엑셀 모듈이 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.'); return; }
+    const items = (consultingItems || []).filter(i => !i.deleted)
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    if (items.length === 0) { alert('내보낼 상담 내역이 없어요.'); return; }
+    const catLabel = c => c === 'student' ? '재학생' : c === 'graduate' ? '졸업생' : c === 'prospect' ? '예비신입생' : c === 'company' ? '전담인력' : c === 'teacher' ? '교·강사' : (c || '');
+    const rows = items.map((it, i) => {
+      const when = it.createdAt?.seconds ? new Date(it.createdAt.seconds * 1000).toLocaleString('ko-KR') : (it.time || '');
+      const replies = Array.isArray(it.comments) ? it.comments.length : 0;
+      const lastReply = (Array.isArray(it.comments) && it.comments.length)
+        ? it.comments[it.comments.length - 1].text || '' : '';
+      return {
+        'No': i + 1,
+        '신청일시': when,
+        '구분': catLabel(it.category),
+        '이름': it.name || '',
+        '학과 / 회사': it.dept || it.firm || '',
+        '직책': it.role || '',
+        '연락처': it.phone || '',
+        '문의유형': it.inquiryType || '',
+        '상태': it.status || '',
+        '문의내용': it.content || '',
+        '답변수': replies,
+        '최근답변': lastReply
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:5},{wch:20},{wch:10},{wch:10},{wch:22},{wch:12},{wch:15},{wch:12},{wch:8},{wch:50},{wch:7},{wch:40}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '1:1 상담내역');
+    const today = (typeof localToday === 'function') ? localToday() : new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `1대1_상담내역_${today}.xlsx`);
+  }
+
   function renderConsulting() {
     const filter = document.getElementById('consultingFilter').value;
     const searchEl = document.getElementById('consultingSearch');
@@ -2824,22 +2864,23 @@
       const consultings = consultingSnap.docs.map(d => d.data());
       const libraries = librarySnap.docs.map(d => d.data());
       const events = calendarSnap.docs.map(d => d.data());
-      // 사용자 카테고리 분포
-      const cat = { student: 0, graduate: 0, prospect: 0, company: 0, other: 0 };
-      users.forEach(u => {
+      // 사용자 카테고리 분포 (휴지통·중도탈락 제외)
+      const cat = { student: 0, graduate: 0, prospect: 0, company: 0, teacher: 0, other: 0 };
+      users.filter(u => !u.deleted && !u.dropout).forEach(u => {
         if (u.category === 'student') cat.student++;
         else if (u.category === 'graduate') cat.graduate++;
         else if (u.category === 'prospect') cat.prospect++;
         else if (u.category === 'company') cat.company++;
+        else if (u.category === 'teacher') cat.teacher++;
         else cat.other++;
       });
-      // Phase C: 알림 구독률 (휴지통 제외)
-      const activeUsers = users.filter(u => !u.deleted);
+      // Phase C: 알림 구독률 (휴지통·중도탈락 제외)
+      const activeUsers = users.filter(u => !u.deleted && !u.dropout);
       const subscribedUsers = activeUsers.filter(u => u.oneSignalId);
       const subRate = activeUsers.length > 0 ? (subscribedUsers.length / activeUsers.length * 100).toFixed(0) : 0;
       // 카테고리별 구독률
       const subByCat = {};
-      ['student', 'graduate', 'prospect', 'company'].forEach(c => {
+      ['student', 'graduate', 'prospect', 'company', 'teacher'].forEach(c => {
         const list = activeUsers.filter(u => u.category === c);
         const subbed = list.filter(u => u.oneSignalId);
         subByCat[c] = {
@@ -4481,7 +4522,7 @@
     if (!allMembers || allMembers.length === 0) await loadMembers();
 
     const groups = {};
-    (allMembers || []).filter(m => !m.deleted).forEach(m => {
+    (allMembers || []).filter(m => !m.deleted && !m.dropout).forEach(m => {
       const k = dupKey(m);
       if (!k) return;
       (groups[k] = groups[k] || []).push(m);
@@ -4777,12 +4818,15 @@
     const filter = document.getElementById('memberCategoryFilter')?.value || 'all';
     const searchTerm = (document.getElementById('memberSearchInput')?.value || '').trim().toLowerCase();
     const sortBy = document.getElementById('memberSortBy')?.value || 'updatedDesc';
-    // 활성/휴지통 분리
-    const activeMembers = allMembers.filter(m => !m.deleted);
+    // 활성/휴지통/중도탈락 분리 — 중도탈락은 활성에서 제외 (알림 대상 아님)
+    const activeMembers = allMembers.filter(m => !m.deleted && !m.dropout);
     const trashMembers = allMembers.filter(m => m.deleted);
+    const dropoutMembers = allMembers.filter(m => m.dropout && !m.deleted);
     let list;
     if (filter === 'trash') {
       list = trashMembers;
+    } else if (filter === 'dropout') {
+      list = dropoutMembers;
     } else if (filter === 'unsubscribed') {
       // Phase C: 알림 미구독자만 (활성 사용자 중 oneSignalId 없음)
       list = activeMembers.filter(m => !m.oneSignalId);
@@ -4816,13 +4860,14 @@
     }
 
     // 활성/휴지통 카운트
-    const activeMembers = allMembers.filter(m => !m.deleted);
+    const activeMembers = allMembers.filter(m => !m.deleted && !m.dropout);
     const trashMembers = allMembers.filter(m => m.deleted);
-    const counts = { student: 0, graduate: 0, prospect: 0, company: 0 };
+    const dropoutCount = allMembers.filter(m => m.dropout && !m.deleted).length;
+    const counts = { student: 0, graduate: 0, prospect: 0, company: 0, teacher: 0 };
     activeMembers.forEach(m => { if (counts[m.category] !== undefined) counts[m.category]++; });
     const badgeEl = document.getElementById('memberCountBadge');
     if (badgeEl) badgeEl.textContent =
-      `활성 ${activeMembers.length}명 · 🎓${counts.student} 🎉${counts.graduate} 🌱${counts.prospect} 🏢${counts.company} · 🗑️ ${trashMembers.length}명 · 표시 ${filtered.length}명`;
+      `활성 ${activeMembers.length}명 · 🎓${counts.student} 🎉${counts.graduate} 🌱${counts.prospect} 🏢${counts.company} 🧑‍🏫${counts.teacher} · ⚠️중도탈락 ${dropoutCount} · 🗑️ ${trashMembers.length}명 · 표시 ${filtered.length}명`;
 
     // 30일 지난 휴지통 자동 영구 삭제
     autoCleanMemberTrash();

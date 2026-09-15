@@ -1007,6 +1007,22 @@
             location.reload();
             return;
           }
+          // 중도탈락 처리된 학생 → 알림(push) 중단. 앱은 계속 볼 수 있으나 태그 재등록 안 함
+          if (latest.dropout === true) {
+            try {
+              if (window.OneSignalDeferred) {
+                window.OneSignalDeferred.push(async (OneSignal) => {
+                  try { await OneSignal.User.PushSubscription.optOut(); } catch(e) {}
+                });
+              }
+            } catch(e) {}
+            // 화면 정보는 최신으로만 반영하고, 태그 재동기화(아래 로직)는 건너뜀
+            const upd = { ...info };
+            if (latest.name) upd.name = latest.name;
+            localStorage.setItem('userInfo', JSON.stringify(upd));
+            try { updateUserCard(upd); } catch(e) {}
+            return;
+          }
           // ── 마지막 접속 기록 ──
           // 어느 기기를 실제로 쓰고 있는지 알아야 중복 계정을 안전하게 정리할 수 있다.
           // 쓰기 부담을 줄이려고 하루에 한 번만 기록한다.
