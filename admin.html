@@ -64,6 +64,17 @@
     .tab-content.active { display: block; }
     .container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
     .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); }
+    /* ── 카드 접기/펴기 (내용이 길어 스크롤이 과해지는 문제) ── */
+    .card > .card-title { cursor: pointer; user-select: none; gap: 8px; }
+    .card > .card-title::after { content: '▾'; font-size: 12px; color: var(--gray); flex-shrink: 0;
+                                 transition: transform 0.15s; margin-left: 4px; }
+    .card.collapsed > .card-title::after { transform: rotate(-90deg); }
+    .card.collapsed { padding-bottom: 18px; }
+    .card.collapsed > .card-title { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .card.collapsed > *:not(.card-title) { display: none !important; }
+    .fold-all-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35); color: white;
+                    font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+                    font-family: 'Noto Sans KR', sans-serif; font-weight: 600; margin-left: auto; }
     .card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--light); display: flex; justify-content: space-between; align-items: center; }
     .group-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
     .group-btn { padding: 14px 8px; border: 2px solid var(--border); border-radius: 12px; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #4a5568; text-align: center; }
@@ -608,6 +619,7 @@
 <div class="header">
   <div class="header-badge">관리자</div>
   <h1>AU 일학습병행 관리자</h1>
+  <button class="fold-all-btn" id="foldAllBtn" onclick="toggleFoldAll()">⇅ 전체 접기</button>
 </div>
 <div class="tab-nav">
   <button class="active" onclick="switchTab('stats', this)">📊 통계</button>
@@ -1605,6 +1617,48 @@
   }
   runAfterAuth(() => { setTimeout(openTabFromHash, 600); });
   window.addEventListener('hashchange', openTabFromHash);
+
+  // ══════════ 카드 접기/펴기 ══════════
+  // 카드 제목을 누르면 그 카드 내용이 접힌다. 접은 상태는 기기에 기억된다.
+  function cardFoldKey(card, tabId, idx) {
+    const t = card.querySelector(':scope > .card-title');
+    const label = (t ? t.textContent : '').trim().replace(/\s+/g, ' ').slice(0, 24);
+    return `cardFold:${tabId}:${idx}:${label}`;
+  }
+  function initCollapsibleCards() {
+    document.querySelectorAll('.tab-content').forEach(tc => {
+      const tabId = tc.id || 'tab';
+      Array.from(tc.querySelectorAll('.card')).forEach((card, idx) => {
+        const title = card.querySelector(':scope > .card-title');
+        if (!title || title.dataset.foldReady) return;
+        title.dataset.foldReady = '1';
+        const key = cardFoldKey(card, tabId, idx);
+        try { if (localStorage.getItem(key) === '1') card.classList.add('collapsed'); } catch(_) {}
+        title.addEventListener('click', (e) => {
+          // 제목 안의 버튼·링크·입력은 원래 동작 유지
+          if (e.target.closest('button, a, input, select, textarea')) return;
+          const collapsed = card.classList.toggle('collapsed');
+          try { localStorage.setItem(key, collapsed ? '1' : '0'); } catch(_) {}
+        });
+      });
+    });
+  }
+  // 현재 보이는 탭의 카드를 한 번에 접거나 편다
+  function toggleFoldAll() {
+    const tab = document.querySelector('.tab-content.active');
+    if (!tab) return;
+    const cards = Array.from(tab.querySelectorAll('.card'));
+    if (cards.length === 0) return;
+    const shouldCollapse = cards.some(c => !c.classList.contains('collapsed'));
+    const tabId = tab.id || 'tab';
+    cards.forEach((card, idx) => {
+      card.classList.toggle('collapsed', shouldCollapse);
+      try { localStorage.setItem(cardFoldKey(card, tabId, idx), shouldCollapse ? '1' : '0'); } catch(_) {}
+    });
+    const btn = document.getElementById('foldAllBtn');
+    if (btn) btn.textContent = shouldCollapse ? '⇅ 전체 펼치기' : '⇅ 전체 접기';
+  }
+  document.addEventListener('DOMContentLoaded', initCollapsibleCards);
   // 예약 발송 자동 체크 (인증 후)
   runAfterAuth(() => {
     setTimeout(async () => {
