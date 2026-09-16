@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학습기업 관리 - AU 일학습병행</title>
+<meta name="theme-color" content="#1976d2">
+<meta name="robots" content="noindex, nofollow">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+  :root { --navy:#1976d2; --blue:#2196f3; --light:#f0f4f8; --gray:#8a9ab5;
+          --line:#e4eaf4; --text:#1a202c; --sub:#4a5568; --ok:#10b981; --warn:#f59e0b; --danger:#ef4444; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Noto Sans KR',sans-serif; background:var(--light); color:var(--text); min-height:100vh; }
+
+  /* ── 로그인 ── */
+  #gate { position:fixed; inset:0; background:#0f2540; z-index:9999; display:flex;
+          align-items:center; justify-content:center; padding:20px; }
+  .gate-box { background:white; border-radius:18px; padding:32px 26px; width:100%; max-width:390px;
+              box-shadow:0 10px 40px rgba(0,0,0,0.3); }
+  .gate-box h2 { font-size:19px; margin-bottom:6px; }
+  .gate-box p { font-size:13px; color:var(--gray); margin-bottom:20px; line-height:1.55; }
+  .gate-box input { width:100%; padding:13px 14px; border:1.5px solid var(--line); border-radius:10px;
+                    font-size:15px; font-family:inherit; margin-bottom:10px; }
+  .gate-box button { width:100%; padding:14px; background:var(--navy); color:white; border:none;
+                     border-radius:10px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
+  .gate-box button:disabled { background:var(--gray); }
+  .gate-err { color:var(--danger); font-size:13px; margin-bottom:10px; display:none; line-height:1.5; }
+
+  /* ── 헤더 ── */
+  .header { background:var(--navy); padding:14px 16px; display:flex; align-items:center; gap:10px;
+            position:sticky; top:0; z-index:50; }
+  .header h1 { color:white; font-size:16px; font-weight:700; }
+  .header .sub { color:rgba(255,255,255,0.8); font-size:11px; }
+  .hdr-right { margin-left:auto; display:flex; gap:6px; }
+  .hdr-btn { background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.35); color:white;
+             font-size:11px; padding:6px 10px; border-radius:7px; cursor:pointer; font-family:inherit; }
+
+  .container { max-width:760px; margin:0 auto; padding:16px 14px 60px; }
+  .card { background:white; border-radius:14px; padding:18px; margin-bottom:14px;
+          box-shadow:0 2px 8px rgba(33,150,243,0.07); }
+  .card-title { font-size:15px; font-weight:700; margin-bottom:14px; display:flex;
+                align-items:center; gap:8px; flex-wrap:wrap; }
+  .hint { font-size:11.5px; color:var(--gray); font-weight:400; }
+  .info-box { background:#e3f2fd; border-radius:10px; padding:12px 15px; font-size:13px;
+              color:#0d47a1; line-height:1.6; margin-bottom:14px; }
+  .empty { text-align:center; padding:44px 16px; color:var(--gray); font-size:13.5px; line-height:1.6; }
+
+  /* ── 과정 카드 ── */
+  .course-card { border:1.5px solid var(--line); border-left:4px solid #7c3aed; border-radius:0 12px 12px 0;
+                 padding:15px 16px; margin-bottom:10px; cursor:pointer; transition:all .15s; background:white; }
+  .course-card:hover { border-color:#7c3aed; transform:translateY(-1px); box-shadow:0 3px 10px rgba(124,58,237,0.15); }
+  .course-type { display:inline-block; font-size:11px; font-weight:700; background:#f5f3ff; color:#5b21b6;
+                 padding:3px 9px; border-radius:6px; margin-bottom:7px; }
+  .course-site { font-size:15px; font-weight:700; margin-bottom:4px; }
+  .course-meta { font-size:12.5px; color:var(--sub); line-height:1.55; }
+  .course-go { float:right; color:#7c3aed; font-size:18px; }
+
+  /* ── 학습근로자 ── */
+  .worker-row { display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px;
+                background:#f8fafc; margin-bottom:7px; }
+  .worker-name { font-size:14.5px; font-weight:700; }
+  .worker-meta { font-size:12px; color:var(--sub); }
+  .badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:5px; background:#e3f2fd; color:#1565c0; }
+
+  .back-btn { background:white; border:1.5px solid var(--line); color:var(--sub); font-size:13px;
+              padding:9px 14px; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:600;
+              margin-bottom:12px; }
+  .modal-bg { position:fixed; inset:0; background:rgba(15,30,60,0.6); z-index:600; display:none;
+              align-items:center; justify-content:center; padding:20px; }
+  .modal-bg.show { display:flex; }
+  .modal { background:white; border-radius:16px; padding:24px; width:100%; max-width:380px; }
+  .modal h3 { font-size:16px; margin-bottom:14px; }
+  .modal input { width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:10px;
+                 font-size:14px; font-family:inherit; margin-bottom:10px; }
+  .modal-btns { display:flex; gap:8px; margin-top:6px; }
+  .modal-btns button { flex:1; padding:12px; border-radius:10px; font-family:inherit; font-size:14px;
+                       font-weight:700; cursor:pointer; border:none; }
+  .btn-cancel { background:var(--light); color:var(--sub); }
+  .btn-ok { background:var(--navy); color:white; }
+  .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:#1a202c;
+           color:white; padding:12px 22px; border-radius:24px; font-size:13.5px; z-index:900;
+           opacity:0; pointer-events:none; transition:opacity .2s; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- ══════ 로그인 ══════ -->
+<div id="gate">
+  <div class="gate-box">
+    <h2>🏢 학습기업 관리</h2>
+    <p>AU 일학습병행 공동훈련센터<br>센터에서 받으신 아이디로 로그인해주세요.</p>
+    <div class="gate-err" id="gateErr"></div>
+    <input type="email" id="loginId" placeholder="아이디 (이메일)" autocomplete="username">
+    <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password">
+    <button id="loginBtn">로그인</button>
+  </div>
+</div>
+
+<div class="header">
+  <div>
+    <h1 id="hdrCompany">학습기업 관리</h1>
+    <div class="sub" id="hdrEmail">-</div>
+  </div>
+  <div class="hdr-right">
+    <button class="hdr-btn" id="pwBtn">비밀번호 변경</button>
+    <button class="hdr-btn" id="outBtn">로그아웃</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 과정 목록 -->
+  <div id="courseView">
+    <div class="card">
+      <div class="card-title">📘 훈련과정 <span class="hint" id="courseCount"></span></div>
+      <div class="info-box">
+        관리하실 훈련과정을 선택하세요. 과정별로 학습근로자와 서류를 따로 관리합니다.
+      </div>
+      <div id="courseList"><div class="empty">불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <!-- 과정 상세 -->
+  <div id="detailView" style="display:none;">
+    <button class="back-btn" id="backBtn">← 과정 목록</button>
+    <div class="card">
+      <div class="card-title" id="detailTitle">과정</div>
+      <div id="detailMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">👷 학습근로자 <span class="hint" id="workerCount"></span></div>
+      <div id="workerList"><div class="empty">불러오는 중...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📄 서류</div>
+      <div class="empty">
+        기업현장교사 의견 · 내부평가 · 체크리스트 작성 기능이<br>이 자리에 순차적으로 추가됩니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 비밀번호 변경 -->
+<div class="modal-bg" id="pwModal">
+  <div class="modal">
+    <h3>🔑 비밀번호 변경</h3>
+    <input type="password" id="pwNew" placeholder="새 비밀번호 (8자 이상)" autocomplete="new-password">
+    <input type="password" id="pwNew2" placeholder="새 비밀번호 확인" autocomplete="new-password">
+    <div class="gate-err" id="pwErr"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="pwCancel">취소</button>
+      <button class="btn-ok" id="pwSave">변경</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, doc, getDoc, query, where }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
+const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+function showGateErr(msg) { const e = $('gateErr'); e.innerHTML = msg; e.style.display = 'block'; }
+
+// ══════════ 로그인 ══════════
+function authMsg(code) {
+  switch (code) {
+    case 'auth/invalid-email': return '아이디는 이메일 형식으로 입력해주세요.';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential': return '아이디 또는 비밀번호가 맞지 않습니다.';
+    case 'auth/too-many-requests': return '시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.';
+    case 'auth/network-request-failed': return '네트워크 오류입니다. 인터넷 연결을 확인해주세요.';
+    default: return '로그인 실패 (' + (code || '알 수 없는 오류') + ')';
+  }
+}
+$('loginBtn').onclick = async () => {
+  const btn = $('loginBtn');
+  const email = $('loginId').value.trim().toLowerCase();
+  const pw = $('loginPw').value;
+  if (!email || !pw) { showGateErr('아이디와 비밀번호를 입력해주세요.'); return; }
+  btn.disabled = true; btn.textContent = '확인 중...';
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+    $('gateErr').style.display = 'none';
+  } catch(e) {
+    showGateErr(authMsg(e.code));
+    $('loginPw').value = ''; $('loginPw').focus();
+  }
+  btn.disabled = false; btn.textContent = '로그인';
+};
+$('loginPw').onkeydown = e => { if (e.key === 'Enter') $('loginBtn').click(); };
+$('outBtn').onclick = () => signOut(auth);
+
+// ══════════ 인증 상태 ══════════
+let myAccount = null;   // companyAccounts 문서
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    myAccount = null;
+    $('gate').style.display = 'flex';
+    return;
+  }
+  // 이 계정이 기업 계정으로 등록돼 있는지 확인
+  try {
+    const snap = await getDoc(doc(db, 'companyAccounts', user.uid));
+    if (!snap.exists()) {
+      await signOut(auth);
+      showGateErr('이 계정은 학습기업 계정이 아닙니다.<br>센터에 문의해주세요.');
+      return;
+    }
+    const a = snap.data();
+    if (a.active === false) {
+      await signOut(auth);
+      showGateErr('접근이 중지된 계정입니다.<br>센터에 문의해주세요.');
+      return;
+    }
+    myAccount = { uid: user.uid, ...a };
+    $('gate').style.display = 'none';
+    $('hdrCompany').textContent = a.companyName || '학습기업 관리';
+    $('hdrEmail').textContent = (a.name ? a.name + ' · ' : '') + (user.email || '');
+    loadCourses();
+  } catch(e) {
+    await signOut(auth);
+    showGateErr('정보를 불러오지 못했습니다.<br><small>' + (e.message || '') + '</small>');
+  }
+});
+
+// ══════════ 훈련과정 목록 ══════════
+let myCourses = [];
+async function loadCourses() {
+  const el = $('courseList');
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
+  try {
+    // ⚠️ 보안규칙상 companyId 조건이 반드시 있어야 조회가 허용된다
+    const snap = await getDocs(query(collection(db, 'courses'), where('companyId', '==', myAccount.companyId)));
+    myCourses = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ko') || (a.site || '').localeCompare(b.site || '', 'ko'));
+    $('courseCount').textContent = myCourses.length ? `${myCourses.length}개` : '';
+    if (myCourses.length === 0) {
+      el.innerHTML = '<div class="empty">📭 등록된 훈련과정이 없습니다.<br>센터에 문의해주세요.</div>';
+      return;
+    }
+    el.innerHTML = myCourses.map(c => `
+      <div class="course-card" data-course="${c.id}">
+        <span class="course-go">›</span>
+        <div class="course-type">${c.type || '유형 미지정'}</div>
+        <div class="course-site">${c.site || c.companyName || '사업장 미지정'}</div>
+        <div class="course-meta">
+          과정번호 ${c.courseNo || '-'}${c.branch ? ' · ' + c.branch : ''}
+        </div>
+      </div>`).join('');
+    el.querySelectorAll('[data-course]').forEach(card => {
+      card.onclick = () => openCourse(card.dataset.course);
+    });
+  } catch(e) {
+    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + (e.message || '') + '</small></div>';
+  }
+}
+
+// ══════════ 과정 상세 ══════════
+function openCourse(courseId) {
+  const c = myCourses.find(x => x.id === courseId);
+  if (!c) return;
+  $('courseView').style.display = 'none';
+  $('detailView').style.display = 'block';
+  $('detailTitle').textContent = `📘 ${c.type || ''}`;
+  $('detailMeta').innerHTML =
+    `<b>사업장</b> ${c.site || '-'}<br>` +
+    `<b>과정번호</b> ${c.courseNo || '-'}<br>` +
+    `<b>관할지사</b> ${c.branch || '-'}` +
+    (c.manager ? `<br><b>센터 담당</b> ${c.manager}` : '');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  loadWorkers(c);
+}
+$('backBtn').onclick = () => {
+  $('detailView').style.display = 'none';
+  $('courseView').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+async function loadWorkers(course) {
+  const el = $('workerList');
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
+  $('workerCount').textContent = '';
+  try {
+    // 규칙 통과를 위해 companyId로 질의한 뒤, 이 과정 소속만 걸러낸다
+    const snap = await getDocs(query(collection(db, 'workers'), where('companyId', '==', myAccount.companyId)));
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(w => !w.deleted);
+    const list = all.filter(w => w.courseId === course.id)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+    $('workerCount').textContent = `${list.length}명`;
+    if (list.length === 0) {
+      el.innerHTML = '<div class="empty">📭 이 과정에 등록된 학습근로자가 없습니다.<br>센터에 문의해주세요.</div>';
+      return;
+    }
+    el.innerHTML = list.map(w => `
+      <div class="worker-row">
+        <div style="flex:1;min-width:0;">
+          <div class="worker-name">${w.name || '-'}</div>
+          <div class="worker-meta">${w.dept || ''}${w.round ? ' · ' + w.round : ''}</div>
+        </div>
+        ${w.round ? `<span class="badge">${w.round}</span>` : ''}
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + (e.message || '') + '</small></div>';
+  }
+}
+
+// ══════════ 비밀번호 변경 ══════════
+$('pwBtn').onclick = () => {
+  $('pwNew').value = ''; $('pwNew2').value = '';
+  $('pwErr').style.display = 'none';
+  $('pwModal').classList.add('show');
+  $('pwNew').focus();
+};
+$('pwCancel').onclick = () => $('pwModal').classList.remove('show');
+$('pwSave').onclick = async () => {
+  const a = $('pwNew').value, b = $('pwNew2').value;
+  const err = $('pwErr');
+  if (a.length < 8) { err.textContent = '비밀번호는 8자 이상으로 정해주세요.'; err.style.display = 'block'; return; }
+  if (a !== b) { err.textContent = '두 비밀번호가 서로 다릅니다.'; err.style.display = 'block'; return; }
+  const btn = $('pwSave'); btn.disabled = true; btn.textContent = '변경 중...';
+  try {
+    await updatePassword(auth.currentUser, a);
+    $('pwModal').classList.remove('show');
+    toast('✅ 비밀번호를 변경했어요');
+  } catch(e) {
+    err.textContent = e.code === 'auth/requires-recent-login'
+      ? '보안을 위해 다시 로그인한 뒤 변경해주세요.'
+      : (e.code === 'auth/weak-password' ? '비밀번호가 너무 단순합니다.' : '변경 실패: ' + (e.message || ''));
+    err.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = '변경';
+};
+</script>
+</body>
+</html>
