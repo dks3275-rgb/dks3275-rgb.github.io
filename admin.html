@@ -1347,11 +1347,11 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
           <label class="form-label">작성 월</label>
-          <select class="form-input" id="op-period" onchange="renderOpinionDocs()"></select>
+          <select class="form-input" id="op-period" onchange="renderDocsTab()"></select>
         </div>
         <div class="form-group">
           <label class="form-label">기업</label>
-          <select class="form-input" id="op-company" onchange="renderOpinionDocs()">
+          <select class="form-input" id="op-company" onchange="renderDocsTab()">
             <option value="">전체 기업</option>
           </select>
         </div>
@@ -1361,6 +1361,19 @@
       </div>
       <div id="opSummary" style="margin-top:14px;"></div>
       <div id="opDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        ✅ 월별 체크리스트
+        <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
+      </div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0d47a1;line-height:1.65;">
+        기업이 <b>훈련과정마다 월 1회</b> 출결·OJT비용·활동수당을 점검하고 서명 제출합니다.<br>
+        <small style="opacity:0.9;">위 <b>작성 월·기업</b> 선택이 여기에도 함께 적용됩니다. '아니오' 항목이 있으면 붉게 표시됩니다.</small>
+      </div>
+      <button class="send-btn" onclick="downloadChecklistExcel()" style="background:#059669;">📊 체크리스트 엑셀로 내려받기</button>
+      <div id="ckDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
     </div>
   </div>
 </div>
@@ -3729,6 +3742,8 @@
   let allOpinions = [];
 
   function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
+  // 월·기업 선택을 바꾸면 의견서와 체크리스트를 함께 다시 그린다
+  function renderDocsTab() { renderOpinionDocs(); renderChecklistDocs(); }
 
   function buildOpPeriodSelect() {
     const sel = document.getElementById('op-period');
@@ -3749,8 +3764,12 @@
     try {
       const db = await wkDb();
       const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const snap = await getDocs(collection(db, 'teacherOpinions'));
+      const [snap, ckSnap] = await Promise.all([
+        getDocs(collection(db, 'teacherOpinions')),
+        getDocs(collection(db, 'checklists'))
+      ]);
       allOpinions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allChecklists = ckSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       // 미제출 계산에 필요한 기초 자료
       if (!allCompanies.length) await loadCompanies();
       if (!allCourses.length)   await loadCourses();
@@ -3765,6 +3784,7 @@
         csel.value = cur;
       }
       renderOpinionDocs();
+      renderChecklistDocs();
     } catch(e) {
       if (el) el.innerHTML = '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message || '') + '</div>';
     }
@@ -3931,6 +3951,210 @@
       await writeLog('update', 'teacherOpinion', id, `의견서 잠금 해제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
       renderOpinionDocs();
     } catch(e) { alert('처리 실패: ' + e.message); }
+  }
+
+  // ══════ 월별 체크리스트 (관리자 확인) ══════
+  const CK_GROUPS_A = [
+    ['📋 기업 출석결과 확인', [
+      ['att1', '출결을 고용24에서 확인'],
+      ['att2', '결석·지각 특이사항 센터 통보'],
+      ['att3', '학습일지(LMS) 작성 완료']
+    ]],
+    ['💰 OJT 비용 신청현황', [
+      ['ojt1', 'OJT 훈련시간 확인'],
+      ['ojt2', 'OJT 비용 신청 완료'],
+      ['ojt3', '신청 시간과 실제 훈련시간 일치']
+    ]],
+    ['👤 전담인력 활동수당', [
+      ['hrd1', '기업현장교사 활동 내역 기록'],
+      ['hrd2', '전담인력 활동수당 신청']
+    ]],
+    ['🏭 훈련 운영·안전', [
+      ['op1', '훈련계획 대비 진도 정상'],
+      ['op2', '안전보건 교육 실시'],
+      ['op3', '훈련 환경·장비 이상 없음']
+    ]]
+  ];
+  const CK_ALL_A = CK_GROUPS_A.flatMap(g => g[1]);
+  const CK_TEXT_A = { yes: '예', no: '아니오', na: '해당없음' };
+  let allChecklists = [];
+
+  function renderChecklistDocs() {
+    const period = document.getElementById('op-period')?.value;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const el = document.getElementById('ckDocList');
+    if (!el || !period) return;
+
+    // 이번 달 작성 대상 = 학습근로자가 1명이라도 있는 훈련과정
+    const activeCourseIds = new Set(allWorkers.filter(w => !w.deleted && !w.dropout).map(w => w.courseId));
+    const courses = allCourses
+      .filter(c => activeCourseIds.has(c.id))
+      .filter(c => !companyId || c.companyId === companyId);
+    const byCourse = {};
+    allChecklists.forEach(c => { if (c.period === period) byCourse[c.courseId] = c; });
+
+    if (!courses.length) { el.innerHTML = '<div class="empty-history">해당 조건에 훈련과정이 없습니다.</div>'; return; }
+
+    el.innerHTML = courses
+      .sort((a, b) => (a.companyName || '').localeCompare(b.companyName || '', 'ko'))
+      .map(course => {
+        const c = byCourse[course.id];
+        const st = c ? (c.status || 'draft') : 'none';
+        const info = { none:['미작성','#f1f5f9','#64748b'], draft:['작성 중','#fef3c7','#92400e'],
+                       submitted:['제출 완료','#dcfce7','#166534'], confirmed:['센터 확인','#dbeafe','#1e40af'] }[st];
+        const noList = c ? CK_ALL_A.filter(([k]) => c.items?.[k] === 'no') : [];
+        const co = allCompanies.find(x => x.id === course.companyId);
+        return `<div style="border:1.5px solid ${noList.length ? '#fca5a5' : '#e4eaf4'};border-radius:11px;padding:13px 15px;margin-bottom:8px;background:${noList.length ? '#fff7f7' : 'white'};">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px;">
+              <div style="font-size:14.5px;font-weight:700;">${escapeHtmlSafe(co?.name || course.companyName || '-')}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtmlSafe(course.type || '')}${course.site ? ' · ' + escapeHtmlSafe(course.site) : ''}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${info[1]};color:${info[2]};white-space:nowrap;">${info[0]}</span>
+          </div>
+          ${noList.length ? `<div style="margin-top:9px;font-size:12.5px;color:#b91c1c;line-height:1.6;">
+            ⚠️ 확인 안 된 항목 ${noList.length}개 — ${noList.map(([, q]) => escapeHtmlSafe(q)).join(' / ')}</div>` : ''}
+          ${c?.note ? `<div style="margin-top:8px;font-size:12.5px;color:#4a5568;background:#f8fafc;border-radius:8px;padding:9px 11px;white-space:pre-wrap;">${escapeHtmlSafe(c.note)}</div>` : ''}
+          ${c ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+            <button class="mini-btn" onclick="viewChecklist('${c.id}')" style="background:#1976d2;color:white;">📄 보기 · 인쇄</button>
+            ${st === 'submitted' ? `<button class="mini-btn" onclick="confirmChecklist('${c.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+            ${c.locked ? `<button class="mini-btn" onclick="unlockChecklist('${c.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+            <button class="mini-btn" onclick="deleteChecklist('${c.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
+            <span style="font-size:11.5px;color:#94a3b8;align-self:center;">
+              ${c.signedAt ? '제출 ' + escapeHtmlSafe(c.signedAt.slice(0,10)) : (c.updatedAt ? '저장 ' + escapeHtmlSafe(c.updatedAt.slice(0,10)) : '')}</span>
+          </div>` : ''}
+        </div>`;
+      }).join('');
+  }
+
+  function viewChecklist(id) {
+    const c = allChecklists.find(x => x.id === id);
+    if (!c) { alert('체크리스트를 찾지 못했습니다.'); return; }
+    const E = escapeHtmlSafe;
+    const body = `
+    <h1>월별 체크리스트</h1>
+    <table class="info">
+      <tr><th>기업명</th><td>${E(c.companyName)}</td></tr>
+      <tr><th>훈련과정</th><td>${E(c.courseType)}${c.site ? ' / ' + E(c.site) : ''}</td></tr>
+      <tr><th>훈련과정번호</th><td>${E(c.courseNo) || '-'}</td></tr>
+      <tr><th>확인 기간</th><td>${E(opYmLabel(c.period))}</td></tr>
+    </table>
+    ${CK_GROUPS_A.map(([title, items]) => `
+      <h2>${title.replace(/^[^ ]+ /, '')}</h2>
+      <table class="score"><tr><th>확인 항목</th><th>확인</th></tr>
+      ${items.map(([k, q]) => `<tr><td>${q}</td><td class="c">${CK_TEXT_A[c.items?.[k]] || '-'}</td></tr>`).join('')}
+      </table>`).join('')}
+    <h2>특이사항</h2>
+    <div class="box">${E(c.note).replace(/\n/g, '<br>') || '-'}</div>
+    <div class="sign">
+      <div>작성일 ${E((c.signedAt || c.updatedAt || '').slice(0, 10))}</div>
+      <div class="who">${E(c.role || '작성자')} &nbsp; ${E(c.name)} &nbsp; (서명)</div>
+      ${c.signature ? `<img src="${c.signature}">` : '<div style="font-size:12px;color:#b91c1c;">※ 서명 없음 (제출 전 임시저장 상태)</div>'}
+    </div>`;
+    const w = window.open('', '_blank', 'width=880,height=1000');
+    if (!w) { alert('팝업이 차단되었습니다. 주소창의 팝업 허용을 켜주세요.'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+    <title>월별 체크리스트 - ${E(c.companyName)} ${E(c.period)}</title><style>
+    @page { size:A4; margin:16mm 14mm; }
+    body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; line-height:1.65; padding:20px; }
+    h1 { font-size:21px; text-align:center; letter-spacing:6px; margin-bottom:18px; padding-bottom:12px; border-bottom:2.5px solid #111; }
+    h2 { font-size:14px; margin:18px 0 7px; padding-left:8px; border-left:4px solid #1976d2; }
+    table { width:100%; border-collapse:collapse; }
+    table.info th { width:150px; background:#f3f4f6; text-align:left; }
+    table.info th, table.info td, table.score th, table.score td { border:1px solid #9ca3af; padding:7px 10px; }
+    table.score th { background:#f3f4f6; }
+    table.score td.c { text-align:center; width:110px; }
+    .box { border:1px solid #9ca3af; padding:10px 12px; min-height:56px; white-space:pre-wrap; }
+    .sign { margin-top:30px; text-align:right; }
+    .sign .who { margin-top:8px; font-size:14px; font-weight:bold; }
+    .sign img { height:70px; display:block; margin-left:auto; margin-top:-6px; }
+    .bar { text-align:center; margin-bottom:16px; }
+    .bar button { padding:10px 22px; font-size:14px; font-weight:700; border:none; border-radius:8px; background:#1976d2; color:white; cursor:pointer; }
+    @media print { .bar { display:none; } body { padding:0; } }
+    </style></head><body><div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>${body}</body></html>`);
+    w.document.close();
+  }
+
+  async function ckPatch(id, patch, logText) {
+    const c = allChecklists.find(x => x.id === id); if (!c) return false;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db, 'checklists', id), patch);
+      Object.assign(c, patch);
+      await writeLog('update', 'checklist', id, `${logText}: ${c.companyName || ''} ${c.courseType || ''} ${c.period || ''}`);
+      renderChecklistDocs();
+      return true;
+    } catch(e) { alert('처리 실패: ' + e.message); return false; }
+  }
+  async function confirmChecklist(id) {
+    const c = allChecklists.find(x => x.id === id); if (!c) return;
+    if (!await customConfirm({ title: '체크리스트 확인 처리',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(c.period))} 체크리스트를<br>확인 완료로 표시할까요?`,
+      confirmText: '✅ 확인 처리' })) return;
+    ckPatch(id, { status: 'confirmed', confirmedAt: new Date().toISOString() }, '체크리스트 확인');
+  }
+  async function unlockChecklist(id) {
+    const c = allChecklists.find(x => x.id === id); if (!c) return;
+    if (!await customConfirm({ title: '잠금 해제',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(c.period))} 체크리스트를<br>기업이 다시 수정할 수 있게 열어줄까요?`,
+      confirmText: '🔓 잠금 해제' })) return;
+    ckPatch(id, { locked: false, status: 'draft', unlockedAt: new Date().toISOString() }, '체크리스트 잠금 해제');
+  }
+  async function deleteChecklist(id) {
+    const c = allChecklists.find(x => x.id === id); if (!c) return;
+    const done = c.status === 'submitted' || c.status === 'confirmed';
+    if (!await customConfirm({ title: '체크리스트 삭제',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(c.period))}<br>체크리스트를 삭제할까요?<br><br>
+        ${done ? '<span style="font-size:12px;color:#92400e;">⚠️ 서명 제출이 끝난 문서입니다. 되돌릴 수 없습니다.<br>내용만 고치면 되는 경우라면 <b>🔓 잠금 해제</b>를 눌러주세요.</span>' : ''}`,
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'checklists', id));
+      allChecklists = allChecklists.filter(x => x.id !== id);
+      await writeLog('delete', 'checklist', id, `체크리스트 삭제: ${c.companyName || ''} ${c.courseType || ''} ${c.period || ''}`);
+      renderChecklistDocs();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  function downloadChecklistExcel() {
+    if (typeof XLSX === 'undefined') { alert('엑셀 모듈이 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.'); return; }
+    const period = document.getElementById('op-period')?.value;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const activeCourseIds = new Set(allWorkers.filter(w => !w.deleted && !w.dropout).map(w => w.courseId));
+    const courses = allCourses.filter(c => activeCourseIds.has(c.id))
+      .filter(c => !companyId || c.companyId === companyId)
+      .sort((a, b) => (a.companyName || '').localeCompare(b.companyName || '', 'ko'));
+    if (!courses.length) { alert('내려받을 자료가 없습니다.'); return; }
+    const byCourse = {};
+    allChecklists.forEach(c => { if (c.period === period) byCourse[c.courseId] = c; });
+    const ST = { none:'미작성', draft:'작성 중', submitted:'제출 완료', confirmed:'센터 확인' };
+    const data = courses.map((course, i) => {
+      const c = byCourse[course.id] || {};
+      const st = byCourse[course.id] ? (c.status || 'draft') : 'none';
+      const co = allCompanies.find(x => x.id === course.companyId);
+      const out = {
+        '연번': i + 1,
+        '기업명': co?.name || course.companyName || '',
+        '훈련과정': course.type || '',
+        '사업장': course.site || '',
+        '과정번호': course.courseNo || '',
+        '확인월': period,
+        '상태': ST[st]
+      };
+      CK_ALL_A.forEach(([k, q]) => { out[q] = CK_TEXT_A[c.items?.[k]] || ''; });
+      out['특이사항'] = c.note || '';
+      out['작성자'] = c.name || '';
+      out['제출일'] = (c.signedAt || '').slice(0, 10);
+      out['센터확인일'] = (c.confirmedAt || '').slice(0, 10);
+      return out;
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = Object.keys(data[0]).map(k => ({ wch: k === '특이사항' ? 40 : (k === '기업명' || k === '훈련과정' ? 22 : 14) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '월별체크리스트');
+    XLSX.writeFile(wb, `월별_체크리스트_${period}_${localToday()}.xlsx`);
   }
 
   // 잘못 작성된 의견서 지우기 (관리자만).

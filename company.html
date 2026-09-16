@@ -135,6 +135,19 @@
   .act-save { background:var(--light); color:var(--sub); }
   .act-sub  { background:var(--ok); color:white; }
   .act-print{ background:var(--navy); color:white; }
+  /* ══ 체크리스트 ══ */
+  .ck-item { border:1.5px solid var(--line); border-radius:11px; padding:13px 14px; margin-bottom:8px; }
+  .ck-item.no { border-color:#fca5a5; background:#fff7f7; }
+  .ck-q { font-size:13.5px; font-weight:600; line-height:1.5; margin-bottom:9px; }
+  .ck-opts { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .ck-opts button { padding:9px 4px; border:1.5px solid var(--line); background:white; border-radius:8px;
+                    font-family:inherit; font-size:12.5px; font-weight:700; color:var(--sub); cursor:pointer; }
+  .ck-opts button.on-yes { background:var(--ok); border-color:var(--ok); color:white; }
+  .ck-opts button.on-no  { background:var(--danger); border-color:var(--danger); color:white; }
+  .ck-opts button.on-na  { background:#64748b; border-color:#64748b; color:white; }
+  .ck-opts button:disabled { opacity:.6; cursor:default; }
+  .ck-sum { display:flex; align-items:center; gap:10px; padding:14px 15px; border:1.5px solid var(--line);
+            border-radius:11px; background:#f8fafc; }
   @media (max-width:420px) { .two { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -198,10 +211,70 @@
     </div>
 
     <div class="card">
+      <div class="card-title">✅ 월별 체크리스트
+        <span class="st-badge" id="ckBadge" style="margin-left:auto;">-</span>
+      </div>
+      <div class="info-box">
+        훈련과정마다 <b>한 달에 한 장</b> 작성합니다.<br>
+        출결 확인 · OJT 비용 신청 · 활동수당 신청을 점검하고 마지막에 서명합니다.
+      </div>
+      <div id="ckSummary"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title">📄 그 밖의 서류</div>
       <div class="empty">
-        내부평가 · 체크리스트 기능이<br>이 자리에 순차적으로 추가됩니다.
+        내부평가지 주고받기 기능이<br>이 자리에 추가될 예정입니다.
       </div>
+    </div>
+  </div>
+
+  <!-- ══════ 월별 체크리스트 ══════ -->
+  <div id="checklistView" style="display:none;">
+    <button class="back-btn" id="ckBack">← 과정 상세</button>
+
+    <div class="card">
+      <div class="card-title" id="ckTitle">월별 체크리스트</div>
+      <div id="ckMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
+    </div>
+
+    <div id="ckLockBar"></div>
+
+    <div id="ckGroups"></div>
+
+    <div class="card">
+      <div class="card-title">특이사항 · 센터에 알릴 내용</div>
+      <div class="fld" style="margin-bottom:0;">
+        <div class="help">'아니오'로 체크한 항목이 있으면 이유를 함께 적어주세요.</div>
+        <textarea id="ckNote" placeholder="예) 학습근로자 1명이 개인 사정으로 2일 결석했습니다. 보충 훈련 일정을 잡는 중입니다."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">최종 확인 및 서명</div>
+      <div class="two">
+        <div class="fld">
+          <label>작성자 성명</label>
+          <input type="text" id="ckName" placeholder="예) 홍길동">
+        </div>
+        <div class="fld">
+          <label>직책 <span style="font-weight:400;color:var(--gray);">(선택)</span></label>
+          <input type="text" id="ckRole" placeholder="예) HRD담당자 / 기업현장교사">
+        </div>
+      </div>
+      <div class="fld">
+        <label>서명</label>
+        <div class="help">위 내용을 모두 확인했음을 서명으로 확인합니다. 제출하면 수정할 수 없습니다.</div>
+        <div class="sign-wrap">
+          <canvas id="ckPad"></canvas>
+          <div class="sign-tools">
+            <span class="tip" id="ckTip">아직 서명하지 않았습니다.</span>
+            <button type="button" class="op-btn ghost" id="ckClear">지우기</button>
+          </div>
+        </div>
+        <div id="ckShow" style="display:none;margin-top:6px;"></div>
+      </div>
+      <div class="act-bar" id="ckActions"></div>
     </div>
   </div>
 
@@ -414,6 +487,7 @@ function openCourse(courseId) {
   curCourse = c;
   $('courseView').style.display = 'none';
   $('opinionView').style.display = 'none';
+  $('checklistView').style.display = 'none';
   $('detailView').style.display = 'block';
   $('detailTitle').textContent = `📘 ${c.type || ''}`;
   $('detailMeta').innerHTML =
@@ -427,6 +501,7 @@ function openCourse(courseId) {
 $('backBtn').onclick = () => {
   $('detailView').style.display = 'none';
   $('opinionView').style.display = 'none';
+  $('checklistView').style.display = 'none';
   $('courseView').style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -443,6 +518,7 @@ async function loadWorkers(course) {
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
     curWorkers = list;
     loadOpinions();
+    loadChecklist();
     $('workerCount').textContent = `${list.length}명`;
     if (list.length === 0) {
       el.innerHTML = '<div class="empty">📭 이 과정에 등록된 학습근로자가 없습니다.<br>센터에 문의해주세요.</div>';
@@ -503,7 +579,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&
   }
   sel.innerHTML = html;
   sel.value = ymNow();
-  sel.onchange = loadOpinions;
+  sel.onchange = () => { loadOpinions(); loadChecklist(); };
 })();
 
 let opinions = {};   // workerId → 문서
@@ -636,62 +712,71 @@ function renderTexts(locked) {
     </div>`).join('');
 }
 
-// ── 서명패드 ──
-let signCtx = null, signDrawn = false;
-function setupSign(locked) {
-  const pad = $('signPad'), wrap = pad.parentElement;
-  if (locked) {
-    wrap.style.display = 'none';
-    const show = $('signShow');
-    show.style.display = 'block';
-    show.innerHTML = signData
-      ? `<img class="sign-img" src="${signData}" alt="서명"><div style="font-size:12px;color:var(--sub);margin-top:5px;">${esc(curOpinion?.teacherName || '')} (서명)</div>`
-      : '<div style="font-size:13px;color:var(--gray);">서명 이미지가 없습니다.</div>';
-    return;
+// ══════════════════════════════════════════
+//  서명패드 (의견서·체크리스트에서 함께 사용)
+//   mount(locked, 기존서명, 이름) → 화면 준비
+//   grab()                        → 그린 서명을 PNG 문자열로
+// ══════════════════════════════════════════
+function createSignPad(padId, tipId, clearId, showId) {
+  const H = 170;
+  let ctx = null, drawn = false, saved = '';
+  function mount(locked, existing, whoName) {
+    saved = existing || '';
+    const pad = $(padId), wrap = pad.parentElement, show = $(showId);
+    if (locked) {                      // 잠김 → 그림만 보여준다
+      wrap.style.display = 'none';
+      show.style.display = 'block';
+      show.innerHTML = saved
+        ? `<img class="sign-img" src="${saved}" alt="서명"><div style="font-size:12px;color:var(--sub);margin-top:5px;">${esc(whoName || '')} (서명)</div>`
+        : '<div style="font-size:13px;color:var(--gray);">서명 이미지가 없습니다.</div>';
+      return;
+    }
+    wrap.style.display = 'block';
+    show.style.display = 'none';
+
+    const r = pad.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;   // 고해상도 화면 대응
+    pad.width = Math.max(1, Math.round(r.width * dpr));
+    pad.height = Math.max(1, Math.round(H * dpr));
+    ctx = pad.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, r.width, H);
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111827';
+    drawn = false;
+
+    if (saved) {                        // 임시저장해 둔 서명 되살리기
+      const img = new Image();
+      img.onload = () => { ctx.drawImage(img, 0, 0, r.width, H); drawn = true; $(tipId).textContent = '저장된 서명을 불러왔습니다.'; };
+      img.src = saved;
+    } else {
+      $(tipId).textContent = '아직 서명하지 않았습니다.';
+    }
+
+    let drawing = false;
+    const pos = e => { const b = pad.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    pad.onpointerdown = e => {
+      drawing = true; pad.setPointerCapture(e.pointerId);
+      const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y);
+      drawn = true; $(tipId).textContent = '✍️ 서명이 입력되었습니다.';
+    };
+    pad.onpointermove = e => { if (!drawing) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); };
+    pad.onpointerup = pad.onpointercancel = () => { drawing = false; };
+    $(clearId).onclick = () => {
+      const b = pad.getBoundingClientRect();
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, b.width, H);
+      drawn = false; saved = ''; $(tipId).textContent = '아직 서명하지 않았습니다.';
+    };
   }
-  wrap.style.display = 'block';
-  $('signShow').style.display = 'none';
-
-  // 해상도 맞추기 (레티나 대응)
-  const r = pad.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  pad.width = Math.max(1, Math.round(r.width * dpr));
-  pad.height = Math.max(1, Math.round(170 * dpr));
-  signCtx = pad.getContext('2d');
-  signCtx.scale(dpr, dpr);
-  signCtx.fillStyle = '#fff';
-  signCtx.fillRect(0, 0, r.width, 170);
-  signCtx.lineWidth = 2.4; signCtx.lineCap = 'round'; signCtx.lineJoin = 'round';
-  signCtx.strokeStyle = '#111827';
-  signDrawn = false;
-
-  if (signData) {  // 임시저장된 서명 복원
-    const img = new Image();
-    img.onload = () => { signCtx.drawImage(img, 0, 0, r.width, 170); signDrawn = true; $('signTip').textContent = '저장된 서명을 불러왔습니다.'; };
-    img.src = signData;
-  } else {
-    $('signTip').textContent = '아직 서명하지 않았습니다.';
+  function grab() {
+    if (!drawn) return '';
+    try { return $(padId).toDataURL('image/png'); } catch(e) { return saved || ''; }
   }
-
-  let drawing = false;
-  const pos = e => { const b = pad.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
-  pad.onpointerdown = e => {
-    drawing = true; pad.setPointerCapture(e.pointerId);
-    const [x, y] = pos(e); signCtx.beginPath(); signCtx.moveTo(x, y);
-    signDrawn = true; $('signTip').textContent = '✍️ 서명이 입력되었습니다.';
-  };
-  pad.onpointermove = e => { if (!drawing) return; const [x, y] = pos(e); signCtx.lineTo(x, y); signCtx.stroke(); };
-  pad.onpointerup = pad.onpointercancel = () => { drawing = false; };
-  $('signClear').onclick = () => {
-    const b = pad.getBoundingClientRect();
-    signCtx.fillStyle = '#fff'; signCtx.fillRect(0, 0, b.width, 170);
-    signDrawn = false; signData = ''; $('signTip').textContent = '아직 서명하지 않았습니다.';
-  };
+  return { mount, grab };
 }
-function grabSign() {
-  if (!signDrawn) return '';
-  try { return $('signPad').toDataURL('image/png'); } catch(e) { return signData || ''; }
-}
+const opSign = createSignPad('signPad', 'signTip', 'signClear', 'signShow');
+function setupSign(locked) { opSign.mount(locked, signData, curOpinion?.teacherName); }
+function grabSign() { return opSign.grab(); }
 
 // ── 액션 버튼 ──
 function renderActions(locked) {
@@ -827,6 +912,247 @@ function printOpinion() {
   table.score td.c { text-align:center; width:90px; }
   .box { border:1px solid #9ca3af; padding:10px 12px; min-height:56px; white-space:pre-wrap; }
   .sign { margin-top:34px; text-align:right; position:relative; }
+  .sign .who { margin-top:8px; font-size:14px; font-weight:bold; }
+  .sign img { height:70px; display:block; margin-left:auto; margin-top:-6px; }
+  </style></head><body>${body}</body></html>`);
+  w.document.close();
+  setTimeout(() => { w.focus(); w.print(); }, 450);
+}
+
+// ══════════════════════════════════════════
+//  월별 체크리스트 (훈련과정별 · 월 1회)
+// ══════════════════════════════════════════
+const CK_GROUPS = [
+  ['출결', '📋 기업 출석결과 확인', [
+    ['att1', '이번 달 훈련 출결을 고용24(HRD-Net)에서 확인했다'],
+    ['att2', '결석·지각 등 특이사항을 센터에 알렸다'],
+    ['att3', '학습일지(LMS) 작성이 모두 완료되었다']
+  ]],
+  ['비용', '💰 OJT 비용 신청현황', [
+    ['ojt1', '이번 달 OJT 훈련시간을 확인했다'],
+    ['ojt2', 'OJT 비용 신청을 완료했다'],
+    ['ojt3', '신청한 시간과 실제 훈련시간이 일치한다']
+  ]],
+  ['수당', '👤 전담인력 활동수당 신청현황', [
+    ['hrd1', '기업현장교사 활동 내역을 기록했다'],
+    ['hrd2', '전담인력 활동수당을 신청했다']
+  ]],
+  ['운영', '🏭 훈련 운영·안전', [
+    ['op1', '훈련계획 대비 진도가 정상적으로 진행되고 있다'],
+    ['op2', '이번 달 안전보건 교육을 실시했다'],
+    ['op3', '훈련 환경·장비에 이상이 없다']
+  ]]
+];
+const CK_ALL = CK_GROUPS.flatMap(g => g[2]);
+const CK_OPTS = [['yes', '예'], ['no', '아니오'], ['na', '해당없음']];
+const CK_TEXT = { yes: '예', no: '아니오', na: '해당없음' };
+
+let curChecklist = null, ckAnswers = {}, ckSignData = '';
+const ckSign = createSignPad('ckPad', 'ckTip', 'ckClear', 'ckShow');
+const ckId = (courseId, period) => `${courseId}__${period}`;
+
+// 과정 상세의 요약 카드
+async function loadChecklist() {
+  const el = $('ckSummary'); if (!el || !curCourse) return;
+  const period = $('periodSel').value;
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
+  curChecklist = null;
+  try {
+    const snap = await getDoc(doc(db, 'checklists', ckId(curCourse.id, period)));
+    if (snap.exists()) curChecklist = { id: snap.id, ...snap.data() };
+  } catch(e) {
+    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    return;
+  }
+  const st = curChecklist ? (curChecklist.status || 'draft') : 'none';
+  const [label, cls] = ST_INFO[st] || ST_INFO.none;
+  const badge = $('ckBadge');
+  if (badge) { badge.textContent = label; badge.className = 'st-badge ' + cls; badge.style.marginLeft = 'auto'; }
+  const done = st === 'submitted' || st === 'confirmed';
+  const answered = curChecklist ? CK_ALL.filter(([k]) => curChecklist.items?.[k]).length : 0;
+  el.innerHTML = `<div class="ck-sum">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:14.5px;font-weight:700;">${esc(ymLabel(period))} 체크리스트</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:2px;">
+        ${done ? '제출 완료 · 수정 불가' : `${answered} / ${CK_ALL.length} 항목 확인`}</div>
+    </div>
+    <button class="op-btn${done ? ' ghost' : ''}" id="ckOpen">${done ? '보기' : (st === 'draft' ? '이어서 작성' : '작성')}</button>
+  </div>`;
+  $('ckOpen').onclick = openChecklist;
+}
+
+function openChecklist() {
+  const period = $('periodSel').value;
+  ckAnswers = Object.assign({}, curChecklist?.items || {});
+  ckSignData = curChecklist?.signature || '';
+  const locked = !!curChecklist?.locked;
+
+  $('detailView').style.display = 'none';
+  $('checklistView').style.display = 'block';
+  $('ckTitle').textContent = `✅ ${ymLabel(period)} 체크리스트`;
+  $('ckMeta').innerHTML =
+    `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
+    `<b>훈련과정</b> ${esc(curCourse.type || '')} · ${esc(curCourse.site || '')}<br>` +
+    `<b>과정번호</b> ${esc(curCourse.courseNo || '-')}`;
+
+  const bar = $('ckLockBar');
+  if (curChecklist?.status === 'confirmed') {
+    bar.innerHTML = `<div class="lock-bar conf">✅ <b>센터에서 확인을 마친 체크리스트</b>입니다. 수정할 수 없습니다.</div>`;
+  } else if (locked) {
+    bar.innerHTML = `<div class="lock-bar">🔒 <b>서명 제출이 끝난 체크리스트</b>입니다. 수정할 수 없습니다.
+      ${curChecklist.signedAt ? '<br><span style="font-size:12px;">제출일 ' + esc(curChecklist.signedAt.slice(0,10)) + '</span>' : ''}
+      <br><span style="font-size:12px;">고쳐야 할 내용이 있으면 센터에 잠금 해제를 요청해주세요.</span></div>`;
+  } else {
+    bar.innerHTML = '';
+  }
+
+  $('ckNote').value = curChecklist?.note || '';
+  $('ckName').value = curChecklist?.name || myAccount.name || '';
+  $('ckRole').value = curChecklist?.role || '';
+  ['ckNote','ckName','ckRole'].forEach(id => { $(id).disabled = locked; });
+
+  renderCkGroups(locked);
+  ckSign.mount(locked, ckSignData, curChecklist?.name);
+  renderCkActions(locked);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+$('ckBack').onclick = () => {
+  $('checklistView').style.display = 'none';
+  $('detailView').style.display = 'block';
+  loadChecklist();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+function renderCkGroups(locked) {
+  $('ckGroups').innerHTML = CK_GROUPS.map(([, title, items]) => `
+    <div class="card">
+      <div class="card-title">${title}</div>
+      ${items.map(([k, q]) => `
+        <div class="ck-item ${ckAnswers[k] === 'no' ? 'no' : ''}" data-item="${k}">
+          <div class="ck-q">${q}</div>
+          <div class="ck-opts" data-k="${k}">
+            ${CK_OPTS.map(([v, t]) =>
+              `<button type="button" data-v="${v}" class="${ckAnswers[k] === v ? 'on-' + v : ''}" ${locked ? 'disabled' : ''}>${t}</button>`
+            ).join('')}
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+  if (locked) return;
+  $('ckGroups').querySelectorAll('.ck-opts').forEach(g => {
+    g.querySelectorAll('button').forEach(b => {
+      b.onclick = () => {
+        const k = g.dataset.k, v = b.dataset.v;
+        ckAnswers[k] = v;
+        g.querySelectorAll('button').forEach(x => { x.className = ''; });
+        b.className = 'on-' + v;
+        const box = g.closest('.ck-item');
+        box.classList.toggle('no', v === 'no');
+      };
+    });
+  });
+}
+
+function renderCkActions(locked) {
+  const bar = $('ckActions');
+  if (locked) {
+    bar.innerHTML = `<button class="act-print" id="ckPrint">🖨️ 인쇄 · PDF 저장</button>`;
+    $('ckPrint').onclick = printChecklist;
+    return;
+  }
+  bar.innerHTML =
+    `<button class="act-save" id="ckSave">임시저장</button>` +
+    `<button class="act-sub" id="ckSubmit">✍️ 서명하고 제출</button>`;
+  $('ckSave').onclick = () => saveChecklist(false);
+  $('ckSubmit').onclick = () => saveChecklist(true);
+}
+
+async function saveChecklist(submit) {
+  const period = $('periodSel').value;
+  const c = {
+    companyId: myAccount.companyId,
+    companyName: myAccount.companyName || '',
+    courseId: curCourse.id,
+    courseType: curCourse.type || '',
+    courseNo: curCourse.courseNo || '',
+    site: curCourse.site || '',
+    period,
+    items: ckAnswers,
+    note: $('ckNote').value.trim(),
+    name: $('ckName').value.trim(),
+    role: $('ckRole').value.trim(),
+    authorUid: myAccount.uid,
+    updatedAt: new Date().toISOString()
+  };
+  if (submit) {
+    const left = CK_ALL.filter(([k]) => !ckAnswers[k]).length;
+    if (left) { toast(`아직 확인하지 않은 항목이 ${left}개 있습니다`); return; }
+    const noItems = CK_ALL.filter(([k]) => ckAnswers[k] === 'no');
+    if (noItems.length && !c.note) { toast(`'아니오'로 체크한 항목의 이유를 특이사항에 적어주세요`); $('ckNote').focus(); return; }
+    if (!c.name) { toast('작성자 성명을 입력해주세요'); return; }
+    const sig = ckSign.grab();
+    if (!sig) { toast('서명을 입력해주세요'); $('ckPad').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+    if (!confirm(`${ymLabel(period)} 체크리스트를 제출합니다.\n\n제출하면 내용이 잠겨 수정할 수 없습니다.\n계속할까요?`)) return;
+    c.signature = sig; c.locked = true; c.status = 'submitted';
+    c.signedAt = new Date().toISOString();
+  } else {
+    c.signature = ckSign.grab() || ckSignData || '';
+    c.locked = false; c.status = 'draft';
+  }
+  if (!curChecklist) c.createdAt = new Date().toISOString();
+
+  const btns = $('ckActions').querySelectorAll('button');
+  btns.forEach(b => b.disabled = true);
+  try {
+    const id = ckId(curCourse.id, period);
+    await setDoc(doc(db, 'checklists', id), c, { merge: true });
+    curChecklist = { id, ...(curChecklist || {}), ...c };
+    ckSignData = c.signature;
+    if (submit) { toast('✅ 제출했습니다'); openChecklist(); }
+    else { toast('💾 임시저장했습니다'); btns.forEach(b => b.disabled = false); }
+  } catch(e) {
+    btns.forEach(b => b.disabled = false);
+    alert('저장 실패: ' + (e.message || ''));
+  }
+}
+
+function printChecklist() {
+  const c = curChecklist; if (!c) return;
+  const body = `
+  <h1>월별 체크리스트</h1>
+  <table class="info">
+    <tr><th>기업명</th><td>${esc(c.companyName)}</td></tr>
+    <tr><th>훈련과정</th><td>${esc(c.courseType)}${c.site ? ' / ' + esc(c.site) : ''}</td></tr>
+    <tr><th>훈련과정번호</th><td>${esc(c.courseNo) || '-'}</td></tr>
+    <tr><th>확인 기간</th><td>${esc(ymLabel(c.period))}</td></tr>
+  </table>
+  ${CK_GROUPS.map(([, title, items]) => `
+    <h2>${title.replace(/^[^\s]+\s/, '')}</h2>
+    <table class="score">
+      <tr><th>확인 항목</th><th>확인</th></tr>
+      ${items.map(([k, q]) => `<tr><td>${q}</td><td class="c">${CK_TEXT[c.items?.[k]] || '-'}</td></tr>`).join('')}
+    </table>`).join('')}
+  <h2>특이사항</h2>
+  <div class="box">${esc(c.note).replace(/\n/g, '<br>') || '-'}</div>
+  <div class="sign">
+    <div>작성일 ${esc((c.signedAt || c.updatedAt || '').slice(0, 10))}</div>
+    <div class="who">${esc(c.role || '작성자')} &nbsp; ${esc(c.name)} &nbsp; (서명)</div>
+    ${c.signature ? `<img src="${c.signature}">` : ''}
+  </div>`;
+  const w = window.open('', '_blank', 'width=860,height=1000');
+  if (!w) { alert('팝업이 차단되었습니다. 브라우저 주소창의 팝업 허용을 켜주세요.'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+  <title>월별 체크리스트 - ${esc(c.courseType)} ${esc(c.period)}</title><style>
+  @page { size:A4; margin:16mm 14mm; }
+  body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; line-height:1.65; }
+  h1 { font-size:21px; text-align:center; letter-spacing:6px; margin-bottom:18px; padding-bottom:12px; border-bottom:2.5px solid #111; }
+  h2 { font-size:14px; margin:18px 0 7px; padding-left:8px; border-left:4px solid #1976d2; }
+  table { width:100%; border-collapse:collapse; }
+  table.info th { width:150px; background:#f3f4f6; text-align:left; }
+  table.info th, table.info td, table.score th, table.score td { border:1px solid #9ca3af; padding:7px 10px; }
+  table.score th { background:#f3f4f6; }
+  table.score td.c { text-align:center; width:110px; }
+  .box { border:1px solid #9ca3af; padding:10px 12px; min-height:56px; white-space:pre-wrap; }
+  .sign { margin-top:30px; text-align:right; }
   .sign .who { margin-top:8px; font-size:14px; font-weight:bold; }
   .sign img { height:70px; display:block; margin-left:auto; margin-top:-6px; }
   </style></head><body>${body}</body></html>`);

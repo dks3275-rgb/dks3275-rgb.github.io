@@ -123,6 +123,21 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── 월별 체크리스트 (훈련과정별·월별) ──
+    // 의견서와 같은 원칙: 자기 기업 것만, 서명 제출(locked) 후에는 관리자만 손댈 수 있다.
+    match /checklists/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow create: if isAdmin()
+        || (isCompany() && request.resource.data.companyId == myCompanyId());
+      allow update: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && request.resource.data.companyId == resource.data.companyId
+            && resource.data.locked != true);
+      allow delete: if isAdmin();
+    }
+
     // ── 중도탈락 관리 (민감: 탈락 사유·개선조치) ──
     // 로그인한 담당자만 접근. 학생 앱에서는 열 수 없음.
     match /dropouts/{id} {
