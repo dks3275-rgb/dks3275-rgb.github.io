@@ -958,8 +958,13 @@ async function loadChecklist() {
   el.innerHTML = '<div class="empty">불러오는 중...</div>';
   curChecklist = null;
   try {
-    const snap = await getDoc(doc(db, 'checklists', ckId(curCourse.id, period)));
-    if (snap.exists()) curChecklist = { id: snap.id, ...snap.data() };
+    // ⚠️ 아직 없는 문서를 getDoc으로 직접 읽으면 규칙이 resource.data를 평가할 수 없어 거부된다.
+    //    (권한 오류처럼 보이지만 실제로는 "문서가 없어서" 나는 오류)
+    //    그래서 의견서와 같이 companyId 조건을 건 목록 질의로 가져온다.
+    const snap = await getDocs(query(collection(db, 'checklists'),
+      where('companyId', '==', myAccount.companyId)));
+    const wanted = ckId(curCourse.id, period);
+    snap.docs.forEach(d => { if (d.id === wanted) curChecklist = { id: d.id, ...d.data() }; });
   } catch(e) {
     el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
     return;
