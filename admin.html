@@ -1273,7 +1273,10 @@
     <div class="card">
       <div class="card-title">
         🔑 기업 계정 발급
-        <button class="refresh-btn" onclick="loadCompanyAccounts()">🔄 새로고침</button>
+        <div style="display:flex;gap:8px;">
+          <button class="refresh-btn" onclick="downloadCompanyAccountsExcel()" style="background:#059669;color:white;border-color:#059669;">📊 엑셀</button>
+          <button class="refresh-btn" onclick="loadCompanyAccounts()">🔄 새로고침</button>
+        </div>
       </div>
       <div style="background:#ecfdf5;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#065f46;line-height:1.65;">
         <b>기업 1곳당 계정 1개</b>를 만들어 기업에 전달합니다.<br>
@@ -2812,11 +2815,40 @@
   // 비밀번호는 임시값으로 만들고 즉시 버린 뒤, 본인이 메일로 직접 설정하게 한다.
   let allCompanyAccounts = [];
 
-  function showCaResult(msg, type) {
+  // keep=true 면 자동으로 사라지지 않는다 (비밀번호처럼 복사해야 하는 내용)
+  function showCaResult(msg, type, keep) {
     const box = document.getElementById('caResult');
     if (!box) return;
     box.innerHTML = msg; box.className = 'result-box ' + type;
-    setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 8000);
+    if (!keep) setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 8000);
+  }
+  // 발급 정보를 클립보드로 (시트에 붙여넣기 쉽게 탭 구분)
+  window.__lastIssued = '';
+  function copyIssuedAccount() {
+    if (!window.__lastIssued) return;
+    navigator.clipboard.writeText(window.__lastIssued)
+      .then(() => alert('복사했어요. 관리 시트에 붙여넣으세요.\n\n' + window.__lastIssued))
+      .catch(() => prompt('아래 내용을 복사하세요', window.__lastIssued));
+  }
+  // 발급된 계정 목록을 엑셀로 (비밀번호는 저장하지 않으므로 제외)
+  function downloadCompanyAccountsExcel() {
+    if (typeof XLSX === 'undefined') { alert('엑셀 모듈이 아직 로드되지 않았어요.'); return; }
+    if (allCompanyAccounts.length === 0) { alert('발급된 계정이 없어요.'); return; }
+    const rows = allCompanyAccounts.map((a, i) => ({
+      'No': i + 1,
+      '기업명': a.companyName || '',
+      '로그인 아이디': a.email || '',
+      '담당자': a.name || '',
+      '관리 과정 수': allCourses.filter(c => c.companyId === a.companyId).length,
+      '상태': a.active === false ? '접근 해제' : '사용 중',
+      '발급일': a.createdAt?.toDate ? a.createdAt.toDate().toLocaleDateString('ko-KR') : '',
+      '비밀번호(직접 기록)': ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:5},{wch:28},{wch:26},{wch:10},{wch:12},{wch:10},{wch:12},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '기업계정');
+    XLSX.writeFile(wb, `기업계정_목록_${localToday()}.xlsx`);
   }
   function refreshAccountCompanyOptions() {
     const sel = document.getElementById('ca-company');
@@ -2901,9 +2933,17 @@
       });
 
       await writeLog('create', 'companyAccount', uid, `기업 계정 발급: ${co ? co.name : ''} (${email})`);
-      showCaResult(`✅ <b>${co ? co.name : ''}</b> 계정을 발급했어요.<br>`
-        + `아이디 <b>${email}</b> · 비밀번호 <b style="font-family:monospace;">${pw}</b><br>`
-        + `<small>이 내용을 기업에 전달해주세요. 창을 닫으면 비밀번호는 다시 볼 수 없습니다.</small>`, 'success');
+      // 시트에 붙여넣기 좋게 탭 구분으로 준비 (비밀번호는 DB에 저장하지 않음)
+      window.__lastIssued = [co ? co.name : '', email, pw, name || '', localToday()].join('\t');
+      showCaResult(
+        `✅ <b>${co ? co.name : ''}</b> 계정 발급 완료<br><br>` +
+        `<div style="background:white;border:1.5px solid #059669;border-radius:10px;padding:12px 14px;font-family:monospace;font-size:14px;line-height:1.9;">` +
+        `아이디 &nbsp;<b>${email}</b><br>비밀번호 <b>${pw}</b></div>` +
+        `<button onclick="copyIssuedAccount()" class="refresh-btn" style="margin-top:10px;background:#059669;color:white;border-color:#059669;">📋 관리 시트용으로 복사</button>` +
+        `<div style="font-size:12px;color:#92400e;margin-top:8px;line-height:1.6;">` +
+        `⚠️ <b>비밀번호는 저장되지 않습니다.</b> 지금 복사해서 관리 시트에 기록해두세요.<br>` +
+        `잊어버리면 콘솔에서 계정을 지우고 다시 발급해야 합니다.</div>`,
+        'success', true);
       ['ca-name','ca-email'].forEach(id => document.getElementById(id).value = '');
       genCompanyPw();
       loadCompanyAccounts();
