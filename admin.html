@@ -889,6 +889,18 @@
           <input type="text" class="form-input" id="wk-firm" placeholder="기업명 직접 입력"
             style="margin-top:6px;display:none;">
         </div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">훈련과정 <span style="font-weight:400;color:#718096;font-size:11px;">(고르면 기업이 자동 연결)</span></label>
+          <select class="form-input" id="wk-course" onchange="onWorkerCourseChange()">
+            <option value="">선택 안 함</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">회차</label>
+          <input type="text" class="form-input" id="wk-round" placeholder="예: 1회차">
+        </div>
         <div class="form-group">
           <label class="form-label">연락처 (선택)</label>
           <input type="text" class="form-input" id="wk-phone" placeholder="010-0000-0000">
@@ -900,7 +912,7 @@
         style="display:none;background:#94a3b8;margin-top:8px;">취소 (새로 추가로)</button>
 
       <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
-        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(이름 · 학과 · 학습기업 · 연락처 순, 탭 또는 쉼표 구분)</span></label>
+        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(이름 · 학과 · 학습기업 · 연락처 · 훈련과정번호 · 회차 순)</span></label>
         <textarea class="form-input" id="wk-bulk" style="min-height:90px;font-family:monospace;font-size:12px;"
           placeholder="홍길동	전문대 호텔조리학과	○○호텔	010-1234-5678&#10;김철수	P-TECH 1학년	△△리조트"></textarea>
         <button class="send-btn" onclick="bulkAddWorkers()" style="background:#059669;margin-top:8px;">📥 일괄 등록</button>
@@ -1182,6 +1194,67 @@
       </div>
       <div class="result-box" id="coResult"></div>
       <div id="companyList" style="margin-top:16px;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+
+    <!-- ═══ 훈련과정 ═══ -->
+    <div class="card">
+      <div class="card-title">
+        📘 훈련과정 관리
+        <button class="refresh-btn" onclick="loadCourses()">🔄 새로고침</button>
+      </div>
+      <div style="background:#f5f3ff;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#4c1d95;line-height:1.65;">
+        한 기업에 <b>여러 학년·직종</b>이 있을 수 있어서, 학년/직종은 기업이 아니라 <b>훈련과정</b>에 붙입니다.<br>
+        <small style="opacity:0.9;">예) ㈜에렉스 → P-TECH 1학년 · 식음료서비스_L3 · 양식조리_L4 과정이 각각 존재</small>
+      </div>
+      <input type="hidden" id="cs-edit-id" value="">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">훈련과정번호</label>
+          <input type="text" class="form-input" id="cs-no" placeholder="예: ABF20263001235923">
+        </div>
+        <div class="form-group">
+          <label class="form-label">사업유형 (학년/직종)</label>
+          <select class="form-input" id="cs-type">
+            <option value="">선택</option>
+            <option>P-TECH 1학년</option>
+            <option>P-TECH 2학년</option>
+            <option>전문대 식음료서비스_L3</option>
+            <option>전문대 총무인사_L3</option>
+            <option>전문대 세무회계정보관리_L3</option>
+            <option>양식조리_L4</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">학습기업</label>
+        <select class="form-input" id="cs-company"><option value="">선택</option></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">사업장 / 호텔명 (선택)</label>
+          <input type="text" class="form-input" id="cs-site" placeholder="예: 노보텔 앰배서더 서울 강남">
+        </div>
+        <div class="form-group">
+          <label class="form-label">관할지사 (선택)</label>
+          <input type="text" class="form-input" id="cs-branch" placeholder="예: 서울강남지사">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">센터 담당자 (선택)</label>
+        <input type="text" class="form-input" id="cs-manager" placeholder="예: 규석">
+      </div>
+      <button class="send-btn" onclick="saveCourse()" id="csSaveBtn" style="background:#7c3aed;">📘 과정 등록</button>
+      <button class="send-btn" onclick="cancelCourseEdit()" id="csCancelBtn"
+        style="display:none;background:#94a3b8;margin-top:8px;">취소 (새로 등록으로)</button>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
+        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(과정번호 · 사업유형 · 기업명 · 사업장 · 관할지사 · 담당 순)</span></label>
+        <textarea class="form-input" id="cs-bulk" style="min-height:90px;font-family:monospace;font-size:12px;"
+          placeholder="ABF20263001235923	P-TECH 1학년	(주)앰배서더즈	노보텔 앰배서더 서울 강남	서울강남지사	지현"></textarea>
+        <button class="send-btn" onclick="bulkAddCourses()" style="background:#059669;margin-top:8px;">📥 일괄 등록</button>
+      </div>
+      <div class="result-box" id="csResult"></div>
+      <div id="courseList" style="margin-top:16px;"><div class="empty-history">불러오는 중...</div></div>
     </div>
   </div>
 </div>
@@ -1488,7 +1561,7 @@
     if (tab === 'scheduled') loadScheduledItems();
     if (tab === 'survey') loadSurveyStatus();
     if (tab === 'consulting') loadConsulting();
-    if (tab === 'company') loadCompanies();
+    if (tab === 'company') { loadCompanies(); loadCourses(); }
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
     if (tab === 'apply') { loadApplications(); checkAdminTargetStatus(); }
@@ -2395,6 +2468,7 @@
       allCompanies = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
       refreshWorkerFirmOptions();
+      refreshCourseCompanyOptions();
       if (!el) return;
       if (allCompanies.length === 0) {
         el.innerHTML = '<div class="empty-history">등록된 학습기업이 없어요<br><small>위에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
@@ -2446,6 +2520,184 @@
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
+  // ══════════ 훈련과정 (courses) ══════════
+  // 한 기업에 여러 학년·직종이 올 수 있으므로 학년/직종은 과정에 둔다.
+  // 학습근로자 → 과정 → 기업 순으로 연결된다.
+  let allCourses = [];
+  const CS_TYPES = ['P-TECH 1학년','P-TECH 2학년','전문대 식음료서비스_L3','전문대 총무인사_L3','전문대 세무회계정보관리_L3','양식조리_L4'];
+
+  // 기업명 표기가 파일마다 달라서(㈜/주식회사/띄어쓰기) 정규화 후 비교한다
+  function normFirm(s) {
+    return String(s || '')
+      .replace(/\(\s*주\s*\)|（\s*주\s*）/g, '')   // "(주)" 를 괄호 제거보다 먼저 지워야 함
+      .replace(/㈜|주식회사|유한회사/g, '')
+      .replace(/[\s()（）]/g, '');
+  }
+  function findCompanyByName(name) {
+    const n = normFirm(name);
+    if (!n) return null;
+    let hit = allCompanies.find(c => normFirm(c.name) === n);
+    if (hit) return hit;
+    hit = allCompanies.find(c => normFirm(c.name) && (n.startsWith(normFirm(c.name)) || normFirm(c.name).startsWith(n)));
+    return hit || null;
+  }
+  function showCsResult(msg, type) {
+    const box = document.getElementById('csResult');
+    if (!box) return;
+    box.textContent = msg; box.className = 'result-box ' + type;
+    setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 5000);
+  }
+  function refreshCourseCompanyOptions() {
+    const sel = document.getElementById('cs-company');
+    if (!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">선택</option>'
+      + allCompanies.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    if (Array.from(sel.options).some(o => o.value === keep)) sel.value = keep;
+  }
+  function cancelCourseEdit() {
+    document.getElementById('cs-edit-id').value = '';
+    ['cs-no','cs-site','cs-branch','cs-manager'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cs-type').value = '';
+    document.getElementById('cs-company').value = '';
+    document.getElementById('csSaveBtn').textContent = '📘 과정 등록';
+    document.getElementById('csCancelBtn').style.display = 'none';
+  }
+  function readCourseForm() {
+    const cid = document.getElementById('cs-company').value;
+    const c = allCompanies.find(x => x.id === cid);
+    return {
+      courseNo: document.getElementById('cs-no').value.trim(),
+      type: document.getElementById('cs-type').value,
+      companyId: cid,
+      companyName: c ? (c.name || '') : '',
+      site: document.getElementById('cs-site').value.trim(),
+      branch: document.getElementById('cs-branch').value.trim(),
+      manager: document.getElementById('cs-manager').value.trim()
+    };
+  }
+  async function saveCourse() {
+    const d = readCourseForm();
+    const editId = document.getElementById('cs-edit-id').value;
+    if (!d.courseNo) { showCsResult('훈련과정번호를 입력해주세요!', 'error'); return; }
+    if (!d.type) { showCsResult('사업유형을 선택해주세요!', 'error'); return; }
+    if (!d.companyId) { showCsResult('학습기업을 선택해주세요!', 'error'); return; }
+    try {
+      const db = await wkDb();
+      const { collection, addDoc, doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      if (editId) {
+        await updateDoc(doc(db, 'courses', editId), { ...d, updatedAt: serverTimestamp() });
+        await writeLog('update', 'course', editId, `훈련과정 수정: ${d.courseNo}`);
+        showCsResult('✅ 수정했어요', 'success');
+      } else {
+        if (allCourses.some(x => (x.courseNo || '') === d.courseNo)) {
+          showCsResult('⚠️ 같은 훈련과정번호가 이미 등록되어 있어요', 'error'); return;
+        }
+        const ref = await addDoc(collection(db, 'courses'), { ...d, createdAt: serverTimestamp() });
+        await writeLog('create', 'course', ref.id, `훈련과정 등록: ${d.courseNo}`);
+        showCsResult('✅ 과정을 등록했어요', 'success');
+      }
+      cancelCourseEdit();
+      loadCourses();
+    } catch(e) { showCsResult('❌ 오류: ' + e.message, 'error'); }
+  }
+  // 붙여넣기: 과정번호 · 사업유형 · 기업명 · 사업장 · 관할지사 · 담당
+  async function bulkAddCourses() {
+    const raw = document.getElementById('cs-bulk').value.trim();
+    if (!raw) { showCsResult('붙여넣을 내용이 없어요', 'error'); return; }
+    if (allCompanies.length === 0) { showCsResult('학습기업을 먼저 등록해주세요', 'error'); return; }
+    const rows = raw.split('\n').map(r => r.trim()).filter(Boolean);
+    const parsed = [], skipped = [];
+    rows.forEach((r, i) => {
+      const c = r.split(/\t|,/).map(x => x.trim());
+      const courseNo = c[0] || '', type = c[1] || '', firmName = c[2] || '';
+      if (!courseNo) { skipped.push(`${i+1}행: 과정번호 없음`); return; }
+      if (allCourses.some(x => (x.courseNo || '') === courseNo)) { skipped.push(`${i+1}행 ${courseNo}: 이미 등록됨`); return; }
+      if (parsed.some(p => p.courseNo === courseNo)) { skipped.push(`${i+1}행 ${courseNo}: 입력 안에서 중복`); return; }
+      if (!CS_TYPES.includes(type)) { skipped.push(`${i+1}행 ${courseNo}: 사업유형 인식 불가(${type || '비어있음'})`); return; }
+      const co = findCompanyByName(firmName);
+      if (!co) { skipped.push(`${i+1}행 ${courseNo}: 기업 못 찾음 "${firmName}"`); return; }
+      parsed.push({ courseNo, type, companyId: co.id, companyName: co.name || '',
+                    site: c[3] || '', branch: c[4] || '', manager: c[5] || '' });
+    });
+    if (parsed.length === 0) { showCsResult('등록할 수 있는 행이 없어요 — ' + skipped.slice(0,3).join(' / '), 'error'); return; }
+    if (!await customConfirm({ title: '훈련과정 일괄 등록',
+      message: `${parsed.length}개 과정을 등록할까요?` + (skipped.length ? `<br><br><b>건너뜀 ${skipped.length}건</b><br><span style="font-size:12px;">${skipped.slice(0,10).join('<br>')}${skipped.length>10?'<br>…':''}</span>` : ''),
+      confirmText: '📥 등록' })) return;
+    try {
+      const db = await wkDb();
+      const { collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      for (const p of parsed) await addDoc(collection(db, 'courses'), { ...p, createdAt: serverTimestamp() });
+      await writeLog('create', 'course', 'bulk', `훈련과정 일괄 등록 ${parsed.length}개`);
+      document.getElementById('cs-bulk').value = '';
+      showCsResult(`✅ ${parsed.length}개 등록${skipped.length ? ` · ${skipped.length}건 건너뜀` : ''}`, 'success');
+      loadCourses();
+    } catch(e) { showCsResult('❌ 오류: ' + e.message, 'error'); }
+  }
+  async function loadCourses() {
+    const el = document.getElementById('courseList');
+    try {
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(collection(db, 'courses'));
+      allCourses = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ko') || (a.companyName || '').localeCompare(b.companyName || '', 'ko'));
+      refreshWorkerCourseOptions();
+      if (!el) return;
+      if (allCourses.length === 0) {
+        el.innerHTML = '<div class="empty-history">등록된 훈련과정이 없어요<br><small>위에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
+        return;
+      }
+      const byType = {};
+      allCourses.forEach(c => { (byType[c.type || '미지정'] = byType[c.type || '미지정'] || []).push(c); });
+      el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">총 ${allCourses.length}개 과정</div>`
+        + Object.entries(byType).map(([t, list]) => `
+          <div style="margin-bottom:14px;">
+            <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:6px;">${t} · ${list.length}개</div>
+            ${list.map(c => `
+              <div class="cal-event-item" style="border-left-color:#7c3aed;">
+                <div class="cal-event-info">
+                  <div class="cal-event-title">${c.companyName || '기업 미연결'}${c.site ? ' — ' + c.site : ''}</div>
+                  <div class="cal-event-meta">${c.courseNo || ''}${c.branch ? ' · ' + c.branch : ''}${c.manager ? ' · 담당 ' + c.manager : ''}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                  <button onclick="editCourse('${c.id}')" class="member-edit-btn">✏️ 수정</button>
+                  <button onclick="deleteCourse('${c.id}')" class="delete-btn">삭제</button>
+                </div>
+              </div>`).join('')}
+          </div>`).join('');
+    } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
+  }
+  function editCourse(id) {
+    const c = allCourses.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('cs-edit-id').value = id;
+    document.getElementById('cs-no').value = c.courseNo || '';
+    document.getElementById('cs-type').value = c.type || '';
+    refreshCourseCompanyOptions();
+    document.getElementById('cs-company').value = c.companyId || '';
+    document.getElementById('cs-site').value = c.site || '';
+    document.getElementById('cs-branch').value = c.branch || '';
+    document.getElementById('cs-manager').value = c.manager || '';
+    document.getElementById('csSaveBtn').textContent = '💾 수정 내용 저장';
+    document.getElementById('csCancelBtn').style.display = 'block';
+    document.getElementById('cs-no').scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+  async function deleteCourse(id) {
+    const c = allCourses.find(x => x.id === id);
+    const linked = (allWorkers || []).filter(w => w.courseId === id).length;
+    if (!await customConfirm({ title:'훈련과정 삭제',
+      message: `"${c ? (c.courseNo || '') : ''}" 과정을 삭제할까요?` + (linked ? `<br><br>⚠️ 이 과정에 연결된 <b>학습근로자 ${linked}명</b>의 과정 연결이 사라집니다.` : ''),
+      confirmText:'🗑️ 삭제', danger:true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'courses', id));
+      await writeLog('delete', 'course', id, `훈련과정 삭제: ${c ? c.courseNo : id}`);
+      loadCourses();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
   // 학습근로자 폼의 "학습기업" 드롭다운을 기업 목록으로 채운다.
   // 목록에 없는 기업은 '직접 입력'으로 이름만 저장 (companyId 없음).
   function refreshWorkerFirmOptions() {
@@ -2466,6 +2718,28 @@
     txt.style.display = manual ? 'block' : 'none';
     if (!manual && sel.value === '') txt.value = '';
   }
+  // 학습근로자 폼의 "훈련과정" 드롭다운
+  function refreshWorkerCourseOptions() {
+    const sel = document.getElementById('wk-course');
+    if (!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">선택 안 함</option>'
+      + allCourses.map(c => `<option value="${c.id}">[${c.type || '유형미지정'}] ${c.companyName || '기업미연결'}${c.site ? ' — ' + c.site : ''}</option>`).join('');
+    if (Array.from(sel.options).some(o => o.value === keep)) sel.value = keep;
+  }
+  // 과정을 고르면 소속 기업이 자동으로 따라온다
+  function onWorkerCourseChange() {
+    const cid = document.getElementById('wk-course').value;
+    if (!cid) return;
+    const c = allCourses.find(x => x.id === cid);
+    if (!c || !c.companyId) return;
+    const sel = document.getElementById('wk-firm-sel');
+    if (Array.from(sel.options).some(o => o.value === c.companyId)) {
+      sel.value = c.companyId;
+      onWorkerFirmChange();
+    }
+  }
+
   // 현재 폼에서 고른 기업 → { companyId, firm }
   function currentWorkerFirm() {
     const sel = document.getElementById('wk-firm-sel');
@@ -2497,15 +2771,18 @@
     document.getElementById('wk-edit-id').value = '';
     document.getElementById('wkSaveBtn').textContent = '👷 명단에 추가';
     document.getElementById('wkCancelBtn').style.display = 'none';
-    ['wk-name','wk-firm','wk-phone'].forEach(id => document.getElementById(id).value = '');
+    ['wk-name','wk-firm','wk-phone','wk-round'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('wk-dept').value = '';
     document.getElementById('wk-firm-sel').value = '';
+    document.getElementById('wk-course').value = '';
     onWorkerFirmChange();
   }
   async function saveWorker() {
     const name = document.getElementById('wk-name').value.trim();
     const dept = document.getElementById('wk-dept').value;
     const { companyId, firm } = currentWorkerFirm();
+    const courseId = document.getElementById('wk-course').value;
+    const round = document.getElementById('wk-round').value.trim();
     const phone = document.getElementById('wk-phone').value.trim();
     const editId = document.getElementById('wk-edit-id').value;
     if (!name) { showWkResult('이름을 입력해주세요!', 'error'); return; }
@@ -2513,8 +2790,8 @@
     try {
       const db = await wkDb();
       const { collection, addDoc, doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      // companyId = 기업 문서 연결, firm = 표시·엑셀용 이름 복사본
-      const data = { name, dept, firm, companyId, phone };
+      // companyId = 기업 문서 연결, firm = 표시·엑셀용 이름 복사본, courseId = 훈련과정 연결
+      const data = { name, dept, firm, companyId, courseId, round, phone };
       if (editId) {
         await updateDoc(doc(db, 'workers', editId), { ...data, updatedAt: serverTimestamp() });
         await writeLog('update', 'worker', editId, `학습근로자 수정: ${name}`);
@@ -2546,10 +2823,13 @@
       if (!WK_DEPTS.includes(dept)) { skipped.push(`${i+1}행 "${name}": 학과 인식 불가 (${dept || '비어있음'})`); return; }
       if (allWorkers.some(w => w.name === name && w.dept === dept)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨`); return; }
       if (parsed.some(p => p.name === name && p.dept === dept)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 중복`); return; }
-      // 기업명이 등록된 학습기업과 같으면 자동 연결(companyId), 아니면 이름만 저장
+      // 기업명 → 정규화 매칭으로 자동 연결. 5번째 칸에 훈련과정번호가 있으면 과정도 연결
       const firmName = c[2] || '';
-      const matched = firmName ? allCompanies.find(x => (x.name || '').trim() === firmName) : null;
-      parsed.push({ name, dept, firm: firmName, companyId: matched ? matched.id : '', phone: c[3] || '' });
+      const matched = firmName ? findCompanyByName(firmName) : null;
+      const cNo = (c[4] || '').trim();
+      const course = cNo ? allCourses.find(x => (x.courseNo || '') === cNo) : null;
+      parsed.push({ name, dept, firm: firmName, companyId: matched ? matched.id : (course ? course.companyId : ''),
+                    courseId: course ? course.id : '', round: (c[5] || '').trim(), phone: c[3] || '' });
     });
     if (parsed.length === 0) { showWkResult('등록할 수 있는 행이 없어요 — ' + skipped.join(' / '), 'error'); return; }
     if (!await customConfirm({ title:'명단 일괄 등록',
@@ -2569,8 +2849,9 @@
     const el = document.getElementById('workerList');
     if (!el) return;
     el.innerHTML = '<div class="empty-history">불러오는 중...</div>';
-    // 소속 기업 드롭다운을 채우려면 기업 목록이 먼저 필요하다
+    // 소속 기업·훈련과정 드롭다운을 채우려면 두 목록이 먼저 필요하다
     if (allCompanies.length === 0) { try { await loadCompanies(); } catch(_) {} }
+    if (allCourses.length === 0) { try { await loadCourses(); } catch(_) {} }
     try {
       const db = await wkDb();
       const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -2591,7 +2872,9 @@
               <div class="cal-event-item" style="border-left-color:#1976d2;">
                 <div class="cal-event-info">
                   <div class="cal-event-title">${w.name}</div>
-                  <div class="cal-event-meta">${w.firm || '학습기업 미입력'}${w.firm && !w.companyId ? ' <span style="color:#d97706;font-size:11px;">(미연결)</span>' : ''}${w.phone ? ' · ' + w.phone : ''}</div>
+                  <div class="cal-event-meta">${w.firm || '학습기업 미입력'}${w.firm && !w.companyId ? ' <span style="color:#d97706;font-size:11px;">(미연결)</span>' : ''}${w.round ? ' · ' + w.round : ''}${w.phone ? ' · ' + w.phone : ''}</div>
+                  ${(() => { const c = allCourses.find(x => x.id === w.courseId);
+                      return c ? `<div class="cal-event-desc" style="color:#7c3aed;">📘 ${c.type || ''}${c.site ? ' · ' + c.site : ''}</div>` : ''; })()}
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
                   <button onclick="editWorker('${w.id}')" class="member-edit-btn">✏️ 수정</button>
@@ -2620,6 +2903,10 @@
       document.getElementById('wk-firm').value = '';
     }
     onWorkerFirmChange();
+    refreshWorkerCourseOptions();
+    document.getElementById('wk-course').value =
+      (w.courseId && allCourses.some(c => c.id === w.courseId)) ? w.courseId : '';
+    document.getElementById('wk-round').value = w.round || '';
     document.getElementById('wk-phone').value = w.phone || '';
     document.getElementById('wkSaveBtn').textContent = '💾 수정 내용 저장';
     document.getElementById('wkCancelBtn').style.display = 'block';
