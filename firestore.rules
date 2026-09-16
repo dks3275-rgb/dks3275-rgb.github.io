@@ -18,17 +18,16 @@ service cloud.firestore {
       return request.auth != null
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-    // ⚠️ isCompany() / myCompanyId() 는 Phase 1(기업 로그인)에서 추가한다.
-    //    Firestore 규칙은 "쓰이지 않는 함수"를 오류로 처리하므로,
-    //    실제로 참조하는 match 블록을 만들 때 같이 넣어야 한다.
-    //
-    //    function isCompany() {
-    //      return request.auth != null
-    //        && exists(/databases/$(database)/documents/companyAccounts/$(request.auth.uid));
-    //    }
-    //    function myCompanyId() {
-    //      return get(/databases/$(database)/documents/companyAccounts/$(request.auth.uid)).data.companyId;
-    //    }
+    // 기업 계정: companyAccounts 문서가 있고 active가 꺼져 있지 않은 로그인 계정
+    function isCompany() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/companyAccounts/$(request.auth.uid))
+        && get(/databases/$(database)/documents/companyAccounts/$(request.auth.uid)).data.active != false;
+    }
+    // 이 기업 계정이 소속된 기업 ID
+    function myCompanyId() {
+      return get(/databases/$(database)/documents/companyAccounts/$(request.auth.uid)).data.companyId;
+    }
 
     // ── 역할 등록부 ──
     // 관리자만 열람·발급. 본인 계정 정보는 로그인 후 스스로 읽을 수 있어야 함.
@@ -90,14 +89,19 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // ── 학습근로자 명단 (상담 대상 드롭다운 소스) ──
+    // ── 학습근로자 명단 ──
+    // 기업 계정은 자기 소속 학습근로자만 조회 가능 (읽기 전용)
+    // ⚠️ 목록 조회 시 반드시 where('companyId','==',내기업) 으로 질의해야 통과한다
     match /workers/{id} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin() || (isCompany() && resource.data.companyId == myCompanyId());
+      allow write: if isAdmin();
     }
 
     // ── 훈련과정 (기업 ↔ 학년/직종 연결) ──
+    // 기업 계정은 자기 기업의 과정만 조회 가능 (읽기 전용)
     match /courses/{id} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin() || (isCompany() && resource.data.companyId == myCompanyId());
+      allow write: if isAdmin();
     }
 
     // ── 중도탈락 관리 (민감: 탈락 사유·개선조치) ──

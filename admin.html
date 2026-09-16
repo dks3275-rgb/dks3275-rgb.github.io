@@ -1268,6 +1268,53 @@
       <div class="result-box" id="csResult"></div>
       <div id="courseList" style="margin-top:16px;"><div class="empty-history">불러오는 중...</div></div>
     </div>
+
+    <!-- ═══ 기업 계정 ═══ -->
+    <div class="card">
+      <div class="card-title">
+        🔑 기업 계정 발급
+        <button class="refresh-btn" onclick="loadCompanyAccounts()">🔄 새로고침</button>
+      </div>
+      <div style="background:#ecfdf5;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#065f46;line-height:1.65;">
+        기업 담당자가 직접 로그인해 서류를 작성할 수 있게 계정을 만듭니다.<br>
+        <b>비밀번호는 담당자 본인이 정합니다</b> — 발급하면 그 이메일로 설정 안내 메일이 갑니다.<br>
+        <small style="opacity:0.9;">담당 과정을 지정하면 그 과정만 보이고, 비워두면 그 기업 전체를 봅니다.</small>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">소속 기업</label>
+          <select class="form-input" id="ca-company" onchange="refreshAccountCourseOptions()">
+            <option value="">선택</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">역할</label>
+          <select class="form-input" id="ca-role">
+            <option value="HRD담당자">HRD담당자</option>
+            <option value="기업현장교사">기업현장교사</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">담당 과정 <span style="font-weight:400;color:#718096;font-size:11px;">(아무것도 안 고르면 기업 전체)</span></label>
+        <div id="ca-courses" style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:#a0aec0;">기업을 먼저 선택해주세요</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">담당자 이름</label>
+          <input type="text" class="form-input" id="ca-name" placeholder="예: 김담당">
+        </div>
+        <div class="form-group">
+          <label class="form-label">이메일 (로그인 아이디)</label>
+          <input type="email" class="form-input" id="ca-email" placeholder="name@company.com">
+        </div>
+      </div>
+      <button class="send-btn" onclick="issueCompanyAccount()" id="caIssueBtn" style="background:#059669;">🔑 계정 발급 + 설정 메일 보내기</button>
+      <div class="result-box" id="caResult"></div>
+      <div id="companyAccountList" style="margin-top:16px;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
   </div>
 </div>
 
@@ -1573,7 +1620,7 @@
     if (tab === 'scheduled') loadScheduledItems();
     if (tab === 'survey') loadSurveyStatus();
     if (tab === 'consulting') loadConsulting();
-    if (tab === 'company') { loadCompanies(); loadCourses(); }
+    if (tab === 'company') { loadCompanies(); loadCourses(); loadCompanyAccounts(); }
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
     if (tab === 'apply') { loadApplications(); checkAdminTargetStatus(); }
@@ -2523,6 +2570,7 @@
         .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
       refreshWorkerFirmOptions();
       refreshCourseCompanyOptions();
+      refreshAccountCompanyOptions();
       if (!el) return;
       if (allCompanies.length === 0) {
         el.innerHTML = '<div class="empty-history">등록된 학습기업이 없어요<br><small>위에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
@@ -2697,6 +2745,7 @@
       allCourses = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ko') || (a.companyName || '').localeCompare(b.companyName || '', 'ko'));
       refreshWorkerCourseOptions();
+      refreshAccountCourseOptions();
       if (!el) return;
       if (allCourses.length === 0) {
         el.innerHTML = '<div class="empty-history">등록된 훈련과정이 없어요<br><small>위에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
@@ -2750,6 +2799,177 @@
       await writeLog('delete', 'course', id, `훈련과정 삭제: ${c ? c.courseNo : id}`);
       loadCourses();
     } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  // ══════════ 기업 계정 (companyAccounts) ══════════
+  // 기업 담당자용 Firebase Auth 계정을 관리자 화면에서 발급한다.
+  //
+  // ⚠️ 중요: 기본 앱으로 createUser를 부르면 "새로 만든 계정"으로 로그인이 바뀌어
+  //    관리자 세션이 끊긴다. 그래서 이 함수에서만 별도 앱 인스턴스를 쓴다.
+  //    (다른 곳은 전부 기본 앱을 써야 한다 — 예전에 이것 때문에 권한 오류가 났었다)
+  //
+  // 비밀번호는 임시값으로 만들고 즉시 버린 뒤, 본인이 메일로 직접 설정하게 한다.
+  let allCompanyAccounts = [];
+
+  function showCaResult(msg, type) {
+    const box = document.getElementById('caResult');
+    if (!box) return;
+    box.innerHTML = msg; box.className = 'result-box ' + type;
+    setTimeout(() => { box.className = 'result-box'; box.style.display = 'none'; }, 8000);
+  }
+  function refreshAccountCompanyOptions() {
+    const sel = document.getElementById('ca-company');
+    if (!sel) return;
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">선택</option>'
+      + allCompanies.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    if (Array.from(sel.options).some(o => o.value === keep)) sel.value = keep;
+    refreshAccountCourseOptions();
+  }
+  function refreshAccountCourseOptions() {
+    const box = document.getElementById('ca-courses');
+    if (!box) return;
+    const cid = document.getElementById('ca-company').value;
+    if (!cid) { box.innerHTML = '<span style="font-size:12px;color:#a0aec0;">기업을 먼저 선택해주세요</span>'; return; }
+    const list = allCourses.filter(c => c.companyId === cid);
+    if (list.length === 0) { box.innerHTML = '<span style="font-size:12px;color:#d97706;">이 기업에 등록된 훈련과정이 없습니다</span>'; return; }
+    box.innerHTML = list.map(c =>
+      `<label class="subt-chip"><input type="checkbox" value="${c.id}"><span>${c.type || ''}${c.site ? ' · ' + c.site : ''}</span></label>`
+    ).join('');
+  }
+  function selectedAccountCourses() {
+    return Array.from(document.querySelectorAll('#ca-courses input[type="checkbox"]:checked')).map(c => c.value);
+  }
+
+  async function issueCompanyAccount() {
+    const companyId = document.getElementById('ca-company').value;
+    const role = document.getElementById('ca-role').value;
+    const name = document.getElementById('ca-name').value.trim();
+    const email = document.getElementById('ca-email').value.trim().toLowerCase();
+    const courseIds = selectedAccountCourses();
+    if (!companyId) { showCaResult('소속 기업을 선택해주세요!', 'error'); return; }
+    if (!name) { showCaResult('담당자 이름을 입력해주세요!', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showCaResult('이메일 형식을 확인해주세요!', 'error'); return; }
+    if (allCompanyAccounts.some(a => (a.email || '') === email)) {
+      showCaResult('⚠️ 이미 계정이 발급된 이메일입니다', 'error'); return;
+    }
+    const co = allCompanies.find(c => c.id === companyId);
+    const scope = courseIds.length ? `과정 ${courseIds.length}개만` : '기업 전체';
+    if (!await customConfirm({ title: '기업 계정 발급',
+      message: `<b>${name}</b> (${email})<br>소속: ${co ? co.name : ''}<br>권한 범위: ${scope}<br><br>계정을 만들고 비밀번호 설정 메일을 보냅니다.`,
+      confirmText: '🔑 발급' })) return;
+
+    const btn = document.getElementById('caIssueBtn');
+    btn.disabled = true; btn.textContent = '발급 중...';
+    let secondary = null;
+    try {
+      const { initializeApp, getApps, deleteApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      const { getFirestore, doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+      // 별도 인스턴스에서 계정 생성 → 관리자 로그인 유지
+      secondary = initializeApp(FB_CFG, 'acctIssue-' + Date.now());
+      const sAuth = getAuth(secondary);
+      const tempPw = 'Tmp!' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2).toUpperCase() + '9';
+      const cred = await createUserWithEmailAndPassword(sAuth, email, tempPw);
+      const uid = cred.user.uid;
+      await signOut(sAuth);
+
+      // 역할·권한 등록 (이게 있어야 로그인해도 실제 접근이 열린다)
+      const db = getFirestore(getApps().length ? getApps()[0] : initializeApp(FB_CFG));
+      await setDoc(doc(db, 'companyAccounts', uid), {
+        email, name, role, companyId,
+        companyName: co ? (co.name || '') : '',
+        courseIds, active: true, createdAt: serverTimestamp()
+      });
+
+      // 본인이 비밀번호를 정하도록 메일 발송 (관리자는 비번을 모름)
+      let mailed = true;
+      try { await sendPasswordResetEmail(getAuth(getApps()[0]), email); }
+      catch(e) { mailed = false; console.warn('메일 발송 실패:', e); }
+
+      await writeLog('create', 'companyAccount', uid, `기업 계정 발급: ${name} (${email}) · ${co ? co.name : ''}`);
+      showCaResult(`✅ <b>${name}</b> 계정을 발급했어요.`
+        + (mailed ? '<br>📧 비밀번호 설정 메일을 보냈습니다. 담당자가 메일에서 비밀번호를 정하면 로그인할 수 있어요.'
+                  : '<br>⚠️ 계정은 만들어졌지만 메일 발송에 실패했습니다. 목록에서 “메일 재발송”을 눌러주세요.'), 'success');
+      ['ca-name','ca-email'].forEach(id => document.getElementById(id).value = '');
+      document.querySelectorAll('#ca-courses input[type="checkbox"]').forEach(c => c.checked = false);
+      loadCompanyAccounts();
+    } catch(e) {
+      const msg = e.code === 'auth/email-already-in-use' ? '이미 가입된 이메일입니다. (다른 용도로 쓰였는지 확인해주세요)'
+                : e.code === 'auth/invalid-email' ? '이메일 형식이 올바르지 않습니다.'
+                : e.code === 'auth/weak-password' ? '임시 비밀번호 생성에 문제가 있었습니다. 다시 시도해주세요.'
+                : (e.message || '알 수 없는 오류');
+      showCaResult('❌ 발급 실패: ' + msg, 'error');
+    } finally {
+      if (secondary) { try { const { deleteApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'); await deleteApp(secondary); } catch(_) {} }
+      btn.disabled = false; btn.textContent = '🔑 계정 발급 + 설정 메일 보내기';
+    }
+  }
+
+  async function loadCompanyAccounts() {
+    const el = document.getElementById('companyAccountList');
+    try {
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(collection(db, 'companyAccounts'));
+      allCompanyAccounts = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
+        .sort((a, b) => (a.companyName || '').localeCompare(b.companyName || '', 'ko') || (a.name || '').localeCompare(b.name || '', 'ko'));
+      if (!el) return;
+      if (allCompanyAccounts.length === 0) {
+        el.innerHTML = '<div class="empty-history">발급된 기업 계정이 없어요</div>';
+        return;
+      }
+      el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">총 ${allCompanyAccounts.length}개 계정</div>`
+        + allCompanyAccounts.map(a => {
+          const scope = (a.courseIds && a.courseIds.length)
+            ? a.courseIds.map(id => { const c = allCourses.find(x => x.id === id);
+                return c ? (c.type || '') + (c.site ? ' · ' + c.site : '') : '삭제된 과정'; }).join(' / ')
+            : '기업 전체';
+          const off = a.active === false;
+          return `<div class="cal-event-item" style="border-left-color:${off ? '#cbd5e0' : '#059669'};${off ? 'opacity:0.6;' : ''}">
+            <div class="cal-event-info">
+              <div class="cal-event-title">${a.name || '-'} <span style="font-size:11px;font-weight:500;color:#718096;">${a.role || ''}</span>${off ? ' <span style="font-size:11px;color:#991b1b;">· 접근 해제됨</span>' : ''}</div>
+              <div class="cal-event-meta">${a.companyName || ''} · ${a.email || ''}</div>
+              <div class="cal-event-desc" style="color:#059669;">🔓 ${scope}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+              <button onclick="resendCompanyPw('${a.uid}')" class="member-edit-btn">📧 메일 재발송</button>
+              <button onclick="toggleCompanyAccount('${a.uid}')" class="${off ? 'member-edit-btn' : 'delete-btn'}">${off ? '접근 복구' : '접근 해제'}</button>
+            </div>
+          </div>`;
+        }).join('');
+    } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
+  }
+  async function resendCompanyPw(uid) {
+    const a = allCompanyAccounts.find(x => x.uid === uid);
+    if (!a || !a.email) return;
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getAuth, sendPasswordResetEmail } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      await sendPasswordResetEmail(getAuth(getApps().length ? getApps()[0] : initializeApp(FB_CFG)), a.email);
+      alert(`📧 ${a.email} 로 비밀번호 설정 메일을 다시 보냈어요.`);
+    } catch(e) { alert('메일 발송 실패: ' + e.message); }
+  }
+  // 접근 해제 = companyAccounts 문서의 active를 끈다 → 규칙에서 막힘
+  // (Auth 계정 자체는 관리자 화면에서 지울 수 없어, Firebase 콘솔에서 삭제해야 한다)
+  async function toggleCompanyAccount(uid) {
+    const a = allCompanyAccounts.find(x => x.uid === uid);
+    if (!a) return;
+    const turningOff = a.active !== false;
+    if (!await customConfirm({ title: turningOff ? '접근 해제' : '접근 복구',
+      message: turningOff
+        ? `<b>${a.name}</b>의 접근을 막을까요?<br><small>로그인은 되지만 아무 데이터도 볼 수 없게 됩니다.</small>`
+        : `<b>${a.name}</b>의 접근을 다시 열까요?`,
+      confirmText: turningOff ? '🔒 해제' : '🔓 복구', danger: turningOff })) return;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db, 'companyAccounts', uid), { active: !turningOff });
+      await writeLog('update', 'companyAccount', uid, `기업 계정 ${turningOff ? '접근 해제' : '복구'}: ${a.name}`);
+      loadCompanyAccounts();
+    } catch(e) { alert('변경 실패: ' + e.message); }
   }
 
   // 학습근로자 폼의 "학습기업" 드롭다운을 기업 목록으로 채운다.
