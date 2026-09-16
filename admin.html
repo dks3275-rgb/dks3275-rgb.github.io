@@ -33,9 +33,17 @@
     .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
     .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
     .header h1 { color: white; font-size: 18px; font-weight: 700; }
-    .tab-nav { background: white; display: flex; border-bottom: 2px solid var(--light); overflow-x: auto; }
-    .tab-nav button { flex: 1; min-width: 72px; padding: 14px 6px; border: none; background: none; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 500; color: var(--gray); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; white-space: nowrap; }
-    .tab-nav button.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 700; }
+    /* 탭이 12개라 가로 스크롤이면 뒤쪽이 안 보인다 → 줄바꿈 그리드로 전부 노출 */
+    .tab-nav { background: white; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;
+               padding: 8px; border-bottom: 2px solid var(--light); position: sticky; top: 0; z-index: 40; }
+    .tab-nav button { padding: 10px 4px; border: 1.5px solid transparent; background: var(--light);
+                      border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px;
+                      font-weight: 600; color: var(--gray); cursor: pointer; transition: all 0.15s;
+                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tab-nav button:hover { background: #e4eaf4; color: var(--navy); }
+    .tab-nav button.active { background: var(--blue); border-color: var(--blue); color: white; font-weight: 700; }
+    @media (max-width: 900px) { .tab-nav { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 560px) { .tab-nav { grid-template-columns: repeat(3, 1fr); font-size: 11px; } }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
@@ -1103,7 +1111,13 @@
           <input type="text" class="form-input" id="co-name" placeholder="예: ○○호텔">
         </div>
         <div class="form-group">
-          <label class="form-label">관련 학과</label>
+          <label class="form-label">고용보험관리번호 <span style="font-weight:400;color:#718096;font-size:11px;">(기업 고유번호)</span></label>
+          <input type="text" class="form-input" id="co-insno" placeholder="예: 22081015620">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">관련 학과 (대표)</label>
           <select class="form-input" id="co-dept">
             <option value="">선택</option>
             <option>P-TECH 1학년</option><option>P-TECH 2학년</option>
@@ -1145,9 +1159,9 @@
         style="display:none;background:#94a3b8;margin-top:8px;">취소 (새로 등록으로)</button>
 
       <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
-        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(기업명 · 관련학과 · 담당자 · 연락처 · 분야 순, 탭 또는 쉼표 구분)</span></label>
+        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(기업명 · 고용보험관리번호 · 관련학과 · 담당자 · 연락처 · 분야 순, 탭 또는 쉼표 구분)</span></label>
         <textarea class="form-input" id="co-bulk" style="min-height:90px;font-family:monospace;font-size:12px;"
-          placeholder="○○호텔	전문대 호텔조리학과	김담당	02-000-0000	호텔·외식&#10;△△리조트	P-TECH 1학년	이담당"></textarea>
+          placeholder="○○호텔	22081015620	전문대 호텔조리학과	김담당	02-000-0000	호텔·외식&#10;△△리조트	58885005980	P-TECH 1학년	이담당"></textarea>
         <button class="send-btn" onclick="bulkAddCompanies()" style="background:#059669;margin-top:8px;">📥 일괄 등록</button>
       </div>
       <div class="result-box" id="coResult"></div>
@@ -2279,13 +2293,14 @@
     document.getElementById('co-edit-id').value = '';
     document.getElementById('coSaveBtn').textContent = '🏢 기업 등록';
     document.getElementById('coCancelBtn').style.display = 'none';
-    ['co-name','co-contact','co-phone','co-field','co-address'].forEach(id => document.getElementById(id).value = '');
+    ['co-name','co-insno','co-contact','co-phone','co-field','co-address'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('co-dept').value = '';
     document.getElementById('co-role').value = '';
   }
   function readCompanyForm() {
     return {
       name: document.getElementById('co-name').value.trim(),
+      insuranceNo: document.getElementById('co-insno').value.trim().replace(/[^0-9]/g, ''),
       dept: document.getElementById('co-dept').value,
       contact: document.getElementById('co-contact').value.trim(),
       role: document.getElementById('co-role').value,
@@ -2307,7 +2322,12 @@
         showCoResult('✅ 수정했어요', 'success');
         cancelCompanyEdit();
       } else {
-        if (allCompanies.some(c => (c.name || '').trim() === d.name)) {
+        // 고용보험관리번호가 있으면 그걸 고유 키로 중복 판정 (기업명 표기는 파일마다 달라 신뢰 불가)
+        if (d.insuranceNo && allCompanies.some(c => (c.insuranceNo || '') === d.insuranceNo)) {
+          const dup = allCompanies.find(c => (c.insuranceNo || '') === d.insuranceNo);
+          showCoResult(`⚠️ 같은 고용보험관리번호가 이미 등록됨 (${dup.name})`, 'error'); return;
+        }
+        if (!d.insuranceNo && allCompanies.some(c => (c.name || '').trim() === d.name)) {
           showCoResult('⚠️ 같은 이름의 기업이 이미 등록되어 있어요', 'error'); return;
         }
         const ref = await addDoc(collection(db, 'companies'), { ...d, createdAt: serverTimestamp() });
@@ -2327,10 +2347,14 @@
     rows.forEach((r, i) => {
       const c = r.split(/\t|,/).map(x => x.trim());
       const name = c[0] || '';
+      const insuranceNo = (c[1] || '').replace(/[^0-9]/g, '');
       if (!name) { skipped.push(`${i+1}행: 기업명 없음`); return; }
-      if (allCompanies.some(x => (x.name || '').trim() === name)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨`); return; }
-      if (parsed.some(p => p.name === name)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 중복`); return; }
-      parsed.push({ name, dept: c[1] || '', contact: c[2] || '', phone: c[3] || '', field: c[4] || '', role: '', address: '' });
+      // 고용보험관리번호 우선으로 중복 판정
+      if (insuranceNo && allCompanies.some(x => (x.insuranceNo || '') === insuranceNo)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨(보험번호)`); return; }
+      if (insuranceNo && parsed.some(p => p.insuranceNo === insuranceNo)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 보험번호 중복`); return; }
+      if (!insuranceNo && allCompanies.some(x => (x.name || '').trim() === name)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨`); return; }
+      if (!insuranceNo && parsed.some(p => p.name === name)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 중복`); return; }
+      parsed.push({ name, insuranceNo, dept: c[2] || '', contact: c[3] || '', phone: c[4] || '', field: c[5] || '', role: '', address: '' });
     });
     if (parsed.length === 0) { showCoResult('등록할 수 있는 행이 없어요 — ' + skipped.join(' / '), 'error'); return; }
     if (!await customConfirm({ title: '학습기업 일괄 등록',
@@ -2365,7 +2389,7 @@
           <div class="cal-event-item" style="border-left-color:#7c5cfa;">
             <div class="cal-event-info">
               <div class="cal-event-title">🏢 ${c.name || '-'}</div>
-              <div class="cal-event-meta">${c.dept || '학과 미지정'}${c.contact ? ' · ' + c.contact : ''}${c.phone ? ' · ' + c.phone : ''}</div>
+              <div class="cal-event-meta">${c.insuranceNo ? '보험번호 ' + c.insuranceNo : '<span style="color:#d97706;">보험번호 없음</span>'}${c.dept ? ' · ' + c.dept : ''}${c.contact ? ' · ' + c.contact : ''}${c.phone ? ' · ' + c.phone : ''}</div>
               ${c.field || c.address ? `<div class="cal-event-desc">${[c.field, c.address].filter(Boolean).join(' · ')}</div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
@@ -2380,6 +2404,7 @@
     if (!c) return;
     document.getElementById('co-edit-id').value = id;
     document.getElementById('co-name').value = c.name || '';
+    document.getElementById('co-insno').value = c.insuranceNo || '';
     document.getElementById('co-dept').value = c.dept || '';
     document.getElementById('co-contact').value = c.contact || '';
     document.getElementById('co-role').value = c.role || '';
