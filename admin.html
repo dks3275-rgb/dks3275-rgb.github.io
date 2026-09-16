@@ -2945,7 +2945,8 @@
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
               <button onclick="resendCompanyPw('${a.uid}')" class="member-edit-btn">🔑 비번 재설정</button>
-              <button onclick="toggleCompanyAccount('${a.uid}')" class="${off ? 'member-edit-btn' : 'delete-btn'}">${off ? '접근 복구' : '접근 해제'}</button>
+              <button onclick="toggleCompanyAccount('${a.uid}')" class="member-edit-btn">${off ? '🔓 접근 복구' : '🔒 접근 해제'}</button>
+              <button onclick="deleteCompanyAccount('${a.uid}')" class="delete-btn">삭제</button>
             </div>
           </div>`;
         }).join('');
@@ -2987,6 +2988,32 @@
       await writeLog('update', 'companyAccount', uid, `기업 계정 ${turningOff ? '접근 해제' : '복구'}: ${a.name}`);
       loadCompanyAccounts();
     } catch(e) { alert('변경 실패: ' + e.message); }
+  }
+
+  // 기업 계정 삭제
+  // ⚠️ 앱에서 지울 수 있는 건 "권한 문서(companyAccounts)"까지다.
+  //    로그인 계정(Firebase Auth) 자체는 콘솔에서만 지울 수 있고,
+  //    남아 있으면 그 이메일로는 다시 발급할 수 없다.
+  async function deleteCompanyAccount(uid) {
+    const a = allCompanyAccounts.find(x => x.uid === uid);
+    if (!a) return;
+    if (!await customConfirm({ title: '기업 계정 삭제',
+      message: `<b>${a.companyName || ''}</b> 계정을 삭제할까요?<br>
+        <span style="font-family:monospace;">${a.email || ''}</span><br><br>
+        ✅ 즉시 모든 데이터 접근이 차단됩니다.<br><br>
+        <span style="font-size:12px;color:#92400e;">
+        ⚠️ 로그인 계정 자체는 Firebase 콘솔에서 따로 지워야 합니다.<br>
+        남겨두면 <b>같은 이메일로 재발급이 안 됩니다.</b><br>
+        콘솔 → Authentication → 사용자 → 위 주소 검색 → 삭제</span>`,
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'companyAccounts', uid));
+      await writeLog('delete', 'companyAccount', uid, `기업 계정 삭제: ${a.companyName || ''} (${a.email || ''})`);
+      alert(`삭제했습니다.\n\n같은 이메일(${a.email})로 다시 발급하려면\nFirebase 콘솔 → Authentication 에서 그 계정도 지워주세요.`);
+      loadCompanyAccounts();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
   // 학습근로자 폼의 "학습기업" 드롭다운을 기업 목록으로 채운다.
