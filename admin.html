@@ -3839,6 +3839,7 @@
           <button class="mini-btn" onclick="viewOpinion('${o.id}')" style="background:#1976d2;color:white;">📄 보기 · 인쇄</button>
           ${st === 'submitted' ? `<button class="mini-btn" onclick="confirmOpinionDoc('${o.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
           ${locked ? `<button class="mini-btn" onclick="unlockOpinion('${o.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+          <button class="mini-btn" onclick="deleteOpinion('${o.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
           <span style="font-size:11.5px;color:#94a3b8;align-self:center;">
             ${o.signedAt ? '제출 ' + escapeHtmlSafe(o.signedAt.slice(0,10)) : (o.updatedAt ? '저장 ' + escapeHtmlSafe(o.updatedAt.slice(0,10)) : '')}</span>
         </div>` : ''}
@@ -3930,6 +3931,28 @@
       await writeLog('update', 'teacherOpinion', id, `의견서 잠금 해제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
       renderOpinionDocs();
     } catch(e) { alert('처리 실패: ' + e.message); }
+  }
+
+  // 잘못 작성된 의견서 지우기 (관리자만).
+  // 기업 쪽에서는 제출 후 삭제가 불가능하므로, 오작성 정리는 여기서만 한다.
+  async function deleteOpinion(id) {
+    const o = allOpinions.find(x => x.id === id); if (!o) return;
+    const done = o.status === 'submitted' || o.status === 'confirmed';
+    if (!await customConfirm({ title: '의견서 삭제',
+      message: `<b>${escapeHtmlSafe(o.companyName || '')}</b> · ${escapeHtmlSafe(o.workerName || '')}<br>
+        ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를 삭제할까요?<br><br>
+        ${done ? '<span style="font-size:12px;color:#92400e;">⚠️ 이미 <b>서명 제출이 끝난 문서</b>입니다. 서명 이미지까지 함께 사라지며 되돌릴 수 없습니다.<br>내용만 고치면 되는 경우라면 삭제 대신 <b>🔓 잠금 해제</b>를 눌러주세요.</span>'
+              : '<span style="font-size:12px;color:#64748b;">작성 중(임시저장) 문서입니다.</span>'}`,
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'teacherOpinions', id));
+      allOpinions = allOpinions.filter(x => x.id !== id);
+      await writeLog('delete', 'teacherOpinion', id,
+        `의견서 삭제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}${done ? ' (제출완료본)' : ''}`);
+      renderOpinionDocs();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
   function downloadOpinionsExcel() {
