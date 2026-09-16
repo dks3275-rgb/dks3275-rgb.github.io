@@ -104,6 +104,25 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── 기업현장교사 의견서 (학습근로자별·월별) ──
+    // 기업 계정: 자기 기업 것만 읽고 쓸 수 있다.
+    // 🔒 잠금 원칙: 서명 후 locked=true 가 되면 기업은 더 이상 수정할 수 없다.
+    //    되돌리려면 관리자가 잠금을 해제해야 한다(증빙 무결성).
+    // ⚠️ 기업이 목록을 조회할 때는 반드시 where('companyId','==',내기업) 으로 질의해야 통과한다.
+    match /teacherOpinions/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow create: if isAdmin()
+        || (isCompany() && request.resource.data.companyId == myCompanyId());
+      // 기업 수정: 잠기지 않았을 때만, 그리고 소속 기업을 바꿔치기할 수 없다
+      allow update: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && request.resource.data.companyId == resource.data.companyId
+            && resource.data.locked != true);
+      allow delete: if isAdmin();
+    }
+
     // ── 중도탈락 관리 (민감: 탈락 사유·개선조치) ──
     // 로그인한 담당자만 접근. 학생 앱에서는 열 수 없음.
     match /dropouts/{id} {

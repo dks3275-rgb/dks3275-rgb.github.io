@@ -63,6 +63,10 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+    /* 목록 안 작은 실행 버튼 (서류 탭 등) */
+    .mini-btn { border: none; border-radius: 8px; padding: 7px 12px; font-family: inherit;
+                font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .mini-btn:active { transform: translateY(1px); }
     .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); }
     /* ── 카드 접기/펴기 (내용이 길어 스크롤이 과해지는 문제) ── */
     .card > .card-title { cursor: pointer; user-select: none; gap: 8px; }
@@ -629,6 +633,7 @@
   <button onclick="switchTab('survey', this)">📋 만족도</button>
   <button onclick="switchTab('consulting', this)">💬 상담</button>
   <button onclick="switchTab('company', this)">🏢 기업</button>
+  <button onclick="switchTab('docs', this)">📝 서류</button>
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
   <button onclick="switchTab('apply', this)">📝 신청</button>
@@ -1327,6 +1332,39 @@
   </div>
 </div>
 
+<!-- 서류 탭 (기업현장교사 의견서) -->
+<div class="tab-content" id="tab-docs">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">
+        📝 기업현장교사 의견서
+        <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
+      </div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0d47a1;line-height:1.65;">
+        기업이 <b>학습근로자 한 명당 월 1회</b> 작성해 서명 제출합니다.<br>
+        <small style="opacity:0.9;">제출되면 기업 쪽에서는 수정이 잠깁니다. 고쳐야 할 내용이 있으면 <b>잠금 해제</b>를 눌러 다시 열어주세요.</small>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">작성 월</label>
+          <select class="form-input" id="op-period" onchange="renderOpinionDocs()"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">기업</label>
+          <select class="form-input" id="op-company" onchange="renderOpinionDocs()">
+            <option value="">전체 기업</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+        <button class="send-btn" onclick="downloadOpinionsExcel()" style="background:#059669;flex:1;min-width:180px;">📊 엑셀로 내려받기</button>
+      </div>
+      <div id="opSummary" style="margin-top:14px;"></div>
+      <div id="opDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
 <!-- 자료실 탭 -->
 <div class="tab-content" id="tab-library">
   <div class="container">
@@ -1630,6 +1668,7 @@
     if (tab === 'survey') loadSurveyStatus();
     if (tab === 'consulting') loadConsulting();
     if (tab === 'company') { loadCompanies(); loadCourses(); loadCompanyAccounts(); if (!document.getElementById('ca-pw').value) genCompanyPw(); }
+    if (tab === 'docs') loadOpinionDocs();
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
     if (tab === 'apply') { loadApplications(); checkAdminTargetStatus(); }
@@ -3670,6 +3709,266 @@
   // ── 활동 로그 시스템 ──
   // ═══════════════════════════════════════════
   let logsItems = [];
+  // ══════════════════════════════════════════
+  //  📝 기업현장교사 의견서 (서류 탭)
+  // ══════════════════════════════════════════
+  const OP_SCORES = [
+    ['attend',     '훈련 참여도·성실성'],
+    ['understand', '직무 이해도'],
+    ['perform',    '업무 수행 능력'],
+    ['attitude',   '태도·대인관계'],
+    ['safety',     '안전수칙 준수']
+  ];
+  const OP_SC_TEXT = { 5:'매우 우수', 4:'우수', 3:'보통', 2:'미흡', 1:'매우 미흡' };
+  const OP_TEXTS = [
+    ['good',    '잘하고 있는 점'],
+    ['improve', '보완이 필요한 점'],
+    ['plan',    '다음 달 지도 계획'],
+    ['overall', '종합 의견']
+  ];
+  let allOpinions = [];
+
+  function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
+
+  function buildOpPeriodSelect() {
+    const sel = document.getElementById('op-period');
+    if (!sel || sel.options.length) return;
+    const d = new Date(); let html = '';
+    for (let i = 0; i < 12; i++) {
+      const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      html += `<option value="${ym}">${opYmLabel(ym)}</option>`;
+      d.setMonth(d.getMonth() - 1);
+    }
+    sel.innerHTML = html;
+  }
+
+  async function loadOpinionDocs() {
+    buildOpPeriodSelect();
+    const el = document.getElementById('opDocList');
+    if (el) el.innerHTML = '<div class="empty-history">불러오는 중...</div>';
+    try {
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(collection(db, 'teacherOpinions'));
+      allOpinions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 미제출 계산에 필요한 기초 자료
+      if (!allCompanies.length) await loadCompanies();
+      if (!allCourses.length)   await loadCourses();
+      if (!allWorkers.length)   await loadWorkers();
+      // 기업 선택지
+      const csel = document.getElementById('op-company');
+      if (csel) {
+        const cur = csel.value;
+        csel.innerHTML = '<option value="">전체 기업</option>' +
+          allCompanies.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'))
+            .map(c => `<option value="${c.id}">${escapeHtmlSafe(c.name || '')}</option>`).join('');
+        csel.value = cur;
+      }
+      renderOpinionDocs();
+    } catch(e) {
+      if (el) el.innerHTML = '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message || '') + '</div>';
+    }
+  }
+
+  // 이번 달에 "작성되어야 할" 목록 = 탈락하지 않은 학습근로자 전원
+  function opExpectedRows(period, companyId) {
+    const byId = {};
+    allOpinions.forEach(o => { if (o.period === period) byId[o.workerId] = o; });
+    return allWorkers
+      .filter(w => !w.deleted && !w.dropout)
+      .filter(w => !companyId || w.companyId === companyId)
+      .map(w => {
+        const co = allCompanies.find(c => c.id === w.companyId);
+        const cs = allCourses.find(c => c.id === w.courseId);
+        return {
+          worker: w,
+          companyName: co?.name || w.companyName || '-',
+          courseLabel: cs ? `${cs.type || ''}${cs.site ? ' · ' + cs.site : ''}` : (w.dept || '-'),
+          op: byId[w.id] || null
+        };
+      })
+      .sort((a, b) => a.companyName.localeCompare(b.companyName, 'ko')
+        || (a.worker.name || '').localeCompare(b.worker.name || '', 'ko'));
+  }
+
+  function renderOpinionDocs() {
+    const period = document.getElementById('op-period')?.value;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const el = document.getElementById('opDocList');
+    const sum = document.getElementById('opSummary');
+    if (!el || !period) return;
+    const rows = opExpectedRows(period, companyId);
+
+    const nDone = rows.filter(r => r.op && (r.op.status === 'submitted' || r.op.status === 'confirmed')).length;
+    const nConf = rows.filter(r => r.op?.status === 'confirmed').length;
+    const nDraft = rows.filter(r => r.op?.status === 'draft').length;
+    const nNone = rows.length - nDone - nDraft;
+    const rate = rows.length ? Math.round(nDone / rows.length * 100) : 0;
+
+    if (sum) sum.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        ${[['제출률', rate + '%', '#1976d2'], ['제출', nDone + '건', '#059669'],
+           ['작성 중', nDraft + '건', '#d97706'], ['미작성', nNone + '건', '#64748b']]
+          .map(([l, v, c]) => `<div style="background:#f8fafc;border:1.5px solid #e4eaf4;border-radius:10px;padding:11px 8px;text-align:center;">
+            <div style="font-size:11.5px;color:#64748b;">${l}</div>
+            <div style="font-size:18px;font-weight:700;color:${c};margin-top:2px;">${v}</div></div>`).join('')}
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-top:8px;">
+        ${opYmLabel(period)} 기준 · 대상 ${rows.length}명 · 센터 확인 완료 ${nConf}건</div>`;
+
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty-history">해당 조건에 학습근로자가 없습니다.</div>';
+      return;
+    }
+    el.innerHTML = rows.map(r => {
+      const o = r.op;
+      const st = o ? (o.status || 'draft') : 'none';
+      const info = { none:['미작성','#f1f5f9','#64748b'], draft:['작성 중','#fef3c7','#92400e'],
+                     submitted:['제출 완료','#dcfce7','#166534'], confirmed:['센터 확인','#dbeafe','#1e40af'] }[st];
+      const locked = !!o?.locked;
+      return `<div style="border:1.5px solid #e4eaf4;border-radius:11px;padding:13px 15px;margin-bottom:8px;background:white;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:180px;">
+            <div style="font-size:14.5px;font-weight:700;">${escapeHtmlSafe(r.worker.name || '-')}
+              <span style="font-size:12px;font-weight:400;color:#64748b;"> · ${escapeHtmlSafe(r.companyName)}</span></div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtmlSafe(r.courseLabel)}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${info[1]};color:${info[2]};white-space:nowrap;">${info[0]}</span>
+        </div>
+        ${o ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+          <button class="mini-btn" onclick="viewOpinion('${o.id}')" style="background:#1976d2;color:white;">📄 보기 · 인쇄</button>
+          ${st === 'submitted' ? `<button class="mini-btn" onclick="confirmOpinionDoc('${o.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+          ${locked ? `<button class="mini-btn" onclick="unlockOpinion('${o.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+          <span style="font-size:11.5px;color:#94a3b8;align-self:center;">
+            ${o.signedAt ? '제출 ' + escapeHtmlSafe(o.signedAt.slice(0,10)) : (o.updatedAt ? '저장 ' + escapeHtmlSafe(o.updatedAt.slice(0,10)) : '')}</span>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function viewOpinion(id) {
+    const o = allOpinions.find(x => x.id === id);
+    if (!o) { alert('의견서를 찾지 못했습니다.'); return; }
+    const E = escapeHtmlSafe;
+    const row = (a, b) => `<tr><th>${a}</th><td>${b || '-'}</td></tr>`;
+    const body = `
+    <h1>기업현장교사 의견서</h1>
+    <table class="info">
+      ${row('기업명', E(o.companyName))}
+      ${row('훈련과정', E(o.courseType) + (o.site ? ' / ' + E(o.site) : ''))}
+      ${row('훈련과정번호', E(o.courseNo))}
+      ${row('학습근로자', E(o.workerName))}
+      ${row('작성 기간', E(opYmLabel(o.period)))}
+    </table>
+    <h2>1. 훈련 실시 현황</h2>
+    <table class="info">${row('훈련시간 (계획 / 실시)', `${o.hoursPlan ?? '-'} 시간 / ${o.hoursDone ?? '-'} 시간`)}</table>
+    <div class="box">${E(o.content).replace(/\n/g, '<br>') || '-'}</div>
+    <h2>2. 학습근로자 평가</h2>
+    <table class="score">
+      <tr><th>평가 항목</th><th>점수</th><th>등급</th></tr>
+      ${OP_SCORES.map(([k, q]) => `<tr><td>${q}</td><td class="c">${o.scores?.[k] ?? '-'}</td><td class="c">${OP_SC_TEXT[o.scores?.[k]] || '-'}</td></tr>`).join('')}
+    </table>
+    <h2>3. 현장교사 의견</h2>
+    ${OP_TEXTS.map(([k, label]) => `<h3>${label}</h3><div class="box">${E(o[k]).replace(/\n/g, '<br>') || '-'}</div>`).join('')}
+    <div class="sign">
+      <div>작성일 ${E((o.signedAt || o.updatedAt || '').slice(0, 10))}</div>
+      <div class="who">기업현장교사 &nbsp; ${E(o.teacherName)} &nbsp; (서명)</div>
+      ${o.signature ? `<img src="${o.signature}">` : '<div style="font-size:12px;color:#b91c1c;">※ 서명 없음 (제출 전 임시저장 상태)</div>'}
+    </div>`;
+    const w = window.open('', '_blank', 'width=880,height=1000');
+    if (!w) { alert('팝업이 차단되었습니다. 주소창의 팝업 허용을 켜주세요.'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+    <title>기업현장교사 의견서 - ${E(o.workerName)} ${E(o.period)}</title><style>
+    @page { size:A4; margin:16mm 14mm; }
+    body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; line-height:1.65; padding:20px; }
+    h1 { font-size:21px; text-align:center; letter-spacing:6px; margin-bottom:18px; padding-bottom:12px; border-bottom:2.5px solid #111; }
+    h2 { font-size:14px; margin:20px 0 8px; padding-left:8px; border-left:4px solid #1976d2; }
+    h3 { font-size:12.5px; margin:12px 0 5px; color:#374151; }
+    table { width:100%; border-collapse:collapse; }
+    table.info th { width:150px; background:#f3f4f6; text-align:left; }
+    table.info th, table.info td, table.score th, table.score td { border:1px solid #9ca3af; padding:7px 10px; }
+    table.score th { background:#f3f4f6; }
+    table.score td.c { text-align:center; width:90px; }
+    .box { border:1px solid #9ca3af; padding:10px 12px; min-height:56px; white-space:pre-wrap; }
+    .sign { margin-top:34px; text-align:right; }
+    .sign .who { margin-top:8px; font-size:14px; font-weight:bold; }
+    .sign img { height:70px; display:block; margin-left:auto; margin-top:-6px; }
+    .bar { text-align:center; margin-bottom:16px; }
+    .bar button { padding:10px 22px; font-size:14px; font-weight:700; border:none; border-radius:8px; background:#1976d2; color:white; cursor:pointer; }
+    @media print { .bar { display:none; } body { padding:0; } }
+    </style></head><body><div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>${body}</body></html>`);
+    w.document.close();
+  }
+
+  async function confirmOpinionDoc(id) {
+    const o = allOpinions.find(x => x.id === id); if (!o) return;
+    if (!await customConfirm({ title: '의견서 확인 처리',
+      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>확인 완료로 표시할까요?`,
+      confirmText: '✅ 확인 처리' })) return;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const when = new Date().toISOString();
+      await updateDoc(doc(db, 'teacherOpinions', id), { status: 'confirmed', confirmedAt: when });
+      Object.assign(o, { status: 'confirmed', confirmedAt: when });
+      await writeLog('update', 'teacherOpinion', id, `의견서 확인: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
+      renderOpinionDocs();
+    } catch(e) { alert('처리 실패: ' + e.message); }
+  }
+
+  async function unlockOpinion(id) {
+    const o = allOpinions.find(x => x.id === id); if (!o) return;
+    if (!await customConfirm({ title: '잠금 해제',
+      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>기업이 다시 수정할 수 있게 열어줄까요?<br><br>
+        <span style="font-size:12px;color:#92400e;">기존 서명은 그대로 남아 있지만, 기업이 다시 제출하면 새 서명으로 바뀝니다.</span>`,
+      confirmText: '🔓 잠금 해제' })) return;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db, 'teacherOpinions', id), { locked: false, status: 'draft', unlockedAt: new Date().toISOString() });
+      Object.assign(o, { locked: false, status: 'draft' });
+      await writeLog('update', 'teacherOpinion', id, `의견서 잠금 해제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
+      renderOpinionDocs();
+    } catch(e) { alert('처리 실패: ' + e.message); }
+  }
+
+  function downloadOpinionsExcel() {
+    if (typeof XLSX === 'undefined') { alert('엑셀 모듈이 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.'); return; }
+    const period = document.getElementById('op-period')?.value;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const rows = opExpectedRows(period, companyId);
+    if (!rows.length) { alert('내려받을 자료가 없습니다.'); return; }
+    const ST = { none:'미작성', draft:'작성 중', submitted:'제출 완료', confirmed:'센터 확인' };
+    const data = rows.map((r, i) => {
+      const o = r.op || {};
+      const st = r.op ? (o.status || 'draft') : 'none';
+      const out = {
+        '연번': i + 1,
+        '기업명': r.companyName,
+        '훈련과정': r.courseLabel,
+        '학습근로자': r.worker.name || '',
+        '작성월': period,
+        '상태': ST[st],
+        '훈련시간(계획)': o.hoursPlan ?? '',
+        '훈련시간(실시)': o.hoursDone ?? '',
+        '주요 훈련내용': o.content || ''
+      };
+      OP_SCORES.forEach(([k, q]) => { out[q] = o.scores?.[k] ?? ''; });
+      OP_TEXTS.forEach(([k, label]) => { out[label] = o[k] || ''; });
+      out['기업현장교사'] = o.teacherName || '';
+      out['제출일'] = (o.signedAt || '').slice(0, 10);
+      out['센터확인일'] = (o.confirmedAt || '').slice(0, 10);
+      return out;
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = Object.keys(data[0]).map(k =>
+      ({ wch: ['주요 훈련내용','잘하고 있는 점','보완이 필요한 점','다음 달 지도 계획','종합 의견'].includes(k) ? 38
+            : (k === '기업명' || k === '훈련과정' ? 22 : 12) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '현장교사의견서');
+    XLSX.writeFile(wb, `기업현장교사_의견서_${period}_${localToday()}.xlsx`);
+  }
+
   async function writeLog(action, target, targetId, detail) {
     try {
       const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
