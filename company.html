@@ -181,7 +181,7 @@
   <div id="courseView">
     <div class="card">
       <div class="card-title">📘 훈련과정 <span class="hint" id="courseCount"></span></div>
-      <div class="info-box">
+      <div class="info-box" data-guide="course_list">
         관리하실 훈련과정을 선택하세요. 과정별로 학습근로자와 서류를 따로 관리합니다.
       </div>
       <div id="courseList"><div class="empty">불러오는 중...</div></div>
@@ -203,7 +203,7 @@
       <div class="card-title">📝 기업현장교사 의견서
         <select class="sel-mini" id="periodSel"></select>
       </div>
-      <div class="info-box">
+      <div class="info-box" data-guide="opinion_intro">
         학습근로자 <b>한 명당 한 달에 한 장</b> 작성합니다.<br>
         작성 후 <b>서명하고 제출</b>하면 내용이 잠기고 센터에서 확인합니다.
       </div>
@@ -214,7 +214,7 @@
       <div class="card-title">✅ 월별 체크리스트
         <span class="st-badge" id="ckBadge" style="margin-left:auto;">-</span>
       </div>
-      <div class="info-box">
+      <div class="info-box" data-guide="checklist_intro">
         훈련과정마다 <b>한 달에 한 장</b> 작성합니다.<br>
         출결 확인 · OJT 비용 신청 · 활동수당 신청을 점검하고 마지막에 서명합니다.
       </div>
@@ -239,6 +239,13 @@
     </div>
 
     <div id="ckLockBar"></div>
+
+    <div class="card">
+      <div class="info-box" data-guide="checklist_form" style="margin-bottom:0;">
+        각 항목을 <b>예 / 아니오 / 해당없음</b> 중에서 골라주세요.<br>
+        '아니오'가 있으면 아래 <b>특이사항</b>에 이유를 적어야 제출됩니다. 센터가 먼저 살펴보기 위한 것이니 편하게 적어주세요.
+      </div>
+    </div>
 
     <div id="ckGroups"></div>
 
@@ -288,6 +295,13 @@
     </div>
 
     <div id="opLockBar"></div>
+
+    <div class="card">
+      <div class="info-box" data-guide="opinion_form" style="margin-bottom:0;">
+        이번 달 이 학습근로자를 지도하면서 보신 것을 그대로 적어주시면 됩니다.<br>
+        <b>임시저장</b>을 눌러두면 나중에 이어서 쓸 수 있고, <b>서명하고 제출</b>해야 센터로 넘어갑니다.
+      </div>
+    </div>
 
     <div class="card">
       <div class="card-title">① 훈련 실시 현황</div>
@@ -439,12 +453,35 @@ onAuthStateChanged(auth, async (user) => {
     $('gate').style.display = 'none';
     $('hdrCompany').textContent = a.companyName || '학습기업 관리';
     $('hdrEmail').textContent = (a.name ? a.name + ' · ' : '') + (user.email || '');
+    loadGuides();
     loadCourses();
   } catch(e) {
     await signOut(auth);
     showGateErr('정보를 불러오지 못했습니다.<br><small>' + (e.message || '') + '</small>');
   }
 });
+
+// ══════════════════════════════════════════
+//  화면 안내문구 (관리자가 admin에서 직접 수정)
+//   HTML에 적힌 문구가 기본값이고, DB에 값이 있으면 그것으로 덮어쓴다.
+//   → DB가 비어 있거나 못 읽어도 화면은 정상 동작한다.
+// ══════════════════════════════════════════
+async function loadGuides() {
+  let g = {};
+  try {
+    const snap = await getDoc(doc(db, 'app_config', 'guides'));
+    if (snap.exists()) g = snap.data() || {};
+  } catch(e) { /* 못 읽으면 기본 문구 그대로 */ }
+  document.querySelectorAll('[data-guide]').forEach(el => {
+    const v = g[el.dataset.guide];
+    if (v && String(v).trim()) el.innerHTML = guideHtml(String(v));
+  });
+}
+// 관리자가 쓴 글을 안전하게 화면에 올린다.
+// 태그는 전부 글자로 처리하고, 줄바꿈과 **강조**만 살린다.
+function guideHtml(s) {
+  return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+}
 
 // ══════════ 훈련과정 목록 ══════════
 let myCourses = [];
