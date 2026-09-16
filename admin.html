@@ -1129,8 +1129,8 @@
         <button class="refresh-btn" onclick="loadCompanies()">🔄 새로고침</button>
       </div>
       <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0d47a1;line-height:1.65;">
-        여기 등록한 기업이 <b>학습근로자 명단의 소속 기업</b>과 앱의 <b>학습기업 디렉토리</b>에 함께 쓰입니다.<br>
-        <small style="opacity:0.9;">앞으로 기업 계정 발급·서류 제출도 이 기업 목록을 기준으로 연결됩니다.</small>
+        기업 구분 기준은 <b>사업장관리번호</b>입니다. 같은 브랜드라도 번호가 다르면 별개로 등록합니다.<br>
+        <small style="opacity:0.9;">한 번호 아래 여러 매장이 있으면(예: ㈜에렉스 → 이화원·용산·코엑스) 기업은 1개로 두고, 매장 구분은 아래 <b>훈련과정의 사업장명</b>으로 합니다.</small>
       </div>
       <input type="hidden" id="co-edit-id" value="">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -1139,7 +1139,7 @@
           <input type="text" class="form-input" id="co-name" placeholder="예: ○○호텔">
         </div>
         <div class="form-group">
-          <label class="form-label">고용보험관리번호 <span style="font-weight:400;color:#718096;font-size:11px;">(기업 고유번호)</span></label>
+          <label class="form-label">사업장관리번호 <span style="font-weight:400;color:#718096;font-size:11px;">(고용보험 · 기업 구분 기준)</span></label>
           <input type="text" class="form-input" id="co-insno" placeholder="예: 22081015620">
         </div>
       </div>
@@ -1187,7 +1187,7 @@
         style="display:none;background:#94a3b8;margin-top:8px;">취소 (새로 등록으로)</button>
 
       <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
-        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(기업명 · 고용보험관리번호 · 관련학과 · 담당자 · 연락처 · 분야 순, 탭 또는 쉼표 구분)</span></label>
+        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(기업명 · 사업장관리번호 · 관련학과 · 담당자 · 연락처 · 분야 순, 탭 또는 쉼표 구분)</span></label>
         <textarea class="form-input" id="co-bulk" style="min-height:90px;font-family:monospace;font-size:12px;"
           placeholder="○○호텔	22081015620	전문대 호텔조리학과	김담당	02-000-0000	호텔·외식&#10;△△리조트	58885005980	P-TECH 1학년	이담당"></textarea>
         <button class="send-btn" onclick="bulkAddCompanies()" style="background:#059669;margin-top:8px;">📥 일괄 등록</button>
@@ -2414,7 +2414,7 @@
         // 고용보험관리번호가 있으면 그걸 고유 키로 중복 판정 (기업명 표기는 파일마다 달라 신뢰 불가)
         if (d.insuranceNo && allCompanies.some(c => (c.insuranceNo || '') === d.insuranceNo)) {
           const dup = allCompanies.find(c => (c.insuranceNo || '') === d.insuranceNo);
-          showCoResult(`⚠️ 같은 고용보험관리번호가 이미 등록됨 (${dup.name})`, 'error'); return;
+          showCoResult(`⚠️ 같은 사업장관리번호가 이미 등록됨 (${dup.name})`, 'error'); return;
         }
         if (!d.insuranceNo && allCompanies.some(c => (c.name || '').trim() === d.name)) {
           showCoResult('⚠️ 같은 이름의 기업이 이미 등록되어 있어요', 'error'); return;
@@ -2439,8 +2439,8 @@
       const insuranceNo = (c[1] || '').replace(/[^0-9]/g, '');
       if (!name) { skipped.push(`${i+1}행: 기업명 없음`); return; }
       // 고용보험관리번호 우선으로 중복 판정
-      if (insuranceNo && allCompanies.some(x => (x.insuranceNo || '') === insuranceNo)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨(보험번호)`); return; }
-      if (insuranceNo && parsed.some(p => p.insuranceNo === insuranceNo)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 보험번호 중복`); return; }
+      if (insuranceNo && allCompanies.some(x => (x.insuranceNo || '') === insuranceNo)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨(사업장번호)`); return; }
+      if (insuranceNo && parsed.some(p => p.insuranceNo === insuranceNo)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 사업장번호 중복`); return; }
       if (!insuranceNo && allCompanies.some(x => (x.name || '').trim() === name)) { skipped.push(`${i+1}행 "${name}": 이미 등록됨`); return; }
       if (!insuranceNo && parsed.some(p => p.name === name)) { skipped.push(`${i+1}행 "${name}": 입력 안에서 중복`); return; }
       parsed.push({ name, insuranceNo, dept: c[2] || '', contact: c[3] || '', phone: c[4] || '', field: c[5] || '', role: '', address: '' });
@@ -2479,7 +2479,7 @@
           <div class="cal-event-item" style="border-left-color:#7c5cfa;">
             <div class="cal-event-info">
               <div class="cal-event-title">🏢 ${c.name || '-'}</div>
-              <div class="cal-event-meta">${c.insuranceNo ? '보험번호 ' + c.insuranceNo : '<span style="color:#d97706;">보험번호 없음</span>'}${c.dept ? ' · ' + c.dept : ''}${c.contact ? ' · ' + c.contact : ''}${c.phone ? ' · ' + c.phone : ''}</div>
+              <div class="cal-event-meta">${c.insuranceNo ? '사업장번호 ' + c.insuranceNo : '<span style="color:#d97706;">사업장번호 없음</span>'}${c.dept ? ' · ' + c.dept : ''}${c.contact ? ' · ' + c.contact : ''}${c.phone ? ' · ' + c.phone : ''}</div>
               ${c.field || c.address ? `<div class="cal-event-desc">${[c.field, c.address].filter(Boolean).join(' · ')}</div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
