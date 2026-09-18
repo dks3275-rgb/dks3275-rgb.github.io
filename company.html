@@ -150,6 +150,13 @@
   .ck-opts button:disabled { opacity:.6; cursor:default; }
   .ck-sum { display:flex; align-items:center; gap:10px; padding:14px 15px; border:1.5px solid var(--line);
             border-radius:11px; background:#f8fafc; }
+  .dual-box { display:flex; align-items:center; gap:9px; padding:12px 14px; border:1.5px solid var(--line);
+              border-radius:11px; background:#f8fafc; margin-bottom:14px; cursor:pointer; font-size:13.5px; }
+  .dual-box input { width:18px; height:18px; flex-shrink:0; accent-color:var(--navy); cursor:pointer; }
+  .sign-block { border:1.5px solid var(--line); border-radius:12px; padding:14px 15px; margin-bottom:12px; }
+  .sign-block .sb-title { font-size:14px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .sb-tag { background:var(--navy); color:white; font-size:11.5px; font-weight:700;
+            width:22px; height:22px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; }
 
   /* ══ 내부평가지 ══ */
   .file-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--line);
@@ -353,29 +360,57 @@
     </div>
 
     <div class="card">
-      <div class="card-title">최종 확인 및 서명</div>
-      <div class="two">
-        <div class="fld">
-          <label>작성자 성명</label>
-          <input type="text" id="ckName" placeholder="예) 홍길동">
-        </div>
-        <div class="fld">
-          <label>직책 <span style="font-weight:400;color:var(--gray);">(선택)</span></label>
-          <input type="text" id="ckRole" placeholder="예) HRD담당자 / 기업현장교사">
-        </div>
+      <div class="card-title">최종 확인 및 서명
+        <span class="hint" id="ckSignHint">HRD담당자 · 기업현장교사 두 분</span>
       </div>
-      <div class="fld">
-        <label>서명</label>
-        <div class="help">위 내용을 모두 확인했음을 서명으로 확인합니다. 제출하면 수정할 수 없습니다.</div>
-        <div class="sign-wrap">
-          <canvas id="ckPad" class="sign-pad"></canvas>
-          <div class="sign-tools">
-            <span class="tip" id="ckTip">아직 서명하지 않았습니다.</span>
-            <button type="button" class="op-btn ghost" id="ckClear">지우기</button>
+      <div class="info-box" style="margin-bottom:14px;">
+        위 내용을 모두 확인했음을 <b>두 분이 각각 서명</b>해주세요.<br>
+        제출하면 수정할 수 없습니다.
+      </div>
+
+      <label class="dual-box" for="ckDual">
+        <input type="checkbox" id="ckDual">
+        <span>한 분이 <b>HRD담당자와 기업현장교사를 겸임</b>합니다</span>
+      </label>
+
+      <div class="sign-block" id="ckBlockA">
+        <div class="sb-title"><span class="sb-tag">①</span> <span id="ckLabelA">HRD담당자</span></div>
+        <div class="fld">
+          <label>성명</label>
+          <input type="text" id="ckNameA" placeholder="예) 홍길동">
+        </div>
+        <div class="fld" style="margin-bottom:0;">
+          <label>서명</label>
+          <div class="sign-wrap">
+            <canvas id="ckPadA" class="sign-pad"></canvas>
+            <div class="sign-tools">
+              <span class="tip" id="ckTipA">아직 서명하지 않았습니다.</span>
+              <button type="button" class="op-btn ghost" id="ckClearA">지우기</button>
+            </div>
           </div>
+          <div id="ckShowA" style="display:none;margin-top:6px;"></div>
         </div>
-        <div id="ckShow" style="display:none;margin-top:6px;"></div>
       </div>
+
+      <div class="sign-block" id="ckBlockB">
+        <div class="sb-title"><span class="sb-tag">②</span> 기업현장교사</div>
+        <div class="fld">
+          <label>성명</label>
+          <input type="text" id="ckNameB" placeholder="예) 김현장">
+        </div>
+        <div class="fld" style="margin-bottom:0;">
+          <label>서명</label>
+          <div class="sign-wrap">
+            <canvas id="ckPadB" class="sign-pad"></canvas>
+            <div class="sign-tools">
+              <span class="tip" id="ckTipB">아직 서명하지 않았습니다.</span>
+              <button type="button" class="op-btn ghost" id="ckClearB">지우기</button>
+            </div>
+          </div>
+          <div id="ckShowB" style="display:none;margin-top:6px;"></div>
+        </div>
+      </div>
+
       <div class="act-bar" id="ckActions"></div>
     </div>
 
@@ -1431,8 +1466,11 @@ const CK_ALL = CK_GROUPS.flatMap(g => g[2]);
 const CK_OPTS = [['yes', '예'], ['no', '아니오'], ['na', '해당없음']];
 const CK_TEXT = { yes: '예', no: '아니오', na: '해당없음' };
 
-let curChecklist = null, ckAnswers = {}, ckSignData = '';
-const ckSign = createSignPad('ckPad', 'ckTip', 'ckClear', 'ckShow');
+let curChecklist = null, ckAnswers = {};
+// 체크리스트는 HRD담당자·기업현장교사 두 분의 서명을 받는다.
+// 한 분이 겸임하는 기업이 많아 겸임 체크 시 ①만 받는다.
+const ckSignA = createSignPad('ckPadA', 'ckTipA', 'ckClearA', 'ckShowA');   // HRD담당자
+const ckSignB = createSignPad('ckPadB', 'ckTipB', 'ckClearB', 'ckShowB');   // 기업현장교사
 const ckId = (courseId, period) => `${courseId}__${period}`;
 
 // 과정 상세의 요약 카드
@@ -1473,7 +1511,6 @@ async function loadChecklist() {
 function openChecklist() {
   const period = $('periodSel').value;
   ckAnswers = Object.assign({}, curChecklist?.items || {});
-  ckSignData = curChecklist?.signature || '';
   const locked = !!curChecklist?.locked;
   const status = curChecklist?.status || 'none';
 
@@ -1497,12 +1534,24 @@ function openChecklist() {
   }
 
   $('ckNote').value = curChecklist?.note || '';
-  $('ckName').value = curChecklist?.name || myAccount.name || '';
-  $('ckRole').value = curChecklist?.role || '';
-  ['ckNote','ckName','ckRole'].forEach(id => { $(id).disabled = locked; });
+
+  // 옛 문서(서명 1인)는 ①번 칸으로 옮겨 읽는다
+  const sa = curChecklist?.signHrd || (curChecklist?.signature
+    ? { name: curChecklist.name || '', signature: curChecklist.signature } : null);
+  const sb = curChecklist?.signTeacher || null;
+  const dual = !!curChecklist?.dualExempt;
+
+  $('ckDual').checked = dual;
+  $('ckDual').disabled = locked;
+  $('ckNameA').value = sa?.name || myAccount.name || '';
+  $('ckNameB').value = sb?.name || '';
+  ['ckNote','ckNameA','ckNameB'].forEach(id => { $(id).disabled = locked; });
 
   renderCkGroups(locked);
-  ckSign.mount(locked, ckSignData, curChecklist?.name);
+  ckSignA.mount(locked, sa?.signature || '', sa?.name);
+  ckSignB.mount(locked, sb?.signature || '', sb?.name);
+  applyCkDual();
+  $('ckDual').onchange = applyCkDual;
   renderCkActions(locked);
   renderCkScans(status);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1543,6 +1592,14 @@ function renderCkGroups(locked) {
   });
 }
 
+// 겸임 체크 상태를 화면에 반영
+function applyCkDual() {
+  const dual = $('ckDual').checked;
+  $('ckBlockB').style.display = dual ? 'none' : 'block';
+  $('ckLabelA').textContent = dual ? 'HRD담당자 겸 기업현장교사' : 'HRD담당자';
+  $('ckSignHint').textContent = dual ? '겸임 — 한 분 서명' : 'HRD담당자 · 기업현장교사 두 분';
+}
+
 function renderCkActions(locked) {
   const bar = $('ckActions');
   if (locked) {
@@ -1559,6 +1616,9 @@ function renderCkActions(locked) {
 
 async function saveChecklist(submit) {
   const period = $('periodSel').value;
+  const dual = $('ckDual').checked;
+  const nameA = $('ckNameA').value.trim();
+  const nameB = $('ckNameB').value.trim();
   const c = {
     companyId: myAccount.companyId,
     companyName: myAccount.companyName || '',
@@ -1569,24 +1629,41 @@ async function saveChecklist(submit) {
     period,
     items: ckAnswers,
     note: $('ckNote').value.trim(),
-    name: $('ckName').value.trim(),
-    role: $('ckRole').value.trim(),
+    dualExempt: dual,
     authorUid: myAccount.uid,
     updatedAt: new Date().toISOString()
   };
+  const sigA = ckSignA.grab();
+  const sigB = dual ? '' : ckSignB.grab();
+
   if (submit) {
     const left = CK_ALL.filter(([k]) => !ckAnswers[k]).length;
     if (left) { toast(`아직 확인하지 않은 항목이 ${left}개 있습니다`); return; }
     const noItems = CK_ALL.filter(([k]) => ckAnswers[k] === 'no');
     if (noItems.length && !c.note) { toast(`'아니오'로 체크한 항목의 이유를 특이사항에 적어주세요`); $('ckNote').focus(); return; }
-    if (!c.name) { toast('작성자 성명을 입력해주세요'); return; }
-    const sig = ckSign.grab();
-    if (!sig) { toast('서명을 입력해주세요'); $('ckPad').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
-    if (!confirm(`${ymLabel(period)} 체크리스트를 제출합니다.\n\n제출하면 내용이 잠겨 수정할 수 없습니다.\n계속할까요?`)) return;
-    c.signature = sig; c.locked = true; c.status = 'submitted';
-    c.signedAt = new Date().toISOString();
+    if (!nameA) { toast(dual ? '성명을 입력해주세요' : 'HRD담당자 성명을 입력해주세요'); return; }
+    if (!sigA) { toast(dual ? '서명을 입력해주세요' : 'HRD담당자 서명을 입력해주세요');
+      $('ckPadA').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+    if (!dual) {
+      if (!nameB) { toast('기업현장교사 성명을 입력해주세요'); return; }
+      if (!sigB) { toast('기업현장교사 서명을 입력해주세요');
+        $('ckPadB').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+    }
+    if (!confirm(`${ymLabel(period)} 체크리스트를 제출합니다.\n\n${dual ? '겸임 서명 1건' : '서명 2건'}이 확정되고 내용이 잠깁니다.\n계속할까요?`)) return;
+
+    const stamp = new Date().toISOString();
+    c.signHrd = { name: nameA, role: dual ? 'HRD담당자 겸 기업현장교사' : 'HRD담당자',
+                  signature: sigA, at: stamp, meta: buildSignMeta(nameA) };
+    c.signTeacher = dual ? null
+      : { name: nameB, role: '기업현장교사', signature: sigB, at: stamp, meta: buildSignMeta(nameB) };
+    c.docHash = await docFingerprint({ items: ckAnswers, note: c.note, a: nameA, b: nameB, p: period });
+    c.locked = true; c.status = 'submitted';
+    c.signedAt = stamp;
+    // 옛 단일 서명 필드는 더 쓰지 않는다
+    c.signature = ''; c.name = nameA; c.role = c.signHrd.role;
   } else {
-    c.signature = ckSign.grab() || ckSignData || '';
+    c.signHrd = sigA ? { name: nameA, role: dual ? 'HRD담당자 겸 기업현장교사' : 'HRD담당자', signature: sigA } : null;
+    c.signTeacher = (!dual && sigB) ? { name: nameB, role: '기업현장교사', signature: sigB } : null;
     c.locked = false; c.status = 'draft';
   }
   if (!curChecklist) c.createdAt = new Date().toISOString();
@@ -1597,7 +1674,6 @@ async function saveChecklist(submit) {
     const id = ckId(curCourse.id, period);
     await setDoc(doc(db, 'checklists', id), c, { merge: true });
     curChecklist = { id, ...(curChecklist || {}), ...c };
-    ckSignData = c.signature;
     if (submit) { toast('✅ 제출했습니다'); openChecklist(); }
     else { toast('💾 임시저장했습니다'); btns.forEach(b => b.disabled = false); }
   } catch(e) {
@@ -1722,6 +1798,22 @@ async function removeCkScan(i) {
   } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
 }
 
+// 체크리스트 출력물 서명란 — 겸임이면 1칸, 아니면 2칸
+function signRowHtml(c) {
+  const a = c.signHrd || (c.signature ? { name: c.name || '', role: c.role || '작성자', signature: c.signature } : null);
+  const b = c.signTeacher || null;
+  const cell = (s, fallbackRole) => `<td style="text-align:center;padding:10px 12px;">
+      <div style="font-size:11.5px;color:#444;">${esc(s?.role || fallbackRole)}</div>
+      <div style="font-size:14px;font-weight:bold;letter-spacing:2px;margin-top:20px;">
+        ${esc(s?.name || '')} &nbsp; (서명)</div>
+      ${s?.signature ? `<img src="${s.signature}" style="height:54px;display:block;margin:-6px auto 0;">`
+                     : '<div style="height:48px;"></div>'}
+    </td>`;
+  return `<table class="grid" style="margin-top:10px;">
+    <tr>${cell(a, c.dualExempt ? 'HRD담당자 겸 기업현장교사' : 'HRD담당자')}${b || !c.dualExempt ? cell(b, '기업현장교사') : ''}</tr>
+  </table>`;
+}
+
 function printChecklist() {
   const c = curChecklist; if (!c) return;
   const body = `
@@ -1743,11 +1835,8 @@ function printChecklist() {
 
   <h2>특이사항</h2>
   <div class="box">${esc(c.note).replace(/\n/g, '<br>') || '-'}</div>
-  <div class="sign">
-    <div>작성일 ${esc((c.signedAt || c.updatedAt || '').slice(0, 10))}</div>
-    <div class="who">${esc(c.role || '작성자')} &nbsp; ${esc(c.name)} &nbsp; (서명)</div>
-    ${c.signature ? `<img src="${c.signature}">` : ''}
-  </div>`;
+  <div style="margin-top:22px;font-size:12.5px;">작성일 ${esc((c.signedAt || c.updatedAt || '').slice(0, 10))}</div>
+  ${signRowHtml(c)}`;
   const w = window.open('', '_blank', 'width=860,height=1000');
   if (!w) { alert('팝업이 차단되었습니다. 브라우저 주소창의 팝업 허용을 켜주세요.'); return; }
   w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">

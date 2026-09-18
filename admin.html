@@ -5021,13 +5021,13 @@
       <table class="score"><tr><th>확인 항목</th><th>확인</th></tr>
       ${items.map(([k, q]) => `<tr><td>${q}</td><td class="c">${CK_TEXT_A[c.items?.[k]] || '-'}</td></tr>`).join('')}
       </table>`).join('')}
+    <h2>이 달 작성된 서류</h2>
+    ${ckDocSummaryA(c)}
+
     <h2>특이사항</h2>
     <div class="box">${E(c.note).replace(/\n/g, '<br>') || '-'}</div>
-    <div class="sign">
-      <div>작성일 ${E((c.signedAt || c.updatedAt || '').slice(0, 10))}</div>
-      <div class="who">${E(c.role || '작성자')} &nbsp; ${E(c.name)} &nbsp; (서명)</div>
-      ${c.signature ? `<img src="${c.signature}">` : '<div style="font-size:12px;color:#b91c1c;">※ 서명 없음 (제출 전 임시저장 상태)</div>'}
-    </div>`;
+    <div style="margin-top:22px;font-size:12.5px;">작성일 ${E((c.signedAt || c.updatedAt || '').slice(0, 10))}</div>
+    ${ckSignRowA(c)}`;
     const w = window.open('', '_blank', 'width=880,height=1000');
     if (!w) { alert('팝업이 차단되었습니다. 주소창의 팝업 허용을 켜주세요.'); return; }
     w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
@@ -5050,6 +5050,48 @@
     @media print { .bar { display:none; } body { padding:0; } }
     </style></head><body><div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>${body}</body></html>`);
     w.document.close();
+  }
+
+  // 체크리스트 출력물 서명란 — 겸임이면 1칸, 아니면 2칸
+  function ckSignRowA(c) {
+    const E = escapeHtmlSafe;
+    const a = c.signHrd || (c.signature ? { name: c.name || '', role: c.role || '작성자', signature: c.signature } : null);
+    const b = c.signTeacher || null;
+    const cell = (sg, fallbackRole) => `<td style="text-align:center;padding:10px 12px;">
+        <div style="font-size:11.5px;color:#444;">${E(sg?.role || fallbackRole)}</div>
+        <div style="font-size:14px;font-weight:bold;letter-spacing:2px;margin-top:20px;">
+          ${E(sg?.name || '')} &nbsp; (서명)</div>
+        ${sg?.signature ? `<img src="${sg.signature}" style="height:54px;display:block;margin:-6px auto 0;">`
+                        : '<div style="height:48px;"></div>'}
+      </td>`;
+    return `<table class="grid" style="margin-top:10px;">
+      <tr>${cell(a, c.dualExempt ? 'HRD담당자 겸 기업현장교사' : 'HRD담당자')}${b || !c.dualExempt ? cell(b, '기업현장교사') : ''}</tr>
+    </table>`;
+  }
+
+  // 체크리스트 출력물에 붙는 "이 달 작성된 서류" 표 (관리자용)
+  function ckDocSummaryA(c) {
+    const E = escapeHtmlSafe;
+    const workers = allWorkers.filter(w => !w.deleted && !w.dropout && w.courseId === c.courseId);
+    const rows = workers.map(w => {
+      const o = allOpinions.find(x => x.workerId === w.id && x.period === c.period);
+      const opState = !o || !(o.rows || []).length ? '미작성'
+        : (o.status === 'confirmed' ? '센터 확인' : (o.status === 'signed' ? '서명 완료' : '작성 중'));
+      const cns = allCounsels.filter(x => x.workerId === w.id && x.period === c.period);
+      const cnSigned = cns.filter(x => x.status === 'signed' || x.status === 'confirmed').length;
+      return [E(w.name || '-'), opState, cns.length ? `${cns.length}건 (서명 ${cnSigned}건)` : '미작성'];
+    });
+    const as = allAssessments.find(x => x.courseId === c.courseId && x.period === c.period);
+    const asState = !as || !(as.sheetFiles || []).length ? '해당 없음'
+      : (as.status === 'confirmed' ? '센터 확인' : (as.status === 'submitted' ? '완료본 제출' : '작성 대기'));
+    return `<table class="grid">
+      <tr><th style="width:120px;">학습근로자</th><th>OJT 훈련강사의견</th><th>학습근로자 면담일지</th></tr>
+      ${rows.length ? rows.map(r => `<tr><td class="c">${r[0]}</td><td class="c">${r[1]}</td><td class="c">${r[2]}</td></tr>`).join('')
+                    : '<tr><td class="c" colspan="3">대상 학습근로자가 없습니다.</td></tr>'}
+      <tr><td class="c" style="font-weight:600;">내부평가지</td><td class="c" colspan="2">${asState}</td></tr>
+    </table>
+    <div style="font-size:10.5px;color:#555;margin-top:5px;">
+      ※ ${E(opYmLabel(c.period))} 기준으로 시스템에서 자동 집계된 내용입니다.</div>`;
   }
 
   function viewChecklistScans(id) {
@@ -5138,7 +5180,10 @@
       };
       CK_ALL_A.forEach(([k, q]) => { out[q] = CK_TEXT_A[c.items?.[k]] || ''; });
       out['특이사항'] = c.note || '';
-      out['작성자'] = c.name || '';
+      out['겸임'] = byCourse[course.id] ? (c.dualExempt ? '겸임' : '') : '';
+      out['HRD담당자'] = c.signHrd?.name || c.name || '';
+      out['기업현장교사'] = c.dualExempt ? (c.signHrd?.name || '') : (c.signTeacher?.name || '');
+      out['자필본'] = (c.signedScans || []).length;
       out['제출일'] = (c.signedAt || '').slice(0, 10);
       out['센터확인일'] = (c.confirmedAt || '').slice(0, 10);
       return out;
