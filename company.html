@@ -322,14 +322,6 @@
       <div class="act-bar" id="cnActions"></div>
     </div>
 
-    <div class="card" id="cnScanCard" style="display:none;">
-      <div class="card-title">자필 서명본 올리기 <span class="hint">공단 제출용 증빙</span></div>
-      <div class="info-box" data-guide="counsel_scan">
-        위 <b>인쇄</b> 버튼으로 출력한 뒤 <b>자필로 서명</b>하시고,<br>
-        그 종이를 사진으로 찍거나 스캔해서 올려주세요.
-      </div>
-      <div id="cnScanBox"></div>
-    </div>
   </div>
 
   <!-- ══════ 월별 체크리스트 ══════ -->
@@ -386,6 +378,15 @@
       </div>
       <div class="act-bar" id="ckActions"></div>
     </div>
+
+    <div class="card" id="ckScanCard" style="display:none;">
+      <div class="card-title">자필 서명본 올리기 <span class="hint">공단 제출용 증빙</span></div>
+      <div class="info-box" data-guide="checklist_scan">
+        이 확인서 <b>한 장</b>으로 그 달 서류 전체를 확인한 것이 됩니다.<br>
+        위 <b>인쇄</b> 버튼으로 출력해 <b>자필로 서명</b>하시고, 사진을 찍어 올려주세요.
+      </div>
+      <div id="ckScanBox"></div>
+    </div>
   </div>
 
   <!-- ══════ 의견서 작성 ══════ -->
@@ -439,14 +440,6 @@
       <div class="act-bar" id="opActions"></div>
     </div>
 
-    <div class="card" id="opScanCard" style="display:none;">
-      <div class="card-title">③ 자필 서명본 올리기 <span class="hint">공단 제출용 증빙</span></div>
-      <div class="info-box" data-guide="opinion_scan">
-        위 <b>인쇄</b> 버튼으로 출력한 뒤 <b>자필로 서명</b>하시고,<br>
-        그 종이를 사진으로 찍거나 스캔해서 올려주세요. 이게 정식 증빙이 됩니다.
-      </div>
-      <div id="opScanBox"></div>
-    </div>
   </div>
 </div>
 
@@ -769,18 +762,16 @@ function openPrint(title, bodyHtml) {
 //   흐름: 센터 초안 등록 → 기업 확인·수정 → 전자서명 → 출력·자필서명 → 사진 업로드 → 센터 확인
 // ══════════════════════════════════════════
 const OP_STEPS = [
-  ['waiting', '① 초안 대기'],
-  ['ready',   '② 확인·서명'],
-  ['signed',  '③ 출력·자필'],
-  ['scanned', '④ 자필본 제출'],
-  ['confirmed', '⑤ 센터 확인']
+  ['waiting',   '① 초안 대기'],
+  ['ready',     '② 확인·서명'],
+  ['signed',    '③ 서명 완료'],
+  ['confirmed', '④ 센터 확인']
 ];
 const OP_ORDER = OP_STEPS.map(s => s[0]);
 const ST_INFO = {
   waiting:   ['초안 대기', 'st-none'],
   ready:     ['확인 필요', 'st-draft'],
-  signed:    ['자필 필요', 'st-draft'],
-  scanned:   ['제출 완료', 'st-sub'],
+  signed:    ['서명 완료', 'st-sub'],
   confirmed: ['센터 확인', 'st-conf'],
   none:      ['미작성',   'st-none'],
   draft:     ['작성 중',  'st-draft'],
@@ -938,7 +929,7 @@ function openOpinion(workerId) {
   signData = curOpinion?.signature || '';
 
   const st = curOpinion?.status || 'ready';
-  const locked = st === 'signed' || st === 'scanned' || st === 'confirmed';
+  const locked = st === 'signed' || st === 'confirmed';
 
   $('detailView').style.display = 'none';
   $('opinionView').style.display = 'block';
@@ -955,12 +946,10 @@ function openOpinion(workerId) {
     `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}" style="font-size:10.5px;">${label}</div>`).join('')}</div>`;
   if (st === 'confirmed') {
     bar += `<div class="lock-bar conf" style="margin-bottom:0;">✅ <b>센터 확인 완료</b>. 더 손대실 것이 없습니다.</div>`;
-  } else if (st === 'scanned') {
-    bar += `<div class="lock-bar" style="margin-bottom:0;">📨 <b>자필 서명본까지 제출</b>되었습니다. 센터 확인을 기다리는 중입니다.</div>`;
   } else if (st === 'signed') {
-    bar += `<div class="lock-bar" style="margin-bottom:0;">🔒 전자서명이 끝났습니다.<br>
-      <b>아래 인쇄 버튼으로 출력해 자필 서명하신 뒤, 사진을 올려주세요.</b><br>
-      <span style="font-size:12px;">내용을 고쳐야 하면 센터에 잠금 해제를 요청해주세요.</span></div>`;
+    bar += `<div class="lock-bar" style="margin-bottom:0;">✅ <b>서명이 끝났습니다.</b> 센터 확인을 기다리는 중입니다.<br>
+      <span style="font-size:12px;">필요하시면 아래에서 인쇄해 보관하실 수 있습니다.<br>
+      내용을 고쳐야 하면 센터에 잠금 해제를 요청해주세요.</span></div>`;
   } else {
     bar += `<div class="info-box" data-guide="opinion_form" style="margin-bottom:0;">
       센터가 작성한 초안입니다. <b>내용을 확인하고 필요하면 고쳐주세요.</b><br>
@@ -977,7 +966,6 @@ function openOpinion(workerId) {
   renderOpRows(locked);
   opSign.mount(locked, signData, curOpinion?.teacherName);
   renderOpActions(st);
-  renderOpScans(st);
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1142,105 +1130,6 @@ function printOpinion() {
   openPrint(`OJT 훈련강사의견 - ${o.workerName} ${o.period}`, body);
 }
 
-// ── 자필 서명본 업로드 ──
-function renderOpScans(st) {
-  const card = $('opScanCard');
-  if (st !== 'signed' && st !== 'scanned' && st !== 'confirmed') { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  const scans = curOpinion?.signedScans || [];
-  const locked = st === 'confirmed';
-  $('opScanBox').innerHTML =
-    scans.map((f, i) => `<div class="file-row">
-      <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
-      <a href="${esc(f.url)}" target="_blank" rel="noopener">보기</a>
-      ${locked ? '' : `<button class="op-btn ghost" data-sc="${i}" style="padding:6px 10px;">삭제</button>`}
-    </div>`).join('') +
-    (locked ? '' : `
-    <div class="drop" id="opDrop">
-      <div class="big">📷</div>
-      <div class="t">자필 서명본 올리기</div>
-      <div class="s">출력물에 서명한 뒤 사진을 찍어 올려주세요.<br>여러 장 한 번에 선택 가능 · 한 개당 20MB까지</div>
-      <input type="file" id="opScanFile" multiple accept="image/*,.pdf" style="display:none;">
-    </div>
-    <div id="opScanProgress"></div>
-    ${scans.length && st === 'signed' ? `<div class="act-bar" style="margin-top:12px;">
-      <button class="act-sub" id="opScanSubmit">📨 자필본 제출하기</button></div>` : ''}`);
-
-  if (locked) return;
-  const drop = $('opDrop'), input = $('opScanFile');
-  if (drop) {
-    drop.onclick = () => input.click();
-    input.onchange = () => { if (input.files?.length) uploadOpScans(Array.from(input.files)); };
-  }
-  $('opScanBox').querySelectorAll('[data-sc]').forEach(b => { b.onclick = () => removeOpScan(Number(b.dataset.sc)); });
-  const sb = $('opScanSubmit');
-  if (sb) sb.onclick = async () => {
-    if (!confirm('자필 서명본을 센터에 제출합니다.\n\n계속할까요?')) return;
-    try {
-      const patch = { status: 'scanned', scannedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-      await setDoc(doc(db, 'teacherOpinions', curOpinion.id), patch, { merge: true });
-      Object.assign(curOpinion, patch);
-      toast('✅ 제출했습니다');
-      openOpinion(curWorker.id);
-    } catch(e) { alert('제출 실패: ' + (e.message || '')); }
-  };
-}
-
-async function uploadOpScans(files) {
-  const big = files.filter(f => f.size > MAX_UP);
-  if (big.length) {
-    alert(`20MB를 넘는 파일은 올릴 수 없습니다.\n\n${big.map(f => `· ${f.name} (${fileSize(f.size)})`).join('\n')}`);
-    files = files.filter(f => f.size <= MAX_UP);
-    if (!files.length) return;
-  }
-  const prog = $('opScanProgress');
-  const { getStorage, ref, uploadBytesResumable, getDownloadURL } =
-    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
-  const storage = getStorage(app);
-  const added = [];
-  try {
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      prog.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--sub);margin-top:10px;">
-        올리는 중 (${i + 1}/${files.length}) · ${esc(f.name)}</div>
-        <div class="up-track"><div class="up-fill" id="opUpFill"></div></div>`;
-      const safe = Date.now() + '_' + f.name.replace(/[^\w.\-가-힣 ]/g, '_');
-      const path = `docs/${myAccount.companyId}/opinion/${curOpinion.id}/signed/${safe}`;
-      const task = uploadBytesResumable(ref(storage, path), f, { contentType: f.type || 'application/octet-stream' });
-      await new Promise((res, rej) => task.on('state_changed',
-        s => { const el = $('opUpFill'); if (el) el.style.width = Math.round(s.bytesTransferred / s.totalBytes * 100) + '%'; },
-        rej, res));
-      added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
-    }
-    const list = [...(curOpinion.signedScans || []), ...added];
-    await setDoc(doc(db, 'teacherOpinions', curOpinion.id),
-      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
-    curOpinion.signedScans = list;
-    prog.innerHTML = '';
-    toast(`✅ ${added.length}개 올렸습니다`);
-    renderOpScans(curOpinion.status);
-  } catch(e) {
-    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
-  }
-}
-
-async function removeOpScan(i) {
-  const f = curOpinion?.signedScans?.[i]; if (!f) return;
-  if (!confirm(`${f.name}\n\n이 파일을 지울까요?`)) return;
-  try {
-    try {
-      const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
-      await deleteObject(ref(getStorage(app), f.path));
-    } catch(_) {}
-    const list = curOpinion.signedScans.slice(); list.splice(i, 1);
-    await setDoc(doc(db, 'teacherOpinions', curOpinion.id),
-      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
-    curOpinion.signedScans = list;
-    toast('지웠습니다');
-    renderOpScans(curOpinion.status);
-  } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
-}
-
 // ══════════════════════════════════════════
 //  학습근로자 면담일지 (OJT · 학습근로자별 · 월 1회 이상)
 //   양식: No. 2026-03-1/2 · 기업명 · 작성자 · 학습근로자 · 일시
@@ -1257,15 +1146,13 @@ const CN_FIELDS = [
 ];
 const CN_STEPS = [
   ['draft',     '① 작성 중'],
-  ['signed',    '② 출력·자필'],
-  ['scanned',   '③ 자필본 제출'],
-  ['confirmed', '④ 센터 확인']
+  ['signed',    '② 서명 완료'],
+  ['confirmed', '③ 센터 확인']
 ];
 const CN_ORDER = CN_STEPS.map(x => x[0]);
 const CN_ST = {
   draft:     ['작성 중',  'st-draft'],
-  signed:    ['자필 필요', 'st-draft'],
-  scanned:   ['제출 완료', 'st-sub'],
+  signed:    ['서명 완료', 'st-sub'],
   confirmed: ['센터 확인', 'st-conf']
 };
 const cnSign = createSignPad('cnPad', 'cnTip', 'cnClear', 'cnShow');
@@ -1341,7 +1228,7 @@ function openCounsel(docId, workerId) {
   curWorker = w;
   cnScanData = d?.signature || '';
   const st = d ? (CN_ORDER.includes(d.status) ? d.status : 'draft') : 'draft';
-  const locked = st === 'signed' || st === 'scanned' || st === 'confirmed';
+  const locked = st === 'signed' || st === 'confirmed';
   const period = $('periodSel').value;
 
   $('detailView').style.display = 'none';
@@ -1355,12 +1242,11 @@ function openCounsel(docId, workerId) {
     `<b>작성 월</b> ${esc(ymLabel(period))}`;
 
   const idx = Math.max(0, CN_ORDER.indexOf(st));
-  let bar = `<div class="card"><div class="step-bar" style="grid-template-columns:repeat(4,1fr);">${CN_STEPS.map(([k, label], i) =>
+  let bar = `<div class="card"><div class="step-bar" style="grid-template-columns:repeat(3,1fr);">${CN_STEPS.map(([k, label], i) =>
     `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}" style="font-size:10.5px;">${label}</div>`).join('')}</div>`;
   if (st === 'confirmed') bar += `<div class="lock-bar conf" style="margin-bottom:0;">✅ <b>센터 확인 완료</b>.</div>`;
-  else if (st === 'scanned') bar += `<div class="lock-bar" style="margin-bottom:0;">📨 자필 서명본까지 제출되었습니다.</div>`;
-  else if (st === 'signed') bar += `<div class="lock-bar" style="margin-bottom:0;">🔒 서명이 끝났습니다.<br>
-    <b>인쇄해 자필 서명하신 뒤 사진을 올려주세요.</b></div>`;
+  else if (st === 'signed') bar += `<div class="lock-bar" style="margin-bottom:0;">✅ <b>서명이 끝났습니다.</b> 센터 확인을 기다리는 중입니다.<br>
+    <span style="font-size:12px;">필요하시면 아래에서 인쇄해 보관하실 수 있습니다.</span></div>`;
   else bar += `<div class="info-box" data-guide="counsel_form" style="margin-bottom:0;">
     면담에서 나온 이야기를 항목별로 적어주세요.<br>
     해당 없는 항목은 비워두셔도 됩니다. <b>임시저장</b>으로 나중에 이어 쓸 수 있습니다.</div>`;
@@ -1381,7 +1267,6 @@ function openCounsel(docId, workerId) {
 
   cnSign.mount(locked, cnScanData, d?.authorName);
   renderCnActions(st);
-  renderCnScans(st);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 $('cnBack').onclick = () => {
@@ -1513,105 +1398,6 @@ function printCounsel() {
   openPrint(`학습근로자 면담일지 - ${c.workerName} ${no}`, body);
 }
 
-// ── 자필 서명본 ──
-function renderCnScans(st) {
-  const card = $('cnScanCard');
-  if (st !== 'signed' && st !== 'scanned' && st !== 'confirmed') { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  const scans = curCounsel?.signedScans || [];
-  const locked = st === 'confirmed';
-  $('cnScanBox').innerHTML =
-    scans.map((f, i) => `<div class="file-row">
-      <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
-      <a href="${esc(f.url)}" target="_blank" rel="noopener">보기</a>
-      ${locked ? '' : `<button class="op-btn ghost" data-cnsc="${i}" style="padding:6px 10px;">삭제</button>`}
-    </div>`).join('') +
-    (locked ? '' : `
-    <div class="drop" id="cnDrop">
-      <div class="big">📷</div>
-      <div class="t">자필 서명본 올리기</div>
-      <div class="s">출력물에 서명한 뒤 사진을 찍어 올려주세요.<br>여러 장 한 번에 선택 가능 · 한 개당 20MB까지</div>
-      <input type="file" id="cnScanFile" multiple accept="image/*,.pdf" style="display:none;">
-    </div>
-    <div id="cnScanProgress"></div>
-    ${scans.length && st === 'signed' ? `<div class="act-bar" style="margin-top:12px;">
-      <button class="act-sub" id="cnScanSubmit">📨 자필본 제출하기</button></div>` : ''}`);
-
-  if (locked) return;
-  const drop = $('cnDrop'), input = $('cnScanFile');
-  if (drop) {
-    drop.onclick = () => input.click();
-    input.onchange = () => { if (input.files?.length) uploadCnScans(Array.from(input.files)); };
-  }
-  $('cnScanBox').querySelectorAll('[data-cnsc]').forEach(b => { b.onclick = () => removeCnScan(Number(b.dataset.cnsc)); });
-  const sb = $('cnScanSubmit');
-  if (sb) sb.onclick = async () => {
-    if (!confirm('자필 서명본을 센터에 제출합니다.\n\n계속할까요?')) return;
-    try {
-      const patch = { status: 'scanned', scannedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-      await setDoc(doc(db, 'ojtCounseling', curCounsel.id), patch, { merge: true });
-      Object.assign(curCounsel, patch);
-      toast('✅ 제출했습니다');
-      openCounsel(curCounsel.id);
-    } catch(e) { alert('제출 실패: ' + (e.message || '')); }
-  };
-}
-
-async function uploadCnScans(files) {
-  const big = files.filter(f => f.size > MAX_UP);
-  if (big.length) {
-    alert(`20MB를 넘는 파일은 올릴 수 없습니다.\n\n${big.map(f => `· ${f.name} (${fileSize(f.size)})`).join('\n')}`);
-    files = files.filter(f => f.size <= MAX_UP);
-    if (!files.length) return;
-  }
-  const prog = $('cnScanProgress');
-  const { getStorage, ref, uploadBytesResumable, getDownloadURL } =
-    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
-  const storage = getStorage(app);
-  const added = [];
-  try {
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      prog.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--sub);margin-top:10px;">
-        올리는 중 (${i + 1}/${files.length}) · ${esc(f.name)}</div>
-        <div class="up-track"><div class="up-fill" id="cnUpFill"></div></div>`;
-      const safe = Date.now() + '_' + f.name.replace(/[^\w.\-가-힣 ]/g, '_');
-      const path = `docs/${myAccount.companyId}/counseling/${curCounsel.id}/signed/${safe}`;
-      const task = uploadBytesResumable(ref(storage, path), f, { contentType: f.type || 'application/octet-stream' });
-      await new Promise((res, rej) => task.on('state_changed',
-        s => { const el = $('cnUpFill'); if (el) el.style.width = Math.round(s.bytesTransferred / s.totalBytes * 100) + '%'; },
-        rej, res));
-      added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
-    }
-    const list = [...(curCounsel.signedScans || []), ...added];
-    await setDoc(doc(db, 'ojtCounseling', curCounsel.id),
-      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
-    curCounsel.signedScans = list;
-    prog.innerHTML = '';
-    toast(`✅ ${added.length}개 올렸습니다`);
-    renderCnScans(curCounsel.status);
-  } catch(e) {
-    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
-  }
-}
-
-async function removeCnScan(i) {
-  const f = curCounsel?.signedScans?.[i]; if (!f) return;
-  if (!confirm(`${f.name}\n\n이 파일을 지울까요?`)) return;
-  try {
-    try {
-      const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
-      await deleteObject(ref(getStorage(app), f.path));
-    } catch(_) {}
-    const list = curCounsel.signedScans.slice(); list.splice(i, 1);
-    await setDoc(doc(db, 'ojtCounseling', curCounsel.id),
-      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
-    curCounsel.signedScans = list;
-    toast('지웠습니다');
-    renderCnScans(curCounsel.status);
-  } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
-}
-
 // ══════════════════════════════════════════
 //  월별 체크리스트 (훈련과정별 · 월 1회)
 // ══════════════════════════════════════════
@@ -1634,6 +1420,11 @@ const CK_GROUPS = [
     ['op1', '훈련계획 대비 진도가 정상적으로 진행되고 있다'],
     ['op2', '이번 달 안전보건 교육을 실시했다'],
     ['op3', '훈련 환경·장비에 이상이 없다']
+  ]],
+  ['서류', '📄 월별 서류 제출', [
+    ['doc1', 'OJT 훈련강사의견을 확인하고 서명했다'],
+    ['doc2', '학습근로자 면담일지를 작성했다 (월 1회 이상)'],
+    ['doc3', '내부평가지를 제출했다 (평가가 있는 달)']
   ]]
 ];
 const CK_ALL = CK_GROUPS.flatMap(g => g[2]);
@@ -1684,6 +1475,7 @@ function openChecklist() {
   ckAnswers = Object.assign({}, curChecklist?.items || {});
   ckSignData = curChecklist?.signature || '';
   const locked = !!curChecklist?.locked;
+  const status = curChecklist?.status || 'none';
 
   $('detailView').style.display = 'none';
   $('checklistView').style.display = 'block';
@@ -1712,6 +1504,7 @@ function openChecklist() {
   renderCkGroups(locked);
   ckSign.mount(locked, ckSignData, curChecklist?.name);
   renderCkActions(locked);
+  renderCkScans(status);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 $('ckBack').onclick = () => {
@@ -1813,6 +1606,122 @@ async function saveChecklist(submit) {
   }
 }
 
+// 체크리스트 출력물에 붙는 "이 달 작성된 서류" 표.
+// 서명 한 장으로 그 달 서류 전체를 확인했다는 근거가 되도록 자동으로 채운다.
+function docSummaryHtml() {
+  const period = $('periodSel').value;
+  const rows = [];
+  curWorkers.forEach(w => {
+    const o = opinions[w.id];
+    const opState = !o || !(o.rows || []).length ? '미작성'
+      : (o.status === 'confirmed' ? '센터 확인' : (o.status === 'signed' ? '서명 완료' : '작성 중'));
+    const cns = cnDocs.filter(d => d.workerId === w.id);
+    const cnSigned = cns.filter(d => d.status === 'signed' || d.status === 'confirmed').length;
+    rows.push([
+      esc(w.name || '-'),
+      opState,
+      cns.length ? `${cns.length}건 (서명 ${cnSigned}건)` : '미작성'
+    ]);
+  });
+  const asState = !curAssess || !(curAssess.sheetFiles || []).length ? '해당 없음'
+    : (curAssess.status === 'confirmed' ? '센터 확인'
+       : (curAssess.status === 'submitted' ? '완료본 제출' : '작성 대기'));
+  return `<table class="grid">
+    <tr><th style="width:120px;">학습근로자</th><th>OJT 훈련강사의견</th><th>학습근로자 면담일지</th></tr>
+    ${rows.length ? rows.map(r => `<tr><td class="c">${r[0]}</td><td class="c">${r[1]}</td><td class="c">${r[2]}</td></tr>`).join('')
+                  : '<tr><td class="c" colspan="3">대상 학습근로자가 없습니다.</td></tr>'}
+    <tr><td class="c" style="font-weight:600;">내부평가지</td><td class="c" colspan="2">${asState}</td></tr>
+  </table>
+  <div style="font-size:10.5px;color:#555;margin-top:5px;">
+    ※ ${esc(ymLabel(period))} 기준으로 시스템에서 자동 집계된 내용입니다.</div>`;
+}
+
+// ── 체크리스트 자필 서명본 (월 1장) ──
+function renderCkScans(status) {
+  const card = $('ckScanCard');
+  if (status !== 'submitted' && status !== 'confirmed') { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const scans = curChecklist?.signedScans || [];
+  const locked = status === 'confirmed';
+  $('ckScanBox').innerHTML =
+    scans.map((f, i) => `<div class="file-row">
+      <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
+      <a href="${esc(f.url)}" target="_blank" rel="noopener">보기</a>
+      ${locked ? '' : `<button class="op-btn ghost" data-cksc="${i}" style="padding:6px 10px;">삭제</button>`}
+    </div>`).join('') +
+    (locked ? '' : `
+    <div class="drop" id="ckDrop">
+      <div class="big">📷</div>
+      <div class="t">자필 서명본 올리기</div>
+      <div class="s">출력물에 서명한 뒤 사진을 찍어 올려주세요.<br>한 개당 20MB까지</div>
+      <input type="file" id="ckScanFile" multiple accept="image/*,.pdf" style="display:none;">
+    </div>
+    <div id="ckScanProgress"></div>`);
+
+  if (locked) return;
+  const drop = $('ckDrop'), input = $('ckScanFile');
+  if (drop) {
+    drop.onclick = () => input.click();
+    input.onchange = () => { if (input.files?.length) uploadCkScans(Array.from(input.files)); };
+  }
+  $('ckScanBox').querySelectorAll('[data-cksc]').forEach(b => { b.onclick = () => removeCkScan(Number(b.dataset.cksc)); });
+}
+
+async function uploadCkScans(files) {
+  const big = files.filter(f => f.size > MAX_UP);
+  if (big.length) {
+    alert(`20MB를 넘는 파일은 올릴 수 없습니다.\n\n${big.map(f => `· ${f.name} (${fileSize(f.size)})`).join('\n')}`);
+    files = files.filter(f => f.size <= MAX_UP);
+    if (!files.length) return;
+  }
+  const prog = $('ckScanProgress');
+  const { getStorage, ref, uploadBytesResumable, getDownloadURL } =
+    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+  const storage = getStorage(app);
+  const added = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      prog.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--sub);margin-top:10px;">
+        올리는 중 (${i + 1}/${files.length}) · ${esc(f.name)}</div>
+        <div class="up-track"><div class="up-fill" id="ckUpFill"></div></div>`;
+      const safe = Date.now() + '_' + f.name.replace(/[^\w.\-가-힣 ]/g, '_');
+      const path = `docs/${myAccount.companyId}/checklist/${curChecklist.id}/signed/${safe}`;
+      const task = uploadBytesResumable(ref(storage, path), f, { contentType: f.type || 'application/octet-stream' });
+      await new Promise((res, rej) => task.on('state_changed',
+        s => { const el = $('ckUpFill'); if (el) el.style.width = Math.round(s.bytesTransferred / s.totalBytes * 100) + '%'; },
+        rej, res));
+      added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
+    }
+    const list = [...(curChecklist.signedScans || []), ...added];
+    await setDoc(doc(db, 'checklists', curChecklist.id),
+      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
+    curChecklist.signedScans = list;
+    prog.innerHTML = '';
+    toast(`✅ ${added.length}개 올렸습니다`);
+    renderCkScans(curChecklist.status);
+  } catch(e) {
+    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
+  }
+}
+
+async function removeCkScan(i) {
+  const f = curChecklist?.signedScans?.[i]; if (!f) return;
+  if (!confirm(`${f.name}\n\n이 파일을 지울까요?`)) return;
+  try {
+    try {
+      const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+      await deleteObject(ref(getStorage(app), f.path));
+    } catch(_) {}
+    const list = curChecklist.signedScans.slice(); list.splice(i, 1);
+    await setDoc(doc(db, 'checklists', curChecklist.id),
+      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
+    curChecklist.signedScans = list;
+    toast('지웠습니다');
+    renderCkScans(curChecklist.status);
+  } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
+}
+
 function printChecklist() {
   const c = curChecklist; if (!c) return;
   const body = `
@@ -1829,6 +1738,9 @@ function printChecklist() {
       <tr><th>확인 항목</th><th>확인</th></tr>
       ${items.map(([k, q]) => `<tr><td>${q}</td><td class="c">${CK_TEXT[c.items?.[k]] || '-'}</td></tr>`).join('')}
     </table>`).join('')}
+  <h2>이 달 작성된 서류</h2>
+  ${docSummaryHtml()}
+
   <h2>특이사항</h2>
   <div class="box">${esc(c.note).replace(/\n/g, '<br>') || '-'}</div>
   <div class="sign">

@@ -1418,8 +1418,9 @@
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
       </div>
       <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
-        기업이 <b>훈련과정마다 월 1회</b> 출결·OJT비용·활동수당을 점검하고 서명 제출합니다.<br>
-        <small style="opacity:0.9;">위 <b>작성 월·기업</b> 선택이 여기에도 함께 적용됩니다. '아니오' 항목이 있으면 붉게 표시됩니다.</small>
+이 확인서가 <b>그 달 서류 전체의 최종 확인</b> 역할을 합니다. 출력물에 그 달 작성된 서류 현황이 자동으로 찍히고,<br>
+        기업이 자필 서명한 사진을 올리면 <b>한 장으로 월 증빙이 완성</b>됩니다.<br>
+        <small style="opacity:0.9;">위 <b>작성 월·기업</b> 선택 적용 · '아니오' 항목이 있으면 붉게 표시됩니다.</small>
       </div>
       <button class="send-btn" onclick="downloadChecklistExcel()" style="background:#059669;">📊 체크리스트 엑셀로 내려받기</button>
       <div id="ckDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
@@ -4011,8 +4012,7 @@
   const OP_STEPS = [
     ['waiting',   '초안 대기',    '#f1f5f9', '#64748b'],
     ['ready',     '확인·서명 대기','#fef3c7', '#92400e'],
-    ['signed',    '자필 대기',    '#ffedd5', '#9a3412'],
-    ['scanned',   '자필본 제출',  '#dcfce7', '#166534'],
+    ['signed',    '서명 완료',    '#dcfce7', '#166534'],
     ['confirmed', '확인 완료',    '#dbeafe', '#1e40af']
   ];
   const OP_ORDER = OP_STEPS.map(x => x[0]);
@@ -4065,7 +4065,7 @@
 
     const opCount = {};   // 기업|월 → 자필본까지 제출된 의견서 수
     allOpinions.forEach(o => {
-      if (o.status !== 'scanned' && o.status !== 'confirmed') return;
+      if (o.status !== 'signed' && o.status !== 'confirmed') return;
       const k = o.companyId + '|' + o.period;
       opCount[k] = (opCount[k] || 0) + 1;
     });
@@ -4225,13 +4225,13 @@
 
     const cnt = k => rows.filter(r => (r.op?.status || 'waiting') === k).length;
     const nNone = rows.filter(r => !r.op).length;
-    const nScan = cnt('scanned') + cnt('confirmed');
-    const rate = rows.length ? Math.round(nScan / rows.length * 100) : 0;
+    const nDone = cnt('signed') + cnt('confirmed');
+    const rate = rows.length ? Math.round(nDone / rows.length * 100) : 0;
 
     if (sum) sum.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-        ${[['자필본 제출률', rate + '%', '#3F4A57'], ['초안 미등록', nNone + '건', '#64748b'],
-           ['서명 대기', cnt('ready') + '건', '#d97706'], ['자필 대기', cnt('signed') + '건', '#9a3412']]
+        ${[['서명 완료율', rate + '%', '#3F4A57'], ['초안 미등록', nNone + '건', '#64748b'],
+           ['서명 대기', cnt('ready') + '건', '#d97706'], ['센터 확인 대기', cnt('signed') + '건', '#9a3412']]
           .map(([l, v, c]) => `<div style="background:#F4F5F7;border:1.5px solid #E3E6EA;border-radius:10px;padding:11px 8px;text-align:center;">
             <div style="font-size:11.5px;color:#64748b;">${l}</div>
             <div style="font-size:18px;font-weight:700;color:${c};margin-top:2px;">${v}</div></div>`).join('')}
@@ -4264,8 +4264,8 @@
         ${o ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
           <button class="mini-btn" onclick="viewOpinion('${o.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
           ${nScans ? `<button class="mini-btn" onclick="viewOpinionScans('${o.id}')" style="background:#166534;color:white;">📷 자필본 ${nScans}장</button>` : ''}
-          ${st === 'scanned' ? `<button class="mini-btn" onclick="confirmOpinionDoc('${o.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
-          ${(st === 'signed' || st === 'scanned' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockOpinion('${o.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+          ${st === 'signed' ? `<button class="mini-btn" onclick="confirmOpinionDoc('${o.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+          ${(st === 'signed' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockOpinion('${o.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
           <button class="mini-btn" onclick="deleteOpinion('${o.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
         </div>` : `<div style="margin-top:8px;font-size:12.5px;color:#94a3b8;">위 <b>의견 초안 작성</b>에서 이 학습근로자를 골라 초안을 넣어주세요.</div>`}
       </div>`;
@@ -4633,12 +4633,13 @@
     ['opinion_form', 'OJT 훈련강사의견 — 작성 화면',
      '의견서를 확인·수정하는 화면 맨 위입니다.',
      '센터가 작성한 초안입니다. **내용을 확인하고 필요하면 고쳐주세요.**\n다 되면 아래에서 **서명**하시면 됩니다.'],
-    ['opinion_scan', 'OJT 훈련강사의견 — 자필본 안내',
-     '자필 서명본을 올리는 칸 위에 나옵니다. 촬영 요령을 적어두면 좋습니다.',
-     '위 **인쇄** 버튼으로 출력한 뒤 **자필로 서명**하시고,\n그 종이를 사진으로 찍거나 스캔해서 올려주세요. 이게 정식 증빙이 됩니다.'],
+
     ['checklist_intro', '체크리스트 — 목록 안내',
      '과정 상세에서 체크리스트 카드 위에 나옵니다.',
      '훈련과정마다 **한 달에 한 장** 작성합니다.\n출결 확인 · OJT 비용 신청 · 활동수당 신청을 점검하고 마지막에 서명합니다.'],
+    ['checklist_scan', '체크리스트 — 자필본 안내',
+     '월별 최종 확인서의 자필 서명본을 올리는 칸 위에 나옵니다.',
+     '이 확인서 **한 장**으로 그 달 서류 전체를 확인한 것이 됩니다.\n위 **인쇄** 버튼으로 출력해 **자필로 서명**하시고, 사진을 찍어 올려주세요.'],
     ['checklist_form', '체크리스트 — 작성 화면',
      '체크리스트를 실제로 쓰는 화면 맨 위입니다.',
      "각 항목을 **예 / 아니오 / 해당없음** 중에서 골라주세요.\n'아니오'가 있으면 아래 **특이사항**에 이유를 적어야 제출됩니다. 센터가 먼저 살펴보기 위한 것이니 편하게 적어주세요."],
@@ -4648,9 +4649,7 @@
     ['counsel_form', '면담일지 — 작성 화면',
      '면담 내용을 쓰는 화면 맨 위입니다.',
      '면담에서 나온 이야기를 항목별로 적어주세요.\n해당 없는 항목은 비워두셔도 됩니다. **임시저장**으로 나중에 이어 쓸 수 있습니다.'],
-    ['counsel_scan', '면담일지 — 자필본 안내',
-     '면담일지 자필 서명본을 올리는 칸 위에 나옵니다.',
-     '위 **인쇄** 버튼으로 출력한 뒤 **자필로 서명**하시고,\n그 종이를 사진으로 찍거나 스캔해서 올려주세요.'],
+
     ['assess_intro', '내부평가지 안내',
      '평가지를 내려받고 완료본을 올리는 화면입니다. 촬영 요령 등을 적어두면 좋습니다.',
      '센터가 평가지를 올리면 여기에서 **내려받아 인쇄**해 시험을 보시고,\n작성이 끝난 평가지를 **사진으로 찍거나 스캔해서 올려주시면** 됩니다.']
@@ -4705,8 +4704,7 @@
                        ['etc', '기타', '']];
   const CN_ST_A = {
     draft:     ['작성 중',   '#fef3c7', '#92400e'],
-    signed:    ['자필 대기', '#ffedd5', '#9a3412'],
-    scanned:   ['자필본 제출','#dcfce7', '#166534'],
+    signed:    ['서명 완료', '#dcfce7', '#166534'],
     confirmed: ['확인 완료', '#dbeafe', '#1e40af']
   };
   let allCounsels = [];
@@ -4763,8 +4761,8 @@
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
                 <button class="mini-btn" onclick="viewCounsel('${c.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
                 ${n ? `<button class="mini-btn" onclick="viewCounselScans('${c.id}')" style="background:#166534;color:white;">📷 자필본 ${n}장</button>` : ''}
-                ${st === 'scanned' ? `<button class="mini-btn" onclick="confirmCounsel('${c.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
-                ${(st === 'signed' || st === 'scanned' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockCounsel('${c.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+                ${st === 'signed' ? `<button class="mini-btn" onclick="confirmCounsel('${c.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+                ${(st === 'signed' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockCounsel('${c.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
                 <button class="mini-btn" onclick="deleteCounsel('${c.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
               </div>
             </div>`;
@@ -4944,6 +4942,11 @@
       ['op1', '훈련계획 대비 진도 정상'],
       ['op2', '안전보건 교육 실시'],
       ['op3', '훈련 환경·장비 이상 없음']
+    ]],
+    ['📄 월별 서류 제출', [
+      ['doc1', 'OJT 훈련강사의견 확인·서명'],
+      ['doc2', '학습근로자 면담일지 작성'],
+      ['doc3', '내부평가지 제출']
     ]]
   ];
   const CK_ALL_A = CK_GROUPS_A.flatMap(g => g[1]);
@@ -4986,8 +4989,11 @@
           ${noList.length ? `<div style="margin-top:9px;font-size:12.5px;color:#b91c1c;line-height:1.6;">
             ⚠️ 확인 안 된 항목 ${noList.length}개 — ${noList.map(([, q]) => escapeHtmlSafe(q)).join(' / ')}</div>` : ''}
           ${c?.note ? `<div style="margin-top:8px;font-size:12.5px;color:#4a5568;background:#f8fafc;border-radius:8px;padding:9px 11px;white-space:pre-wrap;">${escapeHtmlSafe(c.note)}</div>` : ''}
+          ${c && !(c.signedScans || []).length && (c.status === 'submitted' || c.status === 'confirmed')
+            ? `<div style="margin-top:8px;font-size:12px;color:#9a3412;">⚠️ 자필 서명본이 아직 올라오지 않았습니다.</div>` : ''}
           ${c ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
             <button class="mini-btn" onclick="viewChecklist('${c.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
+            ${(c.signedScans || []).length ? `<button class="mini-btn" onclick="viewChecklistScans('${c.id}')" style="background:#166534;color:white;">📷 자필본 ${(c.signedScans || []).length}장</button>` : ''}
             ${st === 'submitted' ? `<button class="mini-btn" onclick="confirmChecklist('${c.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
             ${c.locked ? `<button class="mini-btn" onclick="unlockChecklist('${c.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
             <button class="mini-btn" onclick="deleteChecklist('${c.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
@@ -5044,6 +5050,22 @@
     @media print { .bar { display:none; } body { padding:0; } }
     </style></head><body><div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>${body}</body></html>`);
     w.document.close();
+  }
+
+  function viewChecklistScans(id) {
+    const c = allChecklists.find(x => x.id === id); if (!c) return;
+    const E = escapeHtmlSafe;
+    const scans = c.signedScans || [];
+    const imgs = scans.filter(f => /\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const others = scans.filter(f => !/\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const body = `
+    <h1>체크리스트 자필 서명본</h1>
+    <div class="docno">${E(c.companyName)} · ${E(c.courseType)} · ${E(c.period)}</div>
+    ${imgs.map((f, i) => `<div class="pg"><img src="${E(f.url)}" alt=""><div class="cap">${i + 1} / ${imgs.length} — ${E(f.name)}</div></div>`).join('')}
+    ${others.length ? `<div class="list"><b>이미지가 아닌 파일 ${others.length}개:</b><br>
+      ${others.map(f => `<a href="${E(f.url)}" target="_blank">${E(f.name)}</a>`).join('<br>')}</div>` : ''}
+    ${!imgs.length && !others.length ? '<div style="text-align:center;color:#888;padding:40px;">올라온 자필본이 없습니다.</div>' : ''}`;
+    openAdminPrint(`체크리스트 자필본 - ${E(c.companyName)} ${E(c.period)}`, body);
   }
 
   async function ckPatch(id, patch, logText) {
@@ -5132,7 +5154,7 @@
   // 기업 쪽에서는 서명 후 삭제가 불가능하므로, 오작성 정리는 여기서만 한다.
   async function deleteOpinion(id) {
     const o = allOpinions.find(x => x.id === id); if (!o) return;
-    const signed = o.status === 'signed' || o.status === 'scanned' || o.status === 'confirmed';
+    const signed = o.status === 'signed' || o.status === 'confirmed';
     const n = (o.signedScans || []).length;
     if (!await customConfirm({ title: '의견서 삭제',
       message: `<b>${escapeHtmlSafe(o.companyName || '')}</b> · ${escapeHtmlSafe(o.workerName || '')}<br>
