@@ -330,36 +330,13 @@
     </div>
 
     <div class="card">
-      <div class="card-title">① 훈련 실시 현황</div>
-      <div class="two">
-        <div class="fld">
-          <label>이번 달 훈련시간 (계획)</label>
-          <input type="number" id="opHoursPlan" min="0" step="1" placeholder="예) 80">
-        </div>
-        <div class="fld">
-          <label>이번 달 훈련시간 (실시)</label>
-          <input type="number" id="opHoursDone" min="0" step="1" placeholder="예) 76">
-        </div>
-      </div>
-      <div class="fld" style="margin-bottom:0;">
-        <label>주요 훈련 내용 (능력단위·수행 업무)</label>
-        <div class="help">이번 달에 실제로 가르치고 시킨 일을 적어주세요.</div>
-        <textarea id="opContent" placeholder="예) 객실 정비 표준절차 숙지, 고객 응대 기본 화법 실습, 비품 재고 관리 보조"></textarea>
-      </div>
+      <div class="card-title">① 훈련기간별 의견 <span class="hint">센터 초안을 확인·수정해주세요</span></div>
+      <div id="opRows"></div>
+      <button type="button" class="op-btn ghost" id="opAddRow" style="width:100%;margin-top:4px;">+ 기간 추가</button>
     </div>
 
     <div class="card">
-      <div class="card-title">② 학습근로자 평가 <span class="hint">5개 항목 모두 선택</span></div>
-      <div id="opScores"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">③ 현장교사 의견</div>
-      <div id="opTexts"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">④ 작성자 확인 및 서명</div>
+      <div class="card-title">② 작성자 확인 및 서명</div>
       <div class="two">
         <div class="fld">
           <label>기업현장교사 성명</label>
@@ -372,7 +349,7 @@
       </div>
       <div class="fld">
         <label>서명</label>
-        <div class="help">아래 칸에 손가락(또는 마우스)으로 서명해주세요. 제출하면 수정할 수 없습니다.</div>
+        <div class="help">아래 칸에 손가락(또는 마우스)으로 서명해주세요. 서명하면 내용이 잠깁니다.</div>
         <div class="sign-wrap">
           <canvas id="signPad" class="sign-pad"></canvas>
           <div class="sign-tools">
@@ -383,6 +360,15 @@
         <div id="signShow" style="display:none;margin-top:6px;"></div>
       </div>
       <div class="act-bar" id="opActions"></div>
+    </div>
+
+    <div class="card" id="opScanCard" style="display:none;">
+      <div class="card-title">③ 자필 서명본 올리기 <span class="hint">공단 제출용 증빙</span></div>
+      <div class="info-box" data-guide="opinion_scan">
+        위 <b>인쇄</b> 버튼으로 출력한 뒤 <b>자필로 서명</b>하시고,<br>
+        그 종이를 사진으로 찍거나 스캔해서 올려주세요. 이게 정식 증빙이 됩니다.
+      </div>
+      <div id="opScanBox"></div>
     </div>
   </div>
 </div>
@@ -611,26 +597,130 @@ async function loadWorkers(course) {
 // ══════════════════════════════════════════
 //  기업현장교사 의견서 (학습근로자별 · 월 1회)
 // ══════════════════════════════════════════
-const SCORES = [
-  ['attend',     '훈련 참여도 · 성실성', '출근과 훈련 참여가 성실한가'],
-  ['understand', '직무 이해도',          '배운 내용을 이해하고 설명할 수 있는가'],
-  ['perform',    '업무 수행 능력',       '맡은 일을 스스로 해내는가'],
-  ['attitude',   '태도 · 대인관계',      '동료와 협력하고 예의를 지키는가'],
-  ['safety',     '안전수칙 준수',        '현장 안전 규정을 지키는가']
+// ══════════════════════════════════════════
+//  증빙 강화 레이어 (서류 3종 공통)
+//   전자서명만으로는 "누가 언제 무엇에" 서명했는지 증명이 약하다.
+//   그래서 ① 문서지문(해시) ② 서명 메타정보 ③ 출력물 검증블록
+//   ④ 자필 서명본 사진 을 함께 남긴다.
+// ══════════════════════════════════════════
+
+// 내용이 한 글자만 바뀌어도 값이 달라지는 지문.
+// 출력물에 찍어두면 나중에 그 종이가 진짜인지 대조할 수 있다.
+async function docFingerprint(obj) {
+  try {
+    const json = JSON.stringify(obj, Object.keys(obj).sort());
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(json));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch(e) { return ''; }
+}
+// 사람이 눈으로 대조하기 쉽게 앞 16자를 4자씩 끊어 보여준다
+function fpShort(hex) {
+  if (!hex) return '-';
+  return (hex.slice(0, 16).toUpperCase().match(/.{1,4}/g) || []).join('-');
+}
+function deviceBrief() {
+  const ua = navigator.userAgent || '';
+  const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android'
+           : /iPhone|iPad/.test(ua) ? 'iOS' : /Mac/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '기타';
+  const br = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome'
+           : /Safari\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : '기타';
+  return `${os} · ${br}`;
+}
+function kstStamp(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+// 서명한 사람·시각·기기를 한 덩어리로 남긴다
+function buildSignMeta(name) {
+  return {
+    name: name || '',
+    at: new Date().toISOString(),
+    uid: myAccount?.uid || '',
+    email: (auth.currentUser?.email) || '',
+    device: deviceBrief(),
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+  };
+}
+// 출력물 하단에 붙는 검증 블록 (인쇄용 HTML)
+function verifyBlockHtml(meta, fp, docNo) {
+  const m = meta || {};
+  return `<div class="verify">
+    <div class="vt">전자서명 정보</div>
+    <table>
+      <tr><th>서명자</th><td>${esc(m.name)}${m.email ? ' &lt;' + esc(m.email) + '&gt;' : ''}</td></tr>
+      <tr><th>서명 시각</th><td>${esc(kstStamp(m.at))} (KST)</td></tr>
+      <tr><th>서명 기기</th><td>${esc(m.device || '-')}</td></tr>
+      <tr><th>문서번호</th><td>${esc(docNo || '-')}</td></tr>
+      <tr><th>문서지문</th><td class="fp">${esc(fpShort(fp))}</td></tr>
+    </table>
+    <div class="vn">※ 문서지문은 내용이 한 글자라도 바뀌면 달라집니다. 이 출력물과 시스템 기록을 대조해 위·변조를 확인할 수 있습니다.<br>
+    ※ <b>이 출력물에 자필로 서명하신 뒤, 사진을 찍어 앱에 올려주세요.</b> 자필 서명본이 공단 제출용 정식 증빙입니다.</div>
+  </div>`;
+}
+// 인쇄창 공통 스타일
+const PRINT_CSS = `
+  @page { size:A4; margin:16mm 14mm; }
+  body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; line-height:1.65; }
+  h1 { font-size:20px; text-align:center; letter-spacing:5px; margin-bottom:6px; }
+  .docno { text-align:right; font-size:12px; color:#444; margin-bottom:8px; }
+  h2 { font-size:14px; margin:18px 0 7px; padding-left:8px; border-left:4px solid #3F4A57; }
+  table { width:100%; border-collapse:collapse; }
+  table.info th { width:140px; background:#f3f4f6; text-align:left; }
+  table.info th, table.info td { border:1px solid #9ca3af; padding:7px 10px; }
+  table.grid th, table.grid td { border:1px solid #6b7280; padding:8px 10px; vertical-align:top; }
+  table.grid th { background:#f3f4f6; text-align:center; font-weight:700; }
+  table.grid td.c { text-align:center; white-space:nowrap; }
+  .sign { margin-top:26px; text-align:right; }
+  .sign .who { margin-top:6px; font-size:14px; font-weight:bold; letter-spacing:2px; }
+  .sign img { height:66px; display:block; margin-left:auto; margin-top:-4px; }
+  .hand { margin-top:22px; border:1px solid #6b7280; padding:14px 16px; }
+  .hand .ht { font-size:12px; font-weight:700; margin-bottom:26px; }
+  .hand .line { border-bottom:1px solid #111; width:200px; display:inline-block; }
+  .verify { margin-top:20px; border:1px solid #9ca3af; background:#fafafa; padding:10px 12px; font-size:10.5px; line-height:1.55; }
+  .verify .vt { font-weight:700; font-size:11px; margin-bottom:5px; }
+  .verify table { width:auto; }
+  .verify th { text-align:left; padding:1px 10px 1px 0; color:#444; font-weight:600; white-space:nowrap; }
+  .verify td { padding:1px 0; }
+  .verify td.fp { font-family:Consolas,monospace; letter-spacing:0.5px; }
+  .verify .vn { margin-top:6px; color:#555; }
+  .bar { text-align:center; margin-bottom:14px; }
+  .bar button { padding:10px 22px; font-size:14px; font-weight:700; border:none; border-radius:8px; background:#3F4A57; color:white; cursor:pointer; }
+  @media print { .bar { display:none; } }
+`;
+function openPrint(title, bodyHtml) {
+  const w = window.open('', '_blank', 'width=900,height=1000');
+  if (!w) { alert('팝업이 차단되었습니다. 브라우저 주소창의 팝업 허용을 켜주세요.'); return null; }
+  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+    <title>${esc(title)}</title><style>${PRINT_CSS}</style></head><body>
+    <div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>
+    ${bodyHtml}</body></html>`);
+  w.document.close();
+  return w;
+}
+
+// ══════════════════════════════════════════
+//  OJT 훈련강사의견 (학습근로자별 · 월 1회)
+//   흐름: 센터 초안 등록 → 기업 확인·수정 → 전자서명 → 출력·자필서명 → 사진 업로드 → 센터 확인
+// ══════════════════════════════════════════
+const OP_STEPS = [
+  ['waiting', '① 초안 대기'],
+  ['ready',   '② 확인·서명'],
+  ['signed',  '③ 출력·자필'],
+  ['scanned', '④ 자필본 제출'],
+  ['confirmed', '⑤ 센터 확인']
 ];
-const SC_LABEL = [['5','매우<br>우수'],['4','우수'],['3','보통'],['2','미흡'],['1','매우<br>미흡']];
-const SC_TEXT  = { 5:'매우 우수', 4:'우수', 3:'보통', 2:'미흡', 1:'매우 미흡' };
-const TEXTS = [
-  ['good',    '잘하고 있는 점',     '예) 반복 작업에서 실수가 줄고 속도가 눈에 띄게 빨라졌습니다.'],
-  ['improve', '보완이 필요한 점',   '예) 도면 해석이 아직 익숙하지 않아 확인을 자주 요청합니다.'],
-  ['plan',    '다음 달 지도 계획',  '예) 도면 읽기 실습을 주 2회 병행하고 선임과 짝을 지어 진행합니다.'],
-  ['overall', '종합 의견',          '예) 전반적으로 성실하며 현장 적응이 순조롭습니다.']
-];
+const OP_ORDER = OP_STEPS.map(s => s[0]);
 const ST_INFO = {
+  waiting:   ['초안 대기', 'st-none'],
+  ready:     ['확인 필요', 'st-draft'],
+  signed:    ['자필 필요', 'st-draft'],
+  scanned:   ['제출 완료', 'st-sub'],
+  confirmed: ['센터 확인', 'st-conf'],
   none:      ['미작성',   'st-none'],
   draft:     ['작성 중',  'st-draft'],
-  submitted: ['제출 완료','st-sub'],
-  confirmed: ['센터 확인','st-conf']
+  submitted: ['제출 완료', 'st-sub']
 };
 
 function ymNow() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
@@ -638,12 +728,9 @@ function ymLabel(ym) { const [y, m] = ym.split('-'); return `${y}년 ${Number(m)
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 // 작성 월 선택지 — 앞으로 3개월 + 지난 15개월
-//  미리 준비하는 경우(평가지 사전 등록 등)가 있어 다음 달들도 열어둔다.
 const MONTHS_AHEAD = 3, MONTHS_BACK = 15;
 function monthOptions() {
-  const now = new Date();
-  const cur = ymNow();
-  const out = [];
+  const now = new Date(), cur = ymNow(), out = [];
   const d = new Date(now.getFullYear(), now.getMonth() + MONTHS_AHEAD, 1);
   for (let i = 0; i < MONTHS_AHEAD + MONTHS_BACK; i++) {
     const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -668,7 +755,6 @@ async function loadOpinions() {
   el.innerHTML = '<div class="empty">불러오는 중...</div>';
   opinions = {};
   try {
-    // ⚠️ 규칙 통과를 위해 companyId 조건 필수 → 나머지는 화면에서 거른다
     const snap = await getDocs(query(collection(db, 'teacherOpinions'),
       where('companyId', '==', myAccount.companyId)));
     snap.docs.forEach(d => {
@@ -685,109 +771,27 @@ async function loadOpinions() {
   }
   el.innerHTML = curWorkers.map(w => {
     const o = opinions[w.id];
-    const st = o ? (o.status || 'draft') : 'none';
-    const [label, cls] = ST_INFO[st] || ST_INFO.none;
-    const done = st === 'submitted' || st === 'confirmed';
+    const st = o ? (o.status || 'ready') : 'waiting';
+    const [label, cls] = ST_INFO[st] || ST_INFO.waiting;
+    const idx = Math.max(0, OP_ORDER.indexOf(st));
+    const can = !!o && (o.rows || []).length;
     return `<div class="op-row">
       <div style="flex:1;min-width:0;">
-        <div class="nm">${esc(w.name || '-')}</div>
-        <div class="st">${esc(ymLabel(period))} 의견서</div>
+        <div class="nm">${esc(w.name || '-')}${w.round ? ` <span class="hint">${esc(w.round)}</span>` : ''}</div>
+        <div class="st">${esc(ymLabel(period))} · ${OP_STEPS[idx][1]}</div>
       </div>
       <span class="st-badge ${cls}">${label}</span>
-      <button class="op-btn${done ? ' ghost' : ''}" data-op="${esc(w.id)}">${done ? '보기' : (st === 'draft' ? '이어서 작성' : '작성')}</button>
+      ${can ? `<button class="op-btn${st === 'confirmed' ? ' ghost' : ''}" data-op="${esc(w.id)}">${st === 'confirmed' ? '보기' : '열기'}</button>` : ''}
     </div>`;
   }).join('');
   el.querySelectorAll('[data-op]').forEach(b => { b.onclick = () => openOpinion(b.dataset.op); });
+  if (!Object.keys(opinions).length) {
+    el.innerHTML += `<div class="empty" style="padding:20px 10px;">
+      센터에서 이번 달 의견 초안을 등록하면 여기에 <b>열기</b> 버튼이 생깁니다.</div>`;
+  }
 }
 
 // ── 작성 화면 ──
-let curWorker = null, curOpinion = null, curScores = {}, signData = '';
-
-function openOpinion(workerId) {
-  const w = curWorkers.find(x => x.id === workerId); if (!w) return;
-  const period = $('periodSel').value;
-  curWorker = w;
-  curOpinion = opinions[workerId] || null;
-  curScores = Object.assign({}, curOpinion?.scores || {});
-  signData = curOpinion?.signature || '';
-
-  const locked = !!curOpinion?.locked;
-  $('detailView').style.display = 'none';
-  $('opinionView').style.display = 'block';
-  $('opTitle').textContent = `📝 ${w.name || ''} · ${ymLabel(period)}`;
-  $('opMeta').innerHTML =
-    `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
-    `<b>훈련과정</b> ${esc(curCourse.type || '')} · ${esc(curCourse.site || '')}<br>` +
-    `<b>과정번호</b> ${esc(curCourse.courseNo || '-')}<br>` +
-    `<b>학습근로자</b> ${esc(w.name || '')}${w.round ? ' (' + esc(w.round) + ')' : ''}`;
-
-  // 잠금 안내
-  const bar = $('opLockBar');
-  if (curOpinion?.status === 'confirmed') {
-    bar.innerHTML = `<div class="lock-bar conf">✅ <b>센터에서 확인을 마친 의견서</b>입니다. 내용은 수정할 수 없습니다.
-      ${curOpinion.confirmedAt ? '<br><span style="font-size:12px;">확인일 ' + esc(curOpinion.confirmedAt.slice(0,10)) + '</span>' : ''}</div>`;
-  } else if (locked) {
-    bar.innerHTML = `<div class="lock-bar">🔒 <b>서명 제출이 끝난 의견서</b>입니다. 내용은 수정할 수 없습니다.
-      ${curOpinion.signedAt ? '<br><span style="font-size:12px;">제출일 ' + esc(curOpinion.signedAt.slice(0,10)) + '</span>' : ''}
-      <br><span style="font-size:12px;">고쳐야 할 내용이 있으면 센터에 잠금 해제를 요청해주세요.</span></div>`;
-  } else {
-    bar.innerHTML = '';
-  }
-
-  // 값 채우기
-  $('opHoursPlan').value = curOpinion?.hoursPlan ?? '';
-  $('opHoursDone').value = curOpinion?.hoursDone ?? '';
-  $('opContent').value   = curOpinion?.content || '';
-  $('opTeacher').value   = curOpinion?.teacherName || myAccount.name || '';
-  $('opPhone').value     = curOpinion?.teacherPhone || '';
-
-  renderScores(locked);
-  renderTexts(locked);
-  setupSign(locked);
-  renderActions(locked);
-
-  ['opHoursPlan','opHoursDone','opContent','opTeacher','opPhone']
-    .forEach(id => { $(id).disabled = locked; });
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-$('opBack').onclick = () => {
-  $('opinionView').style.display = 'none';
-  $('detailView').style.display = 'block';
-  loadOpinions();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-function renderScores(locked) {
-  $('opScores').innerHTML = SCORES.map(([k, q, h]) => `
-    <div class="score-item">
-      <div class="q">${q}</div>
-      <div class="qh">${h}</div>
-      <div class="score-opts" data-k="${k}">
-        ${SC_LABEL.map(([v, t]) =>
-          `<button type="button" data-v="${v}" class="${String(curScores[k]) === v ? 'on' : ''}" ${locked ? 'disabled' : ''}><b>${v}</b>${t}</button>`
-        ).join('')}
-      </div>
-    </div>`).join('');
-  if (locked) return;
-  $('opScores').querySelectorAll('.score-opts').forEach(g => {
-    g.querySelectorAll('button').forEach(b => {
-      b.onclick = () => {
-        curScores[g.dataset.k] = Number(b.dataset.v);
-        g.querySelectorAll('button').forEach(x => x.classList.remove('on'));
-        b.classList.add('on');
-      };
-    });
-  });
-}
-
-function renderTexts(locked) {
-  $('opTexts').innerHTML = TEXTS.map(([k, label, ph]) => `
-    <div class="fld">
-      <label>${label}</label>
-      <textarea id="op_${k}" placeholder="${esc(ph)}" ${locked ? 'disabled' : ''}>${esc(curOpinion?.[k] || '')}</textarea>
-    </div>`).join('');
-}
 
 // ══════════════════════════════════════════
 //  서명패드 (의견서·체크리스트에서 함께 사용)
@@ -852,27 +856,132 @@ function createSignPad(padId, tipId, clearId, showId) {
   }
   return { mount, grab };
 }
-const opSign = createSignPad('signPad', 'signTip', 'signClear', 'signShow');
-function setupSign(locked) { opSign.mount(locked, signData, curOpinion?.teacherName); }
-function grabSign() { return opSign.grab(); }
 
-// ── 액션 버튼 ──
-function renderActions(locked) {
-  const bar = $('opActions');
-  if (locked) {
-    bar.innerHTML = `<button class="act-print" id="btnPrint">🖨️ 인쇄 · PDF 저장</button>`;
-    $('btnPrint').onclick = printOpinion;
+let curWorker = null, curOpinion = null, opRows = [], signData = '';
+const opSign = createSignPad('signPad', 'signTip', 'signClear', 'signShow');
+
+function openOpinion(workerId) {
+  const w = curWorkers.find(x => x.id === workerId); if (!w) return;
+  const period = $('periodSel').value;
+  curWorker = w;
+  curOpinion = opinions[workerId] || null;
+  opRows = JSON.parse(JSON.stringify(curOpinion?.rows || []));
+  signData = curOpinion?.signature || '';
+
+  const st = curOpinion?.status || 'ready';
+  const locked = st === 'signed' || st === 'scanned' || st === 'confirmed';
+
+  $('detailView').style.display = 'none';
+  $('opinionView').style.display = 'block';
+  $('opTitle').textContent = `📝 ${w.round ? w.round + '_' : ''}${w.name || ''}`;
+  $('opMeta').innerHTML =
+    `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
+    `<b>훈련과정</b> ${esc(curCourse.type || '')} · ${esc(curCourse.site || '')}<br>` +
+    `<b>과정번호</b> ${esc(curCourse.courseNo || '-')}<br>` +
+    `<b>작성 월</b> ${esc(ymLabel(period))}`;
+
+  // 단계 표시 + 안내
+  const idx = Math.max(0, OP_ORDER.indexOf(st));
+  let bar = `<div class="card"><div class="step-bar">${OP_STEPS.map(([k, label], i) =>
+    `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}" style="font-size:10.5px;">${label}</div>`).join('')}</div>`;
+  if (st === 'confirmed') {
+    bar += `<div class="lock-bar conf" style="margin-bottom:0;">✅ <b>센터 확인 완료</b>. 더 손대실 것이 없습니다.</div>`;
+  } else if (st === 'scanned') {
+    bar += `<div class="lock-bar" style="margin-bottom:0;">📨 <b>자필 서명본까지 제출</b>되었습니다. 센터 확인을 기다리는 중입니다.</div>`;
+  } else if (st === 'signed') {
+    bar += `<div class="lock-bar" style="margin-bottom:0;">🔒 전자서명이 끝났습니다.<br>
+      <b>아래 인쇄 버튼으로 출력해 자필 서명하신 뒤, 사진을 올려주세요.</b><br>
+      <span style="font-size:12px;">내용을 고쳐야 하면 센터에 잠금 해제를 요청해주세요.</span></div>`;
+  } else {
+    bar += `<div class="info-box" data-guide="opinion_form" style="margin-bottom:0;">
+      센터가 작성한 초안입니다. <b>내용을 확인하고 필요하면 고쳐주세요.</b><br>
+      다 되면 아래에서 <b>서명</b>하시면 됩니다.</div>`;
+  }
+  bar += '</div>';
+  $('opLockBar').innerHTML = bar;
+
+  $('opTeacher').value = curOpinion?.teacherName || myAccount.name || '';
+  $('opPhone').value   = curOpinion?.teacherPhone || '';
+  ['opTeacher','opPhone'].forEach(id => { $(id).disabled = locked; });
+  $('opAddRow').style.display = locked ? 'none' : 'block';
+
+  renderOpRows(locked);
+  opSign.mount(locked, signData, curOpinion?.teacherName);
+  renderOpActions(st);
+  renderOpScans(st);
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+$('opBack').onclick = () => {
+  $('opinionView').style.display = 'none';
+  $('detailView').style.display = 'block';
+  loadOpinions();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+function renderOpRows(locked) {
+  const el = $('opRows');
+  if (!opRows.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px 10px;">훈련기간이 없습니다. 아래에서 추가해주세요.</div>';
     return;
   }
-  bar.innerHTML =
-    `<button class="act-save" id="btnSave">임시저장</button>` +
-    `<button class="act-sub" id="btnSubmit">✍️ 서명하고 제출</button>`;
-  $('btnSave').onclick = () => saveOpinion(false);
-  $('btnSubmit').onclick = () => saveOpinion(true);
+  el.innerHTML = opRows.map((r, i) => `
+    <div class="score-item" data-row="${i}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:12px;font-weight:700;color:var(--navy);background:#eef2f7;padding:3px 9px;border-radius:6px;">${i + 1}</span>
+        <input type="date" class="rf" data-k="from" value="${esc(r.from || '')}" ${locked ? 'disabled' : ''}
+               style="flex:1;min-width:0;padding:8px 9px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px;">
+        <span style="color:var(--gray);">~</span>
+        <input type="date" class="rf" data-k="to" value="${esc(r.to || '')}" ${locked ? 'disabled' : ''}
+               style="flex:1;min-width:0;padding:8px 9px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px;">
+        ${locked ? '' : `<button type="button" class="op-btn ghost" data-del="${i}" style="padding:6px 10px;">✕</button>`}
+      </div>
+      <textarea class="rf" data-k="text" placeholder="이 기간에 무엇을 어떻게 가르쳤는지 적어주세요."
+        ${locked ? 'disabled' : ''} style="width:100%;min-height:88px;padding:11px 12px;border:1.5px solid var(--line);
+        border-radius:10px;font-size:14px;font-family:inherit;line-height:1.6;resize:vertical;">${esc(r.text || '')}</textarea>
+    </div>`).join('');
+  if (locked) return;
+  el.querySelectorAll('[data-row]').forEach(box => {
+    const i = Number(box.dataset.row);
+    box.querySelectorAll('.rf').forEach(f => {
+      f.oninput = f.onchange = () => { opRows[i][f.dataset.k] = f.value; };
+    });
+  });
+  el.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = () => { opRows.splice(Number(b.dataset.del), 1); renderOpRows(false); };
+  });
+}
+$('opAddRow').onclick = () => {
+  const period = $('periodSel').value;
+  const [y, m] = period.split('-').map(Number);
+  const last = opRows[opRows.length - 1];
+  // 마지막 기간 다음 날부터 10일 단위로 이어 붙인다
+  let from;
+  if (last?.to) { const d = new Date(last.to); d.setDate(d.getDate() + 1); from = d; }
+  else from = new Date(y, m - 1, 1);
+  const to = new Date(from); to.setDate(to.getDate() + 9);
+  const eom = new Date(y, m, 0);
+  if (to > eom) to.setTime(eom.getTime());
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  opRows.push({ from: iso(from), to: iso(to), text: '' });
+  renderOpRows(false);
+};
+
+function renderOpActions(st) {
+  const bar = $('opActions');
+  if (st === 'ready') {
+    bar.innerHTML = `<button class="act-save" id="opSave">임시저장</button>` +
+                    `<button class="act-sub" id="opSign">✍️ 확인하고 서명</button>`;
+    $('opSave').onclick = () => saveOpinion(false);
+    $('opSign').onclick = () => saveOpinion(true);
+  } else {
+    bar.innerHTML = `<button class="act-print" id="opPrint">🖨️ 인쇄 · PDF 저장</button>`;
+    $('opPrint').onclick = printOpinion;
+  }
 }
 
-function collect() {
-  const o = {
+function collectOpinion() {
+  return {
     companyId: myAccount.companyId,
     companyName: myAccount.companyName || '',
     courseId: curCourse.id,
@@ -881,42 +990,38 @@ function collect() {
     site: curCourse.site || '',
     workerId: curWorker.id,
     workerName: curWorker.name || '',
+    round: curWorker.round || '',
     period: $('periodSel').value,
-    hoursPlan: $('opHoursPlan').value === '' ? null : Number($('opHoursPlan').value),
-    hoursDone: $('opHoursDone').value === '' ? null : Number($('opHoursDone').value),
-    content: $('opContent').value.trim(),
-    scores: curScores,
+    rows: opRows.map((r, i) => ({ no: i + 1, from: r.from || '', to: r.to || '', text: (r.text || '').trim() })),
     teacherName: $('opTeacher').value.trim(),
     teacherPhone: $('opPhone').value.trim(),
     authorUid: myAccount.uid,
     updatedAt: new Date().toISOString()
   };
-  TEXTS.forEach(([k]) => { o[k] = ($('op_' + k)?.value || '').trim(); });
-  return o;
 }
 
-async function saveOpinion(submit) {
-  const o = collect();
-  if (submit) {
-    const missing = SCORES.filter(([k]) => !curScores[k]).map(([, q]) => q);
-    if (missing.length) { toast('평가 항목을 모두 선택해주세요 (' + missing.length + '개 남음)'); return; }
-    if (!o.content)     { toast('주요 훈련 내용을 적어주세요'); return; }
-    if (!o.overall)     { toast('종합 의견을 적어주세요'); return; }
+async function saveOpinion(sign) {
+  const o = collectOpinion();
+  if (sign) {
+    if (!o.rows.length) { toast('훈련기간이 없습니다'); return; }
+    const blank = o.rows.filter(r => !r.text).length;
+    if (blank) { toast(`의견이 비어 있는 기간이 ${blank}개 있습니다`); return; }
+    const noDate = o.rows.filter(r => !r.from || !r.to).length;
+    if (noDate) { toast(`훈련기간이 비어 있는 칸이 ${noDate}개 있습니다`); return; }
     if (!o.teacherName) { toast('기업현장교사 성명을 입력해주세요'); return; }
-    const sig = grabSign();
+    const sig = opSign.grab();
     if (!sig) { toast('서명을 입력해주세요'); $('signPad').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
-    if (!confirm(`${o.workerName} · ${ymLabel(o.period)} 의견서를 제출합니다.\n\n제출하면 내용이 잠겨 수정할 수 없습니다.\n계속할까요?`)) return;
+    if (!confirm(`${o.workerName} · ${ymLabel(o.period)} 의견서에 서명합니다.\n\n서명하면 내용이 잠기고,\n출력해서 자필 서명하는 단계로 넘어갑니다.\n\n계속할까요?`)) return;
     o.signature = sig;
-    o.locked = true;
-    o.status = 'submitted';
-    o.signedAt = new Date().toISOString();
+    o.status = 'signed';
+    // 증빙: 내용 지문 + 서명 메타
+    o.docHash = await docFingerprint({ rows: o.rows, worker: o.workerName, period: o.period, teacher: o.teacherName });
+    o.signMeta = buildSignMeta(o.teacherName);
+    o.signedAt = o.signMeta.at;
   } else {
-    o.signature = grabSign() || signData || '';
-    o.locked = false;
-    o.status = 'draft';
+    o.signature = opSign.grab() || signData || '';
+    o.status = 'ready';
   }
-  if (!curOpinion) o.createdAt = new Date().toISOString();
-
   const btns = $('opActions').querySelectorAll('button');
   btns.forEach(b => b.disabled = true);
   try {
@@ -925,76 +1030,151 @@ async function saveOpinion(submit) {
     opinions[curWorker.id] = { id, ...(curOpinion || {}), ...o };
     curOpinion = opinions[curWorker.id];
     signData = o.signature;
-    if (submit) {
-      toast('✅ 제출했습니다');
-      openOpinion(curWorker.id);   // 잠긴 화면으로 새로 그리기
-    } else {
-      toast('💾 임시저장했습니다');
-      btns.forEach(b => b.disabled = false);
-    }
+    if (sign) { toast('✅ 서명했습니다 — 이제 출력해주세요'); openOpinion(curWorker.id); }
+    else { toast('💾 임시저장했습니다'); btns.forEach(b => b.disabled = false); }
   } catch(e) {
     btns.forEach(b => b.disabled = false);
     alert('저장 실패: ' + (e.message || ''));
   }
 }
 
-// ── 인쇄 ──
+function opDocNo(o) {
+  return `${o.round ? o.round + '_' : ''}${o.workerName || ''} / ${o.period || ''}`;
+}
+
 function printOpinion() {
   const o = curOpinion; if (!o) return;
-  const row = (a, b) => `<tr><th>${a}</th><td>${b || '-'}</td></tr>`;
+  const rows = o.rows || [];
   const body = `
-  <h1>기업현장교사 의견서</h1>
+  <h1>OJT 훈련강사의견</h1>
+  <div class="docno">${esc(opDocNo(o))}</div>
   <table class="info">
-    ${row('기업명', esc(o.companyName))}
-    ${row('훈련과정', esc(o.courseType) + (o.site ? ' / ' + esc(o.site) : ''))}
-    ${row('훈련과정번호', esc(o.courseNo))}
-    ${row('학습근로자', esc(o.workerName))}
-    ${row('작성 기간', esc(ymLabel(o.period)))}
+    <tr><th>기업명</th><td>${esc(o.companyName)}</td></tr>
+    <tr><th>훈련과정</th><td>${esc(o.courseType)}${o.site ? ' / ' + esc(o.site) : ''}</td></tr>
+    <tr><th>훈련과정번호</th><td>${esc(o.courseNo) || '-'}</td></tr>
+    <tr><th>학습근로자</th><td>${esc(o.workerName)}${o.round ? ' (' + esc(o.round) + ')' : ''}</td></tr>
   </table>
 
-  <h2>1. 훈련 실시 현황</h2>
-  <table class="info">
-    ${row('훈련시간 (계획 / 실시)', `${o.hoursPlan ?? '-'} 시간 / ${o.hoursDone ?? '-'} 시간`)}
+  <table class="grid" style="margin-top:14px;">
+    <tr><th style="width:44px;">번호</th><th style="width:180px;">훈련기간</th><th>훈련강사 의견</th></tr>
+    ${rows.map(r => `<tr>
+      <td class="c">${r.no}</td>
+      <td class="c">${esc(r.from)}~${esc(r.to)}</td>
+      <td>${esc(r.text).replace(/\n/g, '<br>')}</td>
+    </tr>`).join('')}
   </table>
-  <div class="box">${esc(o.content).replace(/\n/g, '<br>')}</div>
-
-  <h2>2. 학습근로자 평가</h2>
-  <table class="score">
-    <tr><th>평가 항목</th><th>점수</th><th>등급</th></tr>
-    ${SCORES.map(([k, q]) => `<tr><td>${q}</td><td class="c">${o.scores?.[k] ?? '-'}</td><td class="c">${SC_TEXT[o.scores?.[k]] || '-'}</td></tr>`).join('')}
-  </table>
-
-  <h2>3. 현장교사 의견</h2>
-  ${TEXTS.map(([k, label]) => `<h3>${label}</h3><div class="box">${esc(o[k]).replace(/\n/g, '<br>') || '-'}</div>`).join('')}
 
   <div class="sign">
-    <div>작성일 ${esc((o.signedAt || o.updatedAt || '').slice(0, 10))}</div>
-    <div class="who">기업현장교사 &nbsp; ${esc(o.teacherName)} &nbsp; (서명)</div>
+    <div class="who">${esc(o.teacherName)} &nbsp; (서명)</div>
     ${o.signature ? `<img src="${o.signature}">` : ''}
-  </div>`;
+  </div>
 
-  const w = window.open('', '_blank', 'width=860,height=1000');
-  if (!w) { alert('팝업이 차단되었습니다. 브라우저 주소창의 팝업 허용을 켜주세요.'); return; }
-  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
-  <title>기업현장교사 의견서 - ${esc(o.workerName)} ${esc(o.period)}</title><style>
-  @page { size:A4; margin:16mm 14mm; }
-  body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; line-height:1.65; }
-  h1 { font-size:21px; text-align:center; letter-spacing:6px; margin-bottom:18px; padding-bottom:12px; border-bottom:2.5px solid #111; }
-  h2 { font-size:14px; margin:20px 0 8px; padding-left:8px; border-left:4px solid #1976d2; }
-  h3 { font-size:12.5px; margin:12px 0 5px; color:#374151; }
-  table { width:100%; border-collapse:collapse; }
-  table.info th { width:150px; background:#f3f4f6; text-align:left; }
-  table.info th, table.info td { border:1px solid #9ca3af; padding:7px 10px; }
-  table.score th, table.score td { border:1px solid #9ca3af; padding:7px 10px; }
-  table.score th { background:#f3f4f6; }
-  table.score td.c { text-align:center; width:90px; }
-  .box { border:1px solid #9ca3af; padding:10px 12px; min-height:56px; white-space:pre-wrap; }
-  .sign { margin-top:34px; text-align:right; position:relative; }
-  .sign .who { margin-top:8px; font-size:14px; font-weight:bold; }
-  .sign img { height:70px; display:block; margin-left:auto; margin-top:-6px; }
-  </style></head><body>${body}</body></html>`);
-  w.document.close();
-  setTimeout(() => { w.focus(); w.print(); }, 450);
+  <div class="hand">
+    <div class="ht">▸ 자필 서명란 — 위 내용을 확인하였음을 자필로 서명해주세요.</div>
+    <div style="text-align:right;">기업현장교사 &nbsp;<span class="line"></span>&nbsp; (서명)</div>
+  </div>
+
+  ${verifyBlockHtml(o.signMeta, o.docHash, opDocNo(o))}`;
+  openPrint(`OJT 훈련강사의견 - ${o.workerName} ${o.period}`, body);
+}
+
+// ── 자필 서명본 업로드 ──
+function renderOpScans(st) {
+  const card = $('opScanCard');
+  if (st !== 'signed' && st !== 'scanned' && st !== 'confirmed') { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const scans = curOpinion?.signedScans || [];
+  const locked = st === 'confirmed';
+  $('opScanBox').innerHTML =
+    scans.map((f, i) => `<div class="file-row">
+      <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
+      <a href="${esc(f.url)}" target="_blank" rel="noopener">보기</a>
+      ${locked ? '' : `<button class="op-btn ghost" data-sc="${i}" style="padding:6px 10px;">삭제</button>`}
+    </div>`).join('') +
+    (locked ? '' : `
+    <div class="drop" id="opDrop">
+      <div class="big">📷</div>
+      <div class="t">자필 서명본 올리기</div>
+      <div class="s">출력물에 서명한 뒤 사진을 찍어 올려주세요.<br>여러 장 한 번에 선택 가능 · 한 개당 20MB까지</div>
+      <input type="file" id="opScanFile" multiple accept="image/*,.pdf" style="display:none;">
+    </div>
+    <div id="opScanProgress"></div>
+    ${scans.length && st === 'signed' ? `<div class="act-bar" style="margin-top:12px;">
+      <button class="act-sub" id="opScanSubmit">📨 자필본 제출하기</button></div>` : ''}`);
+
+  if (locked) return;
+  const drop = $('opDrop'), input = $('opScanFile');
+  if (drop) {
+    drop.onclick = () => input.click();
+    input.onchange = () => { if (input.files?.length) uploadOpScans(Array.from(input.files)); };
+  }
+  $('opScanBox').querySelectorAll('[data-sc]').forEach(b => { b.onclick = () => removeOpScan(Number(b.dataset.sc)); });
+  const sb = $('opScanSubmit');
+  if (sb) sb.onclick = async () => {
+    if (!confirm('자필 서명본을 센터에 제출합니다.\n\n계속할까요?')) return;
+    try {
+      const patch = { status: 'scanned', scannedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      await setDoc(doc(db, 'teacherOpinions', curOpinion.id), patch, { merge: true });
+      Object.assign(curOpinion, patch);
+      toast('✅ 제출했습니다');
+      openOpinion(curWorker.id);
+    } catch(e) { alert('제출 실패: ' + (e.message || '')); }
+  };
+}
+
+async function uploadOpScans(files) {
+  const big = files.filter(f => f.size > MAX_UP);
+  if (big.length) {
+    alert(`20MB를 넘는 파일은 올릴 수 없습니다.\n\n${big.map(f => `· ${f.name} (${fileSize(f.size)})`).join('\n')}`);
+    files = files.filter(f => f.size <= MAX_UP);
+    if (!files.length) return;
+  }
+  const prog = $('opScanProgress');
+  const { getStorage, ref, uploadBytesResumable, getDownloadURL } =
+    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+  const storage = getStorage(app);
+  const added = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      prog.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--sub);margin-top:10px;">
+        올리는 중 (${i + 1}/${files.length}) · ${esc(f.name)}</div>
+        <div class="up-track"><div class="up-fill" id="opUpFill"></div></div>`;
+      const safe = Date.now() + '_' + f.name.replace(/[^\w.\-가-힣 ]/g, '_');
+      const path = `docs/${myAccount.companyId}/opinion/${curOpinion.id}/signed/${safe}`;
+      const task = uploadBytesResumable(ref(storage, path), f, { contentType: f.type || 'application/octet-stream' });
+      await new Promise((res, rej) => task.on('state_changed',
+        s => { const el = $('opUpFill'); if (el) el.style.width = Math.round(s.bytesTransferred / s.totalBytes * 100) + '%'; },
+        rej, res));
+      added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
+    }
+    const list = [...(curOpinion.signedScans || []), ...added];
+    await setDoc(doc(db, 'teacherOpinions', curOpinion.id),
+      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
+    curOpinion.signedScans = list;
+    prog.innerHTML = '';
+    toast(`✅ ${added.length}개 올렸습니다`);
+    renderOpScans(curOpinion.status);
+  } catch(e) {
+    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
+  }
+}
+
+async function removeOpScan(i) {
+  const f = curOpinion?.signedScans?.[i]; if (!f) return;
+  if (!confirm(`${f.name}\n\n이 파일을 지울까요?`)) return;
+  try {
+    try {
+      const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+      await deleteObject(ref(getStorage(app), f.path));
+    } catch(_) {}
+    const list = curOpinion.signedScans.slice(); list.splice(i, 1);
+    await setDoc(doc(db, 'teacherOpinions', curOpinion.id),
+      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
+    curOpinion.signedScans = list;
+    toast('지웠습니다');
+    renderOpScans(curOpinion.status);
+  } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
 }
 
 // ══════════════════════════════════════════

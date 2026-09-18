@@ -1357,8 +1357,9 @@
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
       </div>
       <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
-        기업이 <b>학습근로자 한 명당 월 1회</b> 작성해 서명 제출합니다.<br>
-        <small style="opacity:0.9;">제출되면 기업 쪽에서는 수정이 잠깁니다. 고쳐야 할 내용이 있으면 <b>잠금 해제</b>를 눌러 다시 열어주세요.</small>
+        <b>센터가 훈련기간별 의견 초안을 등록</b>하면, 기업현장교사가 확인·수정하고 전자서명합니다.<br>
+        이어서 출력해 <b>자필 서명</b>한 사진을 올리면 그것이 공단 제출용 정식 증빙이 됩니다.<br>
+        <small style="opacity:0.9;">단계: 초안 대기 → 확인·서명 → 출력·자필 → 자필본 제출 → 센터 확인</small>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
@@ -1370,6 +1371,25 @@
           <select class="form-input" id="op-company" onchange="renderDocsTab()">
             <option value="">전체 기업</option>
           </select>
+        </div>
+      </div>
+      <div style="border:1.5px solid #E3E6EA;border-radius:12px;padding:14px 15px;margin-bottom:14px;background:#FAFBFC;">
+        <div style="font-size:13.5px;font-weight:700;margin-bottom:10px;">✏️ 의견 초안 작성</div>
+        <div class="form-group">
+          <label class="form-label">학습근로자</label>
+          <select class="form-input" id="od-worker" onchange="loadOpinionDraft()">
+            <option value="">학습근로자를 선택하세요</option>
+          </select>
+        </div>
+        <div id="od-editor" style="display:none;">
+          <label class="form-label">훈련기간별 의견</label>
+          <div id="od-rows"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button class="mini-btn" onclick="odAddRow()" style="background:#EEF0F3;color:#37404B;">+ 기간 추가</button>
+            <button class="mini-btn" onclick="odFillMonth()" style="background:#EEF0F3;color:#37404B;">📅 이 달 10일 단위로 채우기</button>
+          </div>
+          <button class="send-btn" onclick="saveOpinionDraft()" id="odSaveBtn" style="background:#059669;margin-top:10px;">💾 초안 저장 · 기업에 공개</button>
+          <div class="result-box" id="odResult"></div>
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
@@ -3779,20 +3799,220 @@
   // ══════════════════════════════════════════
   //  📝 기업현장교사 의견서 (서류 탭)
   // ══════════════════════════════════════════
-  const OP_SCORES = [
-    ['attend',     '훈련 참여도·성실성'],
-    ['understand', '직무 이해도'],
-    ['perform',    '업무 수행 능력'],
-    ['attitude',   '태도·대인관계'],
-    ['safety',     '안전수칙 준수']
+  // 서류 인쇄창 공통 (검증블록 · 자필서명란 포함)
+  const ADMIN_PRINT_CSS = `
+    @page { size:A4; margin:16mm 14mm; }
+    body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; line-height:1.65; padding:20px; }
+    h1 { font-size:20px; text-align:center; letter-spacing:5px; margin-bottom:6px; }
+    .docno { text-align:right; font-size:12px; color:#444; margin-bottom:8px; }
+    h2 { font-size:14px; margin:18px 0 7px; padding-left:8px; border-left:4px solid #3F4A57; }
+    table { width:100%; border-collapse:collapse; }
+    table.info th { width:140px; background:#f3f4f6; text-align:left; }
+    table.info th, table.info td { border:1px solid #9ca3af; padding:7px 10px; }
+    table.grid th, table.grid td { border:1px solid #6b7280; padding:8px 10px; vertical-align:top; }
+    table.grid th { background:#f3f4f6; text-align:center; font-weight:700; }
+    table.grid td.c { text-align:center; white-space:nowrap; }
+    .box { border:1px solid #9ca3af; padding:10px 12px; min-height:56px; white-space:pre-wrap; }
+    .sign { margin-top:26px; text-align:right; }
+    .sign .who { margin-top:6px; font-size:14px; font-weight:bold; letter-spacing:2px; }
+    .sign img { height:66px; display:block; margin-left:auto; margin-top:-4px; }
+    .hand { margin-top:22px; border:1px solid #6b7280; padding:14px 16px; }
+    .hand .ht { font-size:12px; font-weight:700; margin-bottom:26px; }
+    .hand .line { border-bottom:1px solid #111; width:200px; display:inline-block; }
+    .verify { margin-top:20px; border:1px solid #9ca3af; background:#fafafa; padding:10px 12px; font-size:10.5px; line-height:1.55; }
+    .verify .vt { font-weight:700; font-size:11px; margin-bottom:5px; }
+    .verify table { width:auto; }
+    .verify th { text-align:left; padding:1px 10px 1px 0; color:#444; font-weight:600; white-space:nowrap; }
+    .verify td { padding:1px 0; }
+    .verify td.fp { font-family:Consolas,monospace; letter-spacing:0.5px; }
+    .verify .vn { margin-top:6px; color:#555; }
+    .pg { page-break-after:always; text-align:center; }
+    .pg:last-child { page-break-after:auto; }
+    .pg img { max-width:100%; max-height:245mm; }
+    .cap { font-size:11px; color:#666; margin-top:4px; }
+    .list a { color:#1a4a8a; }
+    .bar { text-align:center; margin-bottom:14px; }
+    .bar button { padding:10px 22px; font-size:14px; font-weight:700; border:none; border-radius:8px; background:#3F4A57; color:white; cursor:pointer; }
+    @media print { .bar, .list { display:none; } body { padding:0; } }
+  `;
+  function openAdminPrint(title, bodyHtml) {
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { alert('팝업이 차단되었습니다. 주소창의 팝업 허용을 켜주세요.'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+      <title>${escapeHtmlSafe(title)}</title><style>${ADMIN_PRINT_CSS}</style></head><body>
+      <div class="bar"><button onclick="window.print()">\u{1F5A8} 인쇄 · PDF로 저장</button></div>
+      ${bodyHtml}</body></html>`);
+    w.document.close();
+  }
+
+  // ══════ 의견 초안 작성 (센터) ══════
+  let odRows = [];
+  function refreshDraftWorkerOptions() {
+    const sel = document.getElementById('od-worker'); if (!sel) return;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const list = allWorkers.filter(w => !w.deleted && !w.dropout)
+      .filter(w => !companyId || w.companyId === companyId);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">학습근로자를 선택하세요</option>' + list
+      .map(w => {
+        const co = allCompanies.find(x => x.id === w.companyId);
+        return { w, label: `${co?.name || w.companyName || ''} · ${w.name || ''}${w.round ? ' (' + w.round + ')' : ''}` };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label, 'ko'))
+      .map(x => `<option value="${x.w.id}">${escapeHtmlSafe(x.label)}</option>`).join('');
+    if (list.some(w => w.id === cur)) { sel.value = cur; } else { document.getElementById('od-editor').style.display = 'none'; }
+  }
+
+  function loadOpinionDraft() {
+    const workerId = document.getElementById('od-worker')?.value;
+    const period = document.getElementById('op-period')?.value;
+    const box = document.getElementById('od-editor');
+    const out = document.getElementById('odResult');
+    if (out) out.innerHTML = '';
+    if (!workerId) { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    const existing = allOpinions.find(o => o.id === `${workerId}__${period}`);
+    odRows = JSON.parse(JSON.stringify(existing?.rows || []));
+    if (!odRows.length) odFillMonth(true);
+    else renderOdRows();
+    if (existing && existing.status !== 'waiting' && existing.status !== 'ready') {
+      if (out) out.innerHTML = `<div style="color:#92400e;font-weight:700;font-size:13px;">
+        ⚠️ 기업이 이미 서명한 문서입니다. 초안을 고치려면 먼저 <b>잠금 해제</b>를 해주세요.</div>`;
+    }
+  }
+
+  function renderOdRows() {
+    const el = document.getElementById('od-rows');
+    if (!odRows.length) { el.innerHTML = '<div style="font-size:12.5px;color:#94a3b8;padding:10px 0;">기간이 없습니다. 아래 버튼으로 추가해주세요.</div>'; return; }
+    el.innerHTML = odRows.map((r, i) => `
+      <div style="border:1.5px solid #E3E6EA;border-radius:10px;padding:11px 12px;margin-bottom:7px;background:white;" data-od="${i}">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px;">
+          <span style="font-size:11.5px;font-weight:700;color:#3F4A57;background:#EEF0F3;padding:3px 8px;border-radius:5px;">${i + 1}</span>
+          <input type="date" class="odf" data-k="from" value="${escapeHtmlSafe(r.from || '')}" style="flex:1;min-width:0;padding:7px 8px;border:1.5px solid #E3E6EA;border-radius:7px;font-family:inherit;font-size:12.5px;">
+          <span style="color:#94a3b8;">~</span>
+          <input type="date" class="odf" data-k="to" value="${escapeHtmlSafe(r.to || '')}" style="flex:1;min-width:0;padding:7px 8px;border:1.5px solid #E3E6EA;border-radius:7px;font-family:inherit;font-size:12.5px;">
+          <button class="mini-btn" data-oddel="${i}" style="background:#fee2e2;color:#b91c1c;padding:6px 9px;">✕</button>
+        </div>
+        <textarea class="odf" data-k="text" placeholder="이 기간에 무엇을 어떻게 가르쳤는지 적어주세요."
+          style="width:100%;min-height:76px;padding:9px 10px;border:1.5px solid #E3E6EA;border-radius:8px;font-size:13px;font-family:inherit;line-height:1.6;resize:vertical;box-sizing:border-box;">${escapeHtmlSafe(r.text || '')}</textarea>
+      </div>`).join('');
+    el.querySelectorAll('[data-od]').forEach(box => {
+      const i = Number(box.dataset.od);
+      box.querySelectorAll('.odf').forEach(f => { f.oninput = f.onchange = () => { odRows[i][f.dataset.k] = f.value; }; });
+    });
+    el.querySelectorAll('[data-oddel]').forEach(b => {
+      b.onclick = () => { odRows.splice(Number(b.dataset.oddel), 1); renderOdRows(); };
+    });
+  }
+
+  const odIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  // 선택한 달을 1~10 / 11~20 / 21~말일 세 구간으로 채운다 (양식과 같은 방식)
+  function odFillMonth(silent) {
+    const period = document.getElementById('op-period')?.value;
+    if (!period) return;
+    const [y, m] = period.split('-').map(Number);
+    const eom = new Date(y, m, 0).getDate();
+    const keep = {};
+    odRows.forEach(r => { keep[r.from + '~' + r.to] = r.text; });
+    odRows = [
+      { from: odIso(new Date(y, m - 1, 1)),  to: odIso(new Date(y, m - 1, 10)) },
+      { from: odIso(new Date(y, m - 1, 11)), to: odIso(new Date(y, m - 1, 20)) },
+      { from: odIso(new Date(y, m - 1, 21)), to: odIso(new Date(y, m - 1, eom)) }
+    ].map(r => ({ ...r, text: keep[r.from + '~' + r.to] || '' }));
+    renderOdRows();
+    if (!silent) {
+      const out = document.getElementById('odResult');
+      if (out) out.innerHTML = `<div style="font-size:12.5px;color:#4a5568;">${opYmLabel(period)}을 10일 단위 3구간으로 채웠습니다. 날짜는 자유롭게 고치실 수 있습니다.</div>`;
+    }
+  }
+  function odAddRow() {
+    const period = document.getElementById('op-period')?.value;
+    const [y, m] = period.split('-').map(Number);
+    const last = odRows[odRows.length - 1];
+    let from = last?.to ? new Date(last.to) : new Date(y, m - 1, 0);
+    from.setDate(from.getDate() + 1);
+    const to = new Date(from); to.setDate(to.getDate() + 9);
+    const eom = new Date(y, m, 0);
+    if (to > eom) to.setTime(eom.getTime());
+    odRows.push({ from: odIso(from), to: odIso(to), text: '' });
+    renderOdRows();
+  }
+
+  async function saveOpinionDraft() {
+    const workerId = document.getElementById('od-worker')?.value;
+    const period = document.getElementById('op-period')?.value;
+    const out = document.getElementById('odResult');
+    const btn = document.getElementById('odSaveBtn');
+    if (!workerId) { alert('학습근로자를 선택해주세요.'); return; }
+    if (!odRows.length) { alert('훈련기간을 하나 이상 넣어주세요.'); return; }
+    const bad = odRows.filter(r => !r.from || !r.to);
+    if (bad.length) { alert(`훈련기간이 비어 있는 칸이 ${bad.length}개 있습니다.`); return; }
+
+    const w = allWorkers.find(x => x.id === workerId);
+    const course = allCourses.find(c => c.id === w?.courseId);
+    const co = allCompanies.find(x => x.id === w?.companyId);
+    if (!w?.companyId) { alert('이 학습근로자에게 소속 기업이 연결되어 있지 않습니다.\n기업 탭에서 먼저 연결해주세요.'); return; }
+
+    const id = `${workerId}__${period}`;
+    const prev = allOpinions.find(o => o.id === id);
+    if (prev && prev.status !== 'waiting' && prev.status !== 'ready') {
+      if (!await customConfirm({ title: '이미 서명된 문서',
+        message: '기업이 서명을 마친 문서입니다.<br>초안을 덮어쓰면 <b>서명이 무효가 되어 다시 받아야 합니다.</b><br><br>계속할까요?',
+        confirmText: '덮어쓰기', danger: true })) return;
+    }
+
+    btn.disabled = true; btn.textContent = '저장 중...';
+    try {
+      const db = await wkDb();
+      const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const next = {
+        companyId: w.companyId, companyName: co?.name || w.companyName || '',
+        courseId: w.courseId || '', courseType: course?.type || '', courseNo: course?.courseNo || '',
+        site: course?.site || '',
+        workerId, workerName: w.name || '', round: w.round || '',
+        period,
+        rows: odRows.map((r, i) => ({ no: i + 1, from: r.from, to: r.to, text: (r.text || '').trim() })),
+        status: 'ready',
+        // 초안을 고치면 이전 서명은 무효
+        signature: '', signMeta: null, docHash: '', signedAt: null,
+        draftBy: (window.__fbAdminUser?.email) || '',
+        draftAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!prev) next.createdAt = new Date().toISOString();
+      await setDoc(doc(db, 'teacherOpinions', id), next, { merge: true });
+      if (prev) Object.assign(prev, next); else allOpinions.push({ id, ...next });
+      await writeLog('update', 'teacherOpinion', id, `의견 초안 등록: ${next.companyName} ${next.workerName} ${period} (${next.rows.length}기간)`);
+      out.innerHTML = `<div style="color:#059669;font-weight:700;">✅ 초안을 저장했습니다.<br>
+        <span style="font-weight:400;font-size:12.5px;color:#4a5568;">${escapeHtmlSafe(next.companyName)} 기업 화면에서 확인·서명할 수 있습니다.</span></div>`;
+      renderOpinionDocs(); renderDocsMatrix();
+    } catch(e) {
+      out.innerHTML = `<div style="color:#b91c1c;font-weight:700;">저장 실패: ${escapeHtmlSafe(e.message || '')}</div>`;
+    }
+    btn.disabled = false; btn.textContent = '💾 초안 저장 · 기업에 공개';
+  }
+
+  const OP_STEPS = [
+    ['waiting',   '초안 대기',    '#f1f5f9', '#64748b'],
+    ['ready',     '확인·서명 대기','#fef3c7', '#92400e'],
+    ['signed',    '자필 대기',    '#ffedd5', '#9a3412'],
+    ['scanned',   '자필본 제출',  '#dcfce7', '#166534'],
+    ['confirmed', '확인 완료',    '#dbeafe', '#1e40af']
   ];
-  const OP_SC_TEXT = { 5:'매우 우수', 4:'우수', 3:'보통', 2:'미흡', 1:'매우 미흡' };
-  const OP_TEXTS = [
-    ['good',    '잘하고 있는 점'],
-    ['improve', '보완이 필요한 점'],
-    ['plan',    '다음 달 지도 계획'],
-    ['overall', '종합 의견']
-  ];
+  const OP_ORDER = OP_STEPS.map(x => x[0]);
+  function opStatusInfo(st) {
+    const f = OP_STEPS.find(x => x[0] === st);
+    return f ? [f[1], f[2], f[3]] : [OP_STEPS[0][1], OP_STEPS[0][2], OP_STEPS[0][3]];
+  }
+  function opFpShort(hex) {
+    if (!hex) return '-';
+    return (String(hex).slice(0,16).toUpperCase().match(/.{1,4}/g) || []).join('-');
+  }
+  function opKst(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso), p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
   let allOpinions = [];
 
   function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
@@ -3827,9 +4047,9 @@
     const ids = Object.keys(firms);
     if (!ids.length) { el.innerHTML = '<div class="empty-history">기업에 연결된 학습근로자가 없습니다.</div>'; return; }
 
-    const opCount = {};   // 기업|월 → 제출된 의견서 수
+    const opCount = {};   // 기업|월 → 자필본까지 제출된 의견서 수
     allOpinions.forEach(o => {
-      if (o.status !== 'submitted' && o.status !== 'confirmed') return;
+      if (o.status !== 'scanned' && o.status !== 'confirmed') return;
       const k = o.companyId + '|' + o.period;
       opCount[k] = (opCount[k] || 0) + 1;
     });
@@ -3981,52 +4201,54 @@
     const el = document.getElementById('opDocList');
     const sum = document.getElementById('opSummary');
     if (!el || !period) return;
+    refreshDraftWorkerOptions();
     const rows = opExpectedRows(period, companyId);
 
-    const nDone = rows.filter(r => r.op && (r.op.status === 'submitted' || r.op.status === 'confirmed')).length;
-    const nConf = rows.filter(r => r.op?.status === 'confirmed').length;
-    const nDraft = rows.filter(r => r.op?.status === 'draft').length;
-    const nNone = rows.length - nDone - nDraft;
-    const rate = rows.length ? Math.round(nDone / rows.length * 100) : 0;
+    const cnt = k => rows.filter(r => (r.op?.status || 'waiting') === k).length;
+    const nNone = rows.filter(r => !r.op).length;
+    const nScan = cnt('scanned') + cnt('confirmed');
+    const rate = rows.length ? Math.round(nScan / rows.length * 100) : 0;
 
     if (sum) sum.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-        ${[['제출률', rate + '%', '#3F4A57'], ['제출', nDone + '건', '#059669'],
-           ['작성 중', nDraft + '건', '#d97706'], ['미작성', nNone + '건', '#64748b']]
-          .map(([l, v, c]) => `<div style="background:#f8fafc;border:1.5px solid #e4eaf4;border-radius:10px;padding:11px 8px;text-align:center;">
+        ${[['자필본 제출률', rate + '%', '#3F4A57'], ['초안 미등록', nNone + '건', '#64748b'],
+           ['서명 대기', cnt('ready') + '건', '#d97706'], ['자필 대기', cnt('signed') + '건', '#9a3412']]
+          .map(([l, v, c]) => `<div style="background:#F4F5F7;border:1.5px solid #E3E6EA;border-radius:10px;padding:11px 8px;text-align:center;">
             <div style="font-size:11.5px;color:#64748b;">${l}</div>
             <div style="font-size:18px;font-weight:700;color:${c};margin-top:2px;">${v}</div></div>`).join('')}
       </div>
       <div style="font-size:12px;color:#64748b;margin-top:8px;">
-        ${opYmLabel(period)} 기준 · 대상 ${rows.length}명 · 센터 확인 완료 ${nConf}건</div>`;
+        ${opYmLabel(period)} 기준 · 대상 ${rows.length}명 · 센터 확인 완료 ${cnt('confirmed')}건</div>`;
 
-    if (!rows.length) {
-      el.innerHTML = '<div class="empty-history">해당 조건에 학습근로자가 없습니다.</div>';
-      return;
-    }
+    if (!rows.length) { el.innerHTML = '<div class="empty-history">해당 조건에 학습근로자가 없습니다.</div>'; return; }
+
     el.innerHTML = rows.map(r => {
       const o = r.op;
-      const st = o ? (o.status || 'draft') : 'none';
-      const info = { none:['미작성','#f1f5f9','#64748b'], draft:['작성 중','#fef3c7','#92400e'],
-                     submitted:['제출 완료','#dcfce7','#166534'], confirmed:['센터 확인','#dbeafe','#1e40af'] }[st];
-      const locked = !!o?.locked;
-      return `<div style="border:1.5px solid #e4eaf4;border-radius:11px;padding:13px 15px;margin-bottom:8px;background:white;">
+      const st = o?.status || 'waiting';
+      const [label, bg, fg] = opStatusInfo(st);
+      const nRows = (o?.rows || []).length;
+      const nScans = (o?.signedScans || []).length;
+      return `<div style="border:1.5px solid #E3E6EA;border-radius:11px;padding:13px 15px;margin-bottom:8px;background:white;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div style="flex:1;min-width:180px;">
             <div style="font-size:14.5px;font-weight:700;">${escapeHtmlSafe(r.worker.name || '-')}
+              ${r.worker.round ? `<span style="font-size:11px;font-weight:400;color:#64748b;"> ${escapeHtmlSafe(r.worker.round)}</span>` : ''}
               <span style="font-size:12px;font-weight:400;color:#64748b;"> · ${escapeHtmlSafe(r.companyName)}</span></div>
             <div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtmlSafe(r.courseLabel)}</div>
           </div>
-          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${info[1]};color:${info[2]};white-space:nowrap;">${info[0]}</span>
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};white-space:nowrap;">${label}</span>
         </div>
+        ${o ? `<div style="margin-top:8px;font-size:12.5px;color:#4a5568;">
+          훈련기간 ${nRows}개${o.signedAt ? ` · 전자서명 ${escapeHtmlSafe(opKst(o.signedAt))}` : ''}${nScans ? ` · 자필본 ${nScans}장` : ''}
+          ${o.docHash ? `<br><span style="font-family:Consolas,monospace;font-size:11px;color:#94a3b8;">지문 ${opFpShort(o.docHash)}</span>` : ''}
+        </div>` : ''}
         ${o ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
           <button class="mini-btn" onclick="viewOpinion('${o.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
-          ${st === 'submitted' ? `<button class="mini-btn" onclick="confirmOpinionDoc('${o.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
-          ${locked ? `<button class="mini-btn" onclick="unlockOpinion('${o.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+          ${nScans ? `<button class="mini-btn" onclick="viewOpinionScans('${o.id}')" style="background:#166534;color:white;">📷 자필본 ${nScans}장</button>` : ''}
+          ${st === 'scanned' ? `<button class="mini-btn" onclick="confirmOpinionDoc('${o.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+          ${(st === 'signed' || st === 'scanned' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockOpinion('${o.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
           <button class="mini-btn" onclick="deleteOpinion('${o.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
-          <span style="font-size:11.5px;color:#94a3b8;align-self:center;">
-            ${o.signedAt ? '제출 ' + escapeHtmlSafe(o.signedAt.slice(0,10)) : (o.updatedAt ? '저장 ' + escapeHtmlSafe(o.updatedAt.slice(0,10)) : '')}</span>
-        </div>` : ''}
+        </div>` : `<div style="margin-top:8px;font-size:12.5px;color:#94a3b8;">위 <b>의견 초안 작성</b>에서 이 학습근로자를 골라 초안을 넣어주세요.</div>`}
       </div>`;
     }).join('');
   }
@@ -4035,60 +4257,69 @@
     const o = allOpinions.find(x => x.id === id);
     if (!o) { alert('의견서를 찾지 못했습니다.'); return; }
     const E = escapeHtmlSafe;
-    const row = (a, b) => `<tr><th>${a}</th><td>${b || '-'}</td></tr>`;
+    const docNo = `${o.round ? o.round + '_' : ''}${o.workerName || ''} / ${o.period || ''}`;
+    const rows = o.rows || [];
+    const m = o.signMeta || {};
     const body = `
-    <h1>기업현장교사 의견서</h1>
+    <h1>OJT 훈련강사의견</h1>
+    <div class="docno">${E(docNo)}</div>
     <table class="info">
-      ${row('기업명', E(o.companyName))}
-      ${row('훈련과정', E(o.courseType) + (o.site ? ' / ' + E(o.site) : ''))}
-      ${row('훈련과정번호', E(o.courseNo))}
-      ${row('학습근로자', E(o.workerName))}
-      ${row('작성 기간', E(opYmLabel(o.period)))}
+      <tr><th>기업명</th><td>${E(o.companyName)}</td></tr>
+      <tr><th>훈련과정</th><td>${E(o.courseType)}${o.site ? ' / ' + E(o.site) : ''}</td></tr>
+      <tr><th>훈련과정번호</th><td>${E(o.courseNo) || '-'}</td></tr>
+      <tr><th>학습근로자</th><td>${E(o.workerName)}${o.round ? ' (' + E(o.round) + ')' : ''}</td></tr>
     </table>
-    <h2>1. 훈련 실시 현황</h2>
-    <table class="info">${row('훈련시간 (계획 / 실시)', `${o.hoursPlan ?? '-'} 시간 / ${o.hoursDone ?? '-'} 시간`)}</table>
-    <div class="box">${E(o.content).replace(/\n/g, '<br>') || '-'}</div>
-    <h2>2. 학습근로자 평가</h2>
-    <table class="score">
-      <tr><th>평가 항목</th><th>점수</th><th>등급</th></tr>
-      ${OP_SCORES.map(([k, q]) => `<tr><td>${q}</td><td class="c">${o.scores?.[k] ?? '-'}</td><td class="c">${OP_SC_TEXT[o.scores?.[k]] || '-'}</td></tr>`).join('')}
+    <table class="grid" style="margin-top:14px;">
+      <tr><th style="width:44px;">번호</th><th style="width:180px;">훈련기간</th><th>훈련강사 의견</th></tr>
+      ${rows.map(r => `<tr><td class="c">${r.no}</td><td class="c">${E(r.from)}~${E(r.to)}</td>
+        <td>${E(r.text).replace(/\n/g, '<br>')}</td></tr>`).join('')}
     </table>
-    <h2>3. 현장교사 의견</h2>
-    ${OP_TEXTS.map(([k, label]) => `<h3>${label}</h3><div class="box">${E(o[k]).replace(/\n/g, '<br>') || '-'}</div>`).join('')}
     <div class="sign">
-      <div>작성일 ${E((o.signedAt || o.updatedAt || '').slice(0, 10))}</div>
-      <div class="who">기업현장교사 &nbsp; ${E(o.teacherName)} &nbsp; (서명)</div>
-      ${o.signature ? `<img src="${o.signature}">` : '<div style="font-size:12px;color:#b91c1c;">※ 서명 없음 (제출 전 임시저장 상태)</div>'}
+      <div class="who">${E(o.teacherName)} &nbsp; (서명)</div>
+      ${o.signature ? `<img src="${o.signature}">` : '<div style="font-size:12px;color:#b91c1c;">※ 전자서명 없음 (기업 확인 전)</div>'}
+    </div>
+    <div class="hand">
+      <div class="ht">▸ 자필 서명란 — 위 내용을 확인하였음을 자필로 서명해주세요.</div>
+      <div style="text-align:right;">기업현장교사 &nbsp;<span class="line"></span>&nbsp; (서명)</div>
+    </div>
+    <div class="verify">
+      <div class="vt">전자서명 정보</div>
+      <table>
+        <tr><th>서명자</th><td>${E(m.name)}${m.email ? ' &lt;' + E(m.email) + '&gt;' : ''}</td></tr>
+        <tr><th>서명 시각</th><td>${E(opKst(m.at))} (KST)</td></tr>
+        <tr><th>서명 기기</th><td>${E(m.device || '-')}</td></tr>
+        <tr><th>문서번호</th><td>${E(docNo)}</td></tr>
+        <tr><th>문서지문</th><td class="fp">${E(opFpShort(o.docHash))}</td></tr>
+      </table>
+      <div class="vn">※ 문서지문은 내용이 한 글자라도 바뀌면 달라집니다. 이 출력물과 시스템 기록을 대조해 위·변조를 확인할 수 있습니다.<br>
+      ※ <b>이 출력물에 자필로 서명한 뒤, 사진을 앱에 올려주세요.</b> 자필 서명본이 공단 제출용 정식 증빙입니다.</div>
     </div>`;
-    const w = window.open('', '_blank', 'width=880,height=1000');
-    if (!w) { alert('팝업이 차단되었습니다. 주소창의 팝업 허용을 켜주세요.'); return; }
-    w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
-    <title>기업현장교사 의견서 - ${E(o.workerName)} ${E(o.period)}</title><style>
-    @page { size:A4; margin:16mm 14mm; }
-    body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; line-height:1.65; padding:20px; }
-    h1 { font-size:21px; text-align:center; letter-spacing:6px; margin-bottom:18px; padding-bottom:12px; border-bottom:2.5px solid #111; }
-    h2 { font-size:14px; margin:20px 0 8px; padding-left:8px; border-left:4px solid #3F4A57; }
-    h3 { font-size:12.5px; margin:12px 0 5px; color:#374151; }
-    table { width:100%; border-collapse:collapse; }
-    table.info th { width:150px; background:#f3f4f6; text-align:left; }
-    table.info th, table.info td, table.score th, table.score td { border:1px solid #9ca3af; padding:7px 10px; }
-    table.score th { background:#f3f4f6; }
-    table.score td.c { text-align:center; width:90px; }
-    .box { border:1px solid #9ca3af; padding:10px 12px; min-height:56px; white-space:pre-wrap; }
-    .sign { margin-top:34px; text-align:right; }
-    .sign .who { margin-top:8px; font-size:14px; font-weight:bold; }
-    .sign img { height:70px; display:block; margin-left:auto; margin-top:-6px; }
-    .bar { text-align:center; margin-bottom:16px; }
-    .bar button { padding:10px 22px; font-size:14px; font-weight:700; border:none; border-radius:8px; background:#3F4A57; color:white; cursor:pointer; }
-    @media print { .bar { display:none; } body { padding:0; } }
-    </style></head><body><div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>${body}</body></html>`);
-    w.document.close();
+    openAdminPrint(`OJT 훈련강사의견 - ${E(o.workerName)} ${E(o.period)}`, body);
+  }
+
+  // 자필 서명본 사진을 A4로 이어 붙여 보기·인쇄
+  function viewOpinionScans(id) {
+    const o = allOpinions.find(x => x.id === id); if (!o) return;
+    const E = escapeHtmlSafe;
+    const scans = o.signedScans || [];
+    const imgs = scans.filter(f => /\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const others = scans.filter(f => !/\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const body = `
+    <h1>자필 서명본</h1>
+    <div class="docno">${E(o.workerName)} · ${E(o.period)} · ${E(o.companyName)}</div>
+    ${imgs.map((f, i) => `<div class="pg"><img src="${E(f.url)}" alt=""><div class="cap">${i + 1} / ${imgs.length} — ${E(f.name)}</div></div>`).join('')}
+    ${others.length ? `<div class="list"><b>이미지가 아닌 파일 ${others.length}개는 따로 열어주세요:</b><br>
+      ${others.map(f => `<a href="${E(f.url)}" target="_blank">${E(f.name)}</a>`).join('<br>')}</div>` : ''}
+    ${!imgs.length && !others.length ? '<div style="text-align:center;color:#888;padding:40px;">올라온 자필본이 없습니다.</div>' : ''}`;
+    openAdminPrint(`자필 서명본 - ${E(o.workerName)} ${E(o.period)}`, body);
   }
 
   async function confirmOpinionDoc(id) {
     const o = allOpinions.find(x => x.id === id); if (!o) return;
+    const n = (o.signedScans || []).length;
     if (!await customConfirm({ title: '의견서 확인 처리',
-      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>확인 완료로 표시할까요?`,
+      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>확인 완료로 표시할까요?<br><br>
+        <span style="font-size:12px;color:#64748b;">자필 서명본 ${n}장이 올라와 있습니다. 확인 후에는 기업이 더 올리거나 지울 수 없습니다.</span>`,
       confirmText: '✅ 확인 처리' })) return;
     try {
       const db = await wkDb();
@@ -4097,23 +4328,26 @@
       await updateDoc(doc(db, 'teacherOpinions', id), { status: 'confirmed', confirmedAt: when });
       Object.assign(o, { status: 'confirmed', confirmedAt: when });
       await writeLog('update', 'teacherOpinion', id, `의견서 확인: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
-      renderOpinionDocs();
+      renderOpinionDocs(); renderDocsMatrix();
     } catch(e) { alert('처리 실패: ' + e.message); }
   }
 
   async function unlockOpinion(id) {
     const o = allOpinions.find(x => x.id === id); if (!o) return;
     if (!await customConfirm({ title: '잠금 해제',
-      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>기업이 다시 수정할 수 있게 열어줄까요?<br><br>
-        <span style="font-size:12px;color:#92400e;">기존 서명은 그대로 남아 있지만, 기업이 다시 제출하면 새 서명으로 바뀝니다.</span>`,
+      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>기업이 다시 수정·서명할 수 있게 열어줄까요?<br><br>
+        <span style="font-size:12px;color:#92400e;">전자서명과 문서지문이 무효 처리됩니다. 올라온 자필 서명본은 그대로 남습니다.<br>
+        내용이 바뀌면 자필본도 다시 받으셔야 합니다.</span>`,
       confirmText: '🔓 잠금 해제' })) return;
     try {
       const db = await wkDb();
       const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      await updateDoc(doc(db, 'teacherOpinions', id), { locked: false, status: 'draft', unlockedAt: new Date().toISOString() });
-      Object.assign(o, { locked: false, status: 'draft' });
+      const patch = { status: 'ready', signature: '', signMeta: null, docHash: '', signedAt: null,
+                      unlockedAt: new Date().toISOString() };
+      await updateDoc(doc(db, 'teacherOpinions', id), patch);
+      Object.assign(o, patch);
       await writeLog('update', 'teacherOpinion', id, `의견서 잠금 해제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
-      renderOpinionDocs();
+      renderOpinionDocs(); renderDocsMatrix();
     } catch(e) { alert('처리 실패: ' + e.message); }
   }
 
@@ -4389,12 +4623,15 @@
     ['course_list', '훈련과정 목록 화면',
      '로그인 직후 처음 보이는 화면입니다.',
      '관리하실 훈련과정을 선택하세요. 과정별로 학습근로자와 서류를 따로 관리합니다.'],
-    ['opinion_intro', '의견서 — 목록 안내',
+    ['opinion_intro', 'OJT 훈련강사의견 — 목록 안내',
      '과정 상세에서 의견서 카드 위에 나옵니다.',
-     '학습근로자 **한 명당 한 달에 한 장** 작성합니다.\n작성 후 **서명하고 제출**하면 내용이 잠기고 센터에서 확인합니다.'],
-    ['opinion_form', '의견서 — 작성 화면',
-     '의견서를 실제로 쓰는 화면 맨 위입니다. 작성 요령을 적어두면 좋습니다.',
-     '이번 달 이 학습근로자를 지도하면서 보신 것을 그대로 적어주시면 됩니다.\n**임시저장**을 눌러두면 나중에 이어서 쓸 수 있고, **서명하고 제출**해야 센터로 넘어갑니다.'],
+     '센터가 등록한 초안을 **확인·수정하고 서명**해주세요.\n서명 후 **출력해 자필 서명한 사진**을 올리면 완료됩니다.'],
+    ['opinion_form', 'OJT 훈련강사의견 — 작성 화면',
+     '의견서를 확인·수정하는 화면 맨 위입니다.',
+     '센터가 작성한 초안입니다. **내용을 확인하고 필요하면 고쳐주세요.**\n다 되면 아래에서 **서명**하시면 됩니다.'],
+    ['opinion_scan', 'OJT 훈련강사의견 — 자필본 안내',
+     '자필 서명본을 올리는 칸 위에 나옵니다. 촬영 요령을 적어두면 좋습니다.',
+     '위 **인쇄** 버튼으로 출력한 뒤 **자필로 서명**하시고,\n그 종이를 사진으로 찍거나 스캔해서 올려주세요. 이게 정식 증빙이 됩니다.'],
     ['checklist_intro', '체크리스트 — 목록 안내',
      '과정 상세에서 체크리스트 카드 위에 나옵니다.',
      '훈련과정마다 **한 달에 한 장** 작성합니다.\n출결 확인 · OJT 비용 신청 · 활동수당 신청을 점검하고 마지막에 서명합니다.'],
@@ -4654,24 +4891,35 @@
   }
 
   // 잘못 작성된 의견서 지우기 (관리자만).
-  // 기업 쪽에서는 제출 후 삭제가 불가능하므로, 오작성 정리는 여기서만 한다.
+  // 기업 쪽에서는 서명 후 삭제가 불가능하므로, 오작성 정리는 여기서만 한다.
   async function deleteOpinion(id) {
     const o = allOpinions.find(x => x.id === id); if (!o) return;
-    const done = o.status === 'submitted' || o.status === 'confirmed';
+    const signed = o.status === 'signed' || o.status === 'scanned' || o.status === 'confirmed';
+    const n = (o.signedScans || []).length;
     if (!await customConfirm({ title: '의견서 삭제',
       message: `<b>${escapeHtmlSafe(o.companyName || '')}</b> · ${escapeHtmlSafe(o.workerName || '')}<br>
         ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를 삭제할까요?<br><br>
-        ${done ? '<span style="font-size:12px;color:#92400e;">⚠️ 이미 <b>서명 제출이 끝난 문서</b>입니다. 서명 이미지까지 함께 사라지며 되돌릴 수 없습니다.<br>내용만 고치면 되는 경우라면 삭제 대신 <b>🔓 잠금 해제</b>를 눌러주세요.</span>'
-              : '<span style="font-size:12px;color:#64748b;">작성 중(임시저장) 문서입니다.</span>'}`,
+        ${signed ? `<span style="font-size:12px;color:#92400e;">⚠️ 서명이 끝난 문서입니다.${n ? ` 자필 서명본 ${n}장도 함께 사라집니다.` : ''}<br>
+          내용만 고치면 되는 경우라면 삭제 대신 <b>🔓 잠금 해제</b>를 눌러주세요.</span>`
+                : '<span style="font-size:12px;color:#64748b;">아직 서명되지 않은 초안입니다.</span>'}`,
       confirmText: '🗑️ 삭제', danger: true })) return;
     try {
+      if (n) {   // 자필본 파일도 함께 정리
+        try {
+          const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+          const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+          const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+          const storage = getStorage(app);
+          await Promise.all(o.signedScans.map(f => deleteObject(ref(storage, f.path)).catch(() => {})));
+        } catch(_) {}
+      }
       const db = await wkDb();
       const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await deleteDoc(doc(db, 'teacherOpinions', id));
       allOpinions = allOpinions.filter(x => x.id !== id);
       await writeLog('delete', 'teacherOpinion', id,
-        `의견서 삭제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}${done ? ' (제출완료본)' : ''}`);
-      renderOpinionDocs();
+        `의견서 삭제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}${signed ? ' (서명본)' : ''}`);
+      renderOpinionDocs(); renderDocsMatrix();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
@@ -4681,35 +4929,43 @@
     const companyId = document.getElementById('op-company')?.value || '';
     const rows = opExpectedRows(period, companyId);
     if (!rows.length) { alert('내려받을 자료가 없습니다.'); return; }
-    const ST = { none:'미작성', draft:'작성 중', submitted:'제출 완료', confirmed:'센터 확인' };
-    const data = rows.map((r, i) => {
-      const o = r.op || {};
-      const st = r.op ? (o.status || 'draft') : 'none';
-      const out = {
-        '연번': i + 1,
-        '기업명': r.companyName,
-        '훈련과정': r.courseLabel,
-        '학습근로자': r.worker.name || '',
-        '작성월': period,
-        '상태': ST[st],
-        '훈련시간(계획)': o.hoursPlan ?? '',
-        '훈련시간(실시)': o.hoursDone ?? '',
-        '주요 훈련내용': o.content || ''
-      };
-      OP_SCORES.forEach(([k, q]) => { out[q] = o.scores?.[k] ?? ''; });
-      OP_TEXTS.forEach(([k, label]) => { out[label] = o[k] || ''; });
-      out['기업현장교사'] = o.teacherName || '';
-      out['제출일'] = (o.signedAt || '').slice(0, 10);
-      out['센터확인일'] = (o.confirmedAt || '').slice(0, 10);
-      return out;
+    const data = [];
+    rows.forEach((r, i) => {
+      const o = r.op;
+      const st = opStatusInfo(o?.status || 'waiting')[0];
+      const list = (o?.rows || []);
+      if (!list.length) {
+        data.push({ '연번': i + 1, '기업명': r.companyName, '훈련과정': r.courseLabel,
+          '학습근로자': r.worker.name || '', '회차': r.worker.round || '', '작성월': period,
+          '상태': st, '번호': '', '훈련기간': '', '훈련강사 의견': '',
+          '기업현장교사': o?.teacherName || '', '전자서명시각': '', '문서지문': '', '자필본': 0 });
+        return;
+      }
+      list.forEach((row, j) => {
+        data.push({
+          '연번': j === 0 ? i + 1 : '',
+          '기업명': j === 0 ? r.companyName : '',
+          '훈련과정': j === 0 ? r.courseLabel : '',
+          '학습근로자': j === 0 ? (r.worker.name || '') : '',
+          '회차': j === 0 ? (r.worker.round || '') : '',
+          '작성월': j === 0 ? period : '',
+          '상태': j === 0 ? st : '',
+          '번호': row.no,
+          '훈련기간': `${row.from}~${row.to}`,
+          '훈련강사 의견': row.text || '',
+          '기업현장교사': j === 0 ? (o.teacherName || '') : '',
+          '전자서명시각': j === 0 ? opKst(o.signedAt) : '',
+          '문서지문': j === 0 ? opFpShort(o.docHash) : '',
+          '자필본': j === 0 ? (o.signedScans || []).length : ''
+        });
+      });
     });
     const ws = XLSX.utils.json_to_sheet(data);
     ws['!cols'] = Object.keys(data[0]).map(k =>
-      ({ wch: ['주요 훈련내용','잘하고 있는 점','보완이 필요한 점','다음 달 지도 계획','종합 의견'].includes(k) ? 38
-            : (k === '기업명' || k === '훈련과정' ? 22 : 12) }));
+      ({ wch: k === '훈련강사 의견' ? 60 : (k === '기업명' || k === '훈련과정' ? 22 : (k === '훈련기간' || k === '전자서명시각' || k === '문서지문' ? 20 : 11)) }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '현장교사의견서');
-    XLSX.writeFile(wb, `기업현장교사_의견서_${period}_${localToday()}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'OJT훈련강사의견');
+    XLSX.writeFile(wb, `OJT_훈련강사의견_${period}_${localToday()}.xlsx`);
   }
 
   async function writeLog(action, target, targetId, detail) {

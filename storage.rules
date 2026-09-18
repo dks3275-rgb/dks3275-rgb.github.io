@@ -44,6 +44,22 @@ service firebase.storage {
         );
     }
 
+    // 서류 3종 공통 경로
+    //   docs/{기업ID}/{서류종류}/{문서ID}/{kind}/{파일}
+    //   서류종류: opinion(훈련강사의견) · counseling(면담일지) · assessment(내부평가지)
+    //   kind: sheet(센터가 주는 원본, 관리자만) · done(완료본) · signed(자필 서명본)
+    match /docs/{companyId}/{docType}/{docId}/{kind}/{fileName} {
+      allow read: if isAdmin()
+        || (isCompany() && companyId == myCompanyId());
+
+      allow create, update: if (isAdmin() && okFile())
+        || (isCompany() && companyId == myCompanyId()
+            && (kind == 'done' || kind == 'signed') && okFile());
+
+      allow delete: if isAdmin()
+        || (isCompany() && companyId == myCompanyId() && (kind == 'done' || kind == 'signed'));
+    }
+
     match /assessments/{companyId}/{courseId}/{period}/{kind}/{fileName} {
       allow read: if isAdmin()
         || (isCompany() && companyId == myCompanyId());
@@ -52,7 +68,9 @@ service firebase.storage {
       allow create, update: if (isAdmin() && okFile())
         || (isCompany() && companyId == myCompanyId() && kind == 'done' && okFile());
 
-      allow delete: if isAdmin();
+      // 기업은 자기가 올린 완료본만 지울 수 있다 (센터 확인 여부는 Firestore 쪽에서 막는다)
+      allow delete: if isAdmin()
+        || (isCompany() && companyId == myCompanyId() && kind == 'done');
     }
 
     // 나머지 전부 차단
