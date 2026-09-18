@@ -1337,6 +1337,22 @@
   <div class="container">
     <div class="card">
       <div class="card-title">
+        📊 기업별 제출 현황
+        <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
+      </div>
+      <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#0d47a1;line-height:1.65;">
+        최근 6개월 서류 제출 현황입니다. 기업명을 누르면 아래 목록이 그 기업으로 걸러집니다.<br>
+        <small style="opacity:0.9;">
+          <b style="color:#166534;">●</b> 둘 다 제출 ·
+          <b style="color:#d97706;">◐</b> 하나만 ·
+          <b style="color:#b91c1c;">○</b> 미제출 ·
+          <b style="color:#94a3b8;">–</b> 대상 아님(학습근로자 없음)</small>
+      </div>
+      <div id="docsMatrix" style="overflow-x:auto;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
         📝 기업현장교사 의견서
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
       </div>
@@ -3757,7 +3773,91 @@
 
   function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
   // 월·기업 선택을 바꾸면 의견서와 체크리스트를 함께 다시 그린다
-  function renderDocsTab() { renderOpinionDocs(); renderChecklistDocs(); }
+  function renderDocsTab() { renderOpinionDocs(); renderChecklistDocs(); renderDocsMatrix(); }
+
+  // ══════ 기업 × 월 제출 현황 한눈에 보기 ══════
+  // 한 기업이 어느 달에 무엇을 안 냈는지 스크롤 없이 찾으려고 만든 표.
+  function recentMonths(n) {
+    const d = new Date(), out = [];
+    for (let i = 0; i < n; i++) {
+      out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+      d.setMonth(d.getMonth() - 1);
+    }
+    return out.reverse();   // 왼쪽이 과거, 오른쪽이 이번 달
+  }
+
+  function renderDocsMatrix() {
+    const el = document.getElementById('docsMatrix'); if (!el) return;
+    const months = recentMonths(6);
+    const live = allWorkers.filter(w => !w.deleted && !w.dropout);
+    if (!live.length) { el.innerHTML = '<div class="empty-history">학습근로자가 등록되지 않아 표시할 현황이 없습니다.</div>'; return; }
+
+    // 기업별로 대상 학습근로자 수와 대상 과정 수를 센다
+    const firms = {};
+    live.forEach(w => {
+      if (!w.companyId) return;
+      const f = firms[w.companyId] || (firms[w.companyId] = { workers: 0, courses: new Set() });
+      f.workers++;
+      if (w.courseId) f.courses.add(w.courseId);
+    });
+    const ids = Object.keys(firms);
+    if (!ids.length) { el.innerHTML = '<div class="empty-history">기업에 연결된 학습근로자가 없습니다.</div>'; return; }
+
+    const opCount = {};   // 기업|월 → 제출된 의견서 수
+    allOpinions.forEach(o => {
+      if (o.status !== 'submitted' && o.status !== 'confirmed') return;
+      const k = o.companyId + '|' + o.period;
+      opCount[k] = (opCount[k] || 0) + 1;
+    });
+    const ckCount = {};
+    allChecklists.forEach(c => {
+      if (c.status !== 'submitted' && c.status !== 'confirmed') return;
+      const k = c.companyId + '|' + c.period;
+      ckCount[k] = (ckCount[k] || 0) + 1;
+    });
+
+    const cell = (op, need, ck, ckNeed) => {
+      if (!need && !ckNeed) return ['–', '#94a3b8', '대상 아님'];
+      const opOk = op >= need, ckOk = ck >= ckNeed;
+      if (opOk && ckOk) return ['●', '#166534', `의견서 ${op}/${need} · 체크리스트 ${ck}/${ckNeed}`];
+      if (op === 0 && ck === 0) return ['○', '#b91c1c', `미제출 (의견서 0/${need} · 체크리스트 0/${ckNeed})`];
+      return ['◐', '#d97706', `의견서 ${op}/${need} · 체크리스트 ${ck}/${ckNeed}`];
+    };
+
+    const rows = ids.map(id => {
+      const co = allCompanies.find(c => c.id === id);
+      return { id, name: co?.name || '(이름 없는 기업)', f: firms[id] };
+    }).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px;">
+      <thead><tr>
+        <th style="text-align:left;padding:9px 10px;background:#f3f4f6;border:1px solid #e4eaf4;position:sticky;left:0;">기업</th>
+        <th style="padding:9px 6px;background:#f3f4f6;border:1px solid #e4eaf4;white-space:nowrap;">대상</th>
+        ${months.map(m => `<th style="padding:9px 6px;background:#f3f4f6;border:1px solid #e4eaf4;white-space:nowrap;">${Number(m.split('-')[1])}월</th>`).join('')}
+      </tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td style="padding:8px 10px;border:1px solid #e4eaf4;background:white;position:sticky;left:0;">
+          <a href="#" onclick="filterDocsByCompany('${r.id}');return false;"
+             style="color:#1976d2;font-weight:700;text-decoration:none;">${escapeHtmlSafe(r.name)}</a></td>
+        <td style="padding:8px 6px;border:1px solid #e4eaf4;text-align:center;color:#64748b;white-space:nowrap;">
+          ${r.f.workers}명 · ${r.f.courses.size}과정</td>
+        ${months.map(m => {
+          const [mark, color, tip] = cell(opCount[r.id + '|' + m] || 0, r.f.workers,
+                                          ckCount[r.id + '|' + m] || 0, r.f.courses.size);
+          return `<td title="${escapeHtmlSafe(m + ' — ' + tip)}"
+            style="padding:8px 6px;border:1px solid #e4eaf4;text-align:center;font-size:17px;color:${color};cursor:default;">${mark}</td>`;
+        }).join('')}
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  // 표에서 기업명을 누르면 아래 목록을 그 기업으로 좁힌다
+  function filterDocsByCompany(companyId) {
+    const sel = document.getElementById('op-company');
+    if (!sel) return;
+    sel.value = sel.value === companyId ? '' : companyId;   // 다시 누르면 전체로
+    renderDocsTab();
+    document.getElementById('opDocList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function buildOpPeriodSelect() {
     const sel = document.getElementById('op-period');
@@ -3799,6 +3899,7 @@
       }
       renderOpinionDocs();
       renderChecklistDocs();
+      renderDocsMatrix();
     } catch(e) {
       if (el) el.innerHTML = '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message || '') + '</div>';
     }
