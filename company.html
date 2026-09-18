@@ -233,6 +233,17 @@
     </div>
 
     <div class="card">
+      <div class="card-title">🗣️ 학습근로자 면담일지
+        <span class="hint" id="cnCount"></span>
+      </div>
+      <div class="info-box" data-guide="counsel_intro">
+        학습근로자 <b>한 명당 한 달에 최소 1회</b> 면담하고 기록합니다.<br>
+        한 달에 여러 번 면담하셨으면 그만큼 추가로 작성해주세요.
+      </div>
+      <div id="cnList"><div class="empty">불러오는 중...</div></div>
+    </div>
+
+    <div class="card">
       <div class="card-title">✅ 월별 체크리스트
         <span class="st-badge" id="ckBadge" style="margin-left:auto;">-</span>
       </div>
@@ -252,6 +263,72 @@
         작성이 끝난 평가지를 <b>사진으로 찍거나 스캔해서 올려주시면</b> 됩니다.
       </div>
       <div id="asBox"><div class="empty">불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <!-- ══════ 면담일지 작성 ══════ -->
+  <div id="counselView" style="display:none;">
+    <button class="back-btn" id="cnBack">← 과정 상세</button>
+
+    <div class="card">
+      <div class="card-title" id="cnTitle">학습근로자 면담일지</div>
+      <div id="cnMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
+    </div>
+
+    <div id="cnLockBar"></div>
+
+    <div class="card">
+      <div class="card-title">면담 기본사항</div>
+      <div class="two">
+        <div class="fld">
+          <label>면담 일시</label>
+          <input type="date" id="cnDate">
+        </div>
+        <div class="fld">
+          <label>작성자 성명</label>
+          <input type="text" id="cnName" placeholder="예) 홍길동">
+        </div>
+      </div>
+      <div class="fld" style="margin-bottom:0;">
+        <label>작성자 구분</label>
+        <div class="help">단독기업형은 기업현장교사, 공동훈련센터형은 담당자로 적습니다.</div>
+        <select id="cnRole" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);
+          border-radius:10px;font-size:14px;font-family:inherit;background:white;color:var(--text);">
+          <option value="기업현장교사">기업현장교사</option>
+          <option value="HRD담당자">HRD담당자</option>
+          <option value="담당자">담당자</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">면담 내용</div>
+      <div id="cnFields"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">작성자 서명</div>
+      <div class="fld">
+        <div class="help">아래 칸에 손가락(또는 마우스)으로 서명해주세요. 서명하면 내용이 잠깁니다.</div>
+        <div class="sign-wrap">
+          <canvas id="cnPad" class="sign-pad"></canvas>
+          <div class="sign-tools">
+            <span class="tip" id="cnTip">아직 서명하지 않았습니다.</span>
+            <button type="button" class="op-btn ghost" id="cnClear">지우기</button>
+          </div>
+        </div>
+        <div id="cnShow" style="display:none;margin-top:6px;"></div>
+      </div>
+      <div class="act-bar" id="cnActions"></div>
+    </div>
+
+    <div class="card" id="cnScanCard" style="display:none;">
+      <div class="card-title">자필 서명본 올리기 <span class="hint">공단 제출용 증빙</span></div>
+      <div class="info-box" data-guide="counsel_scan">
+        위 <b>인쇄</b> 버튼으로 출력한 뒤 <b>자필로 서명</b>하시고,<br>
+        그 종이를 사진으로 찍거나 스캔해서 올려주세요.
+      </div>
+      <div id="cnScanBox"></div>
     </div>
   </div>
 
@@ -541,6 +618,7 @@ function openCourse(courseId) {
   curCourse = c;
   $('courseView').style.display = 'none';
   $('opinionView').style.display = 'none';
+  $('counselView').style.display = 'none';
   $('checklistView').style.display = 'none';
   $('detailView').style.display = 'block';
   $('detailTitle').textContent = `📘 ${c.type || ''}`;
@@ -555,6 +633,7 @@ function openCourse(courseId) {
 $('backBtn').onclick = () => {
   $('detailView').style.display = 'none';
   $('opinionView').style.display = 'none';
+  $('counselView').style.display = 'none';
   $('checklistView').style.display = 'none';
   $('courseView').style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -572,6 +651,7 @@ async function loadWorkers(course) {
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
     curWorkers = list;
     loadOpinions();
+    loadCounsels();
     loadChecklist();
     loadAssessment();
     $('workerCount').textContent = `${list.length}명`;
@@ -642,22 +722,6 @@ function buildSignMeta(name) {
     device: deviceBrief(),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
   };
-}
-// 출력물 하단에 붙는 검증 블록 (인쇄용 HTML)
-function verifyBlockHtml(meta, fp, docNo) {
-  const m = meta || {};
-  return `<div class="verify">
-    <div class="vt">전자서명 정보</div>
-    <table>
-      <tr><th>서명자</th><td>${esc(m.name)}${m.email ? ' &lt;' + esc(m.email) + '&gt;' : ''}</td></tr>
-      <tr><th>서명 시각</th><td>${esc(kstStamp(m.at))} (KST)</td></tr>
-      <tr><th>서명 기기</th><td>${esc(m.device || '-')}</td></tr>
-      <tr><th>문서번호</th><td>${esc(docNo || '-')}</td></tr>
-      <tr><th>문서지문</th><td class="fp">${esc(fpShort(fp))}</td></tr>
-    </table>
-    <div class="vn">※ 문서지문은 내용이 한 글자라도 바뀌면 달라집니다. 이 출력물과 시스템 기록을 대조해 위·변조를 확인할 수 있습니다.<br>
-    ※ <b>이 출력물에 자필로 서명하신 뒤, 사진을 찍어 앱에 올려주세요.</b> 자필 서명본이 공단 제출용 정식 증빙입니다.</div>
-  </div>`;
 }
 // 인쇄창 공통 스타일
 const PRINT_CSS = `
@@ -743,7 +807,7 @@ function monthOptions() {
   const sel = $('periodSel'); if (!sel) return;
   sel.innerHTML = monthOptions().map(o => `<option value="${o.ym}">${o.label}</option>`).join('');
   sel.value = ymNow();
-  sel.onchange = () => { loadOpinions(); loadChecklist(); loadAssessment(); };
+  sel.onchange = () => { loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment(); };
 })();
 
 let opinions = {};   // workerId → 문서
@@ -771,21 +835,26 @@ async function loadOpinions() {
   }
   el.innerHTML = curWorkers.map(w => {
     const o = opinions[w.id];
-    const st = o ? (o.status || 'ready') : 'waiting';
+    // 구조 개편 전에 만들어진 옛 문서는 훈련기간(rows)이 없다.
+    // 옛 상태값을 그대로 쓰면 뱃지와 단계가 어긋나므로 '초안 없음'으로 취급한다.
+    const hasRows = !!o && (o.rows || []).length > 0;
+    const isLegacy = !!o && !hasRows;
+    const st = (!o || isLegacy) ? 'waiting'
+             : (OP_ORDER.includes(o.status) ? o.status : 'ready');
     const [label, cls] = ST_INFO[st] || ST_INFO.waiting;
     const idx = Math.max(0, OP_ORDER.indexOf(st));
-    const can = !!o && (o.rows || []).length;
     return `<div class="op-row">
       <div style="flex:1;min-width:0;">
         <div class="nm">${esc(w.name || '-')}${w.round ? ` <span class="hint">${esc(w.round)}</span>` : ''}</div>
-        <div class="st">${esc(ymLabel(period))} · ${OP_STEPS[idx][1]}</div>
+        <div class="st">${esc(ymLabel(period))} · ${isLegacy ? '옛 형식 — 센터에서 다시 등록 필요' : OP_STEPS[idx][1]}</div>
       </div>
       <span class="st-badge ${cls}">${label}</span>
-      ${can ? `<button class="op-btn${st === 'confirmed' ? ' ghost' : ''}" data-op="${esc(w.id)}">${st === 'confirmed' ? '보기' : '열기'}</button>` : ''}
+      ${hasRows ? `<button class="op-btn${st === 'confirmed' ? ' ghost' : ''}" data-op="${esc(w.id)}">${st === 'confirmed' ? '보기' : '열기'}</button>` : ''}
     </div>`;
   }).join('');
   el.querySelectorAll('[data-op]').forEach(b => { b.onclick = () => openOpinion(b.dataset.op); });
-  if (!Object.keys(opinions).length) {
+  const anyReady = Object.values(opinions).some(o => (o.rows || []).length);
+  if (!anyReady) {
     el.innerHTML += `<div class="empty" style="padding:20px 10px;">
       센터에서 이번 달 의견 초안을 등록하면 여기에 <b>열기</b> 버튼이 생깁니다.</div>`;
   }
@@ -1069,12 +1138,7 @@ function printOpinion() {
     ${o.signature ? `<img src="${o.signature}">` : ''}
   </div>
 
-  <div class="hand">
-    <div class="ht">▸ 자필 서명란 — 위 내용을 확인하였음을 자필로 서명해주세요.</div>
-    <div style="text-align:right;">기업현장교사 &nbsp;<span class="line"></span>&nbsp; (서명)</div>
-  </div>
-
-  ${verifyBlockHtml(o.signMeta, o.docHash, opDocNo(o))}`;
+`;
   openPrint(`OJT 훈련강사의견 - ${o.workerName} ${o.period}`, body);
 }
 
@@ -1174,6 +1238,377 @@ async function removeOpScan(i) {
     curOpinion.signedScans = list;
     toast('지웠습니다');
     renderOpScans(curOpinion.status);
+  } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
+}
+
+// ══════════════════════════════════════════
+//  학습근로자 면담일지 (OJT · 학습근로자별 · 월 1회 이상)
+//   양식: No. 2026-03-1/2 · 기업명 · 작성자 · 학습근로자 · 일시
+//         면담내용 3구분(훈련관련 / 근로관련 / 기타) · 결재(총괄책임자)
+//   ※ 공동훈련센터가 작성할 때는 [근로 관련] 항목을 제외한다 (양식 주석)
+// ══════════════════════════════════════════
+const CN_FIELDS = [
+  ['training', '훈련 관련', '(일학습병행 훈련 관련)',
+   '예) OJT 진도와 이해도를 점검했습니다. 칵테일 기법 중 셰이크 동작이 아직 어색하다고 해 추가 실습을 약속했습니다.'],
+  ['work', '근로 관련', '(근무 관련)',
+   '예) 근무 시간과 휴게에 불편이 없는지 확인했습니다. 특별한 애로사항은 없다고 했습니다.'],
+  ['etc', '기타', '',
+   '예) 자격증 준비 일정에 대해 상담했습니다.']
+];
+const CN_STEPS = [
+  ['draft',     '① 작성 중'],
+  ['signed',    '② 출력·자필'],
+  ['scanned',   '③ 자필본 제출'],
+  ['confirmed', '④ 센터 확인']
+];
+const CN_ORDER = CN_STEPS.map(x => x[0]);
+const CN_ST = {
+  draft:     ['작성 중',  'st-draft'],
+  signed:    ['자필 필요', 'st-draft'],
+  scanned:   ['제출 완료', 'st-sub'],
+  confirmed: ['센터 확인', 'st-conf']
+};
+const cnSign = createSignPad('cnPad', 'cnTip', 'cnClear', 'cnShow');
+let cnDocs = [];          // 이번 달 이 과정의 면담일지 전체
+let curCounsel = null, cnScanData = '';
+
+function localDate() {
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// No. 2026-03-1/2 — 그 달 몇 번째 면담인지 / 총 몇 번인지
+function cnNo(doc, all) {
+  const same = all.filter(x => x.workerId === doc.workerId && x.period === doc.period)
+    .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  const seq = same.findIndex(x => x.id === doc.id) + 1;
+  return `${doc.period}-${seq || 1}/${same.length || 1}`;
+}
+
+async function loadCounsels() {
+  const el = $('cnList'); if (!el || !curCourse) return;
+  const period = $('periodSel').value;
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
+  cnDocs = [];
+  try {
+    const snap = await getDocs(query(collection(db, 'ojtCounseling'),
+      where('companyId', '==', myAccount.companyId)));
+    cnDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(x => x.period === period && x.courseId === curCourse.id)
+      .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  } catch(e) {
+    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    return;
+  }
+  if (!curWorkers.length) { el.innerHTML = '<div class="empty">학습근로자가 없습니다.</div>'; return; }
+
+  const done = curWorkers.filter(w => cnDocs.some(d => d.workerId === w.id)).length;
+  $('cnCount').textContent = `${done}/${curWorkers.length}명 작성`;
+
+  el.innerHTML = curWorkers.map(w => {
+    const mine = cnDocs.filter(d => d.workerId === w.id);
+    return `<div style="border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:8px;background:white;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:120px;">
+          <div class="worker-name">${esc(w.name || '-')}${w.round ? ` <span class="hint">${esc(w.round)}</span>` : ''}</div>
+          <div class="worker-meta">${mine.length ? `이번 달 면담 ${mine.length}회` : '아직 기록이 없습니다'}</div>
+        </div>
+        <button class="op-btn" data-cnnew="${esc(w.id)}">+ 면담 기록</button>
+      </div>
+      ${mine.map(d => {
+        const st = CN_ORDER.includes(d.status) ? d.status : 'draft';
+        const [label, cls] = CN_ST[st];
+        return `<div style="display:flex;align-items:center;gap:9px;margin-top:8px;padding:9px 11px;background:#f8fafc;border-radius:9px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12.5px;font-weight:600;">No. ${esc(cnNo(d, cnDocs))}</div>
+            <div style="font-size:11.5px;color:var(--gray);margin-top:1px;">${esc(d.meetDate || '-')} · ${esc(d.authorName || '')}</div>
+          </div>
+          <span class="st-badge ${cls}">${label}</span>
+          <button class="op-btn ghost" data-cnopen="${esc(d.id)}" style="padding:6px 11px;">열기</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-cnnew]').forEach(b => { b.onclick = () => openCounsel(null, b.dataset.cnnew); });
+  el.querySelectorAll('[data-cnopen]').forEach(b => { b.onclick = () => openCounsel(b.dataset.cnopen); });
+}
+
+function openCounsel(docId, workerId) {
+  const d = docId ? cnDocs.find(x => x.id === docId) : null;
+  const w = curWorkers.find(x => x.id === (d ? d.workerId : workerId));
+  if (!w) return;
+  curCounsel = d;
+  curWorker = w;
+  cnScanData = d?.signature || '';
+  const st = d ? (CN_ORDER.includes(d.status) ? d.status : 'draft') : 'draft';
+  const locked = st === 'signed' || st === 'scanned' || st === 'confirmed';
+  const period = $('periodSel').value;
+
+  $('detailView').style.display = 'none';
+  $('counselView').style.display = 'block';
+  $('cnTitle').textContent = `🗣️ ${w.name || ''} 면담일지`;
+  $('cnMeta').innerHTML =
+    (d ? `<b>문서번호</b> No. ${esc(cnNo(d, cnDocs))}<br>` : `<b>문서번호</b> 저장하면 자동으로 부여됩니다<br>`) +
+    `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
+    `<b>훈련과정</b> ${esc(curCourse.type || '')} · ${esc(curCourse.site || '')}<br>` +
+    `<b>학습근로자</b> ${esc(w.name || '')}${w.round ? ' (' + esc(w.round) + ')' : ''}<br>` +
+    `<b>작성 월</b> ${esc(ymLabel(period))}`;
+
+  const idx = Math.max(0, CN_ORDER.indexOf(st));
+  let bar = `<div class="card"><div class="step-bar" style="grid-template-columns:repeat(4,1fr);">${CN_STEPS.map(([k, label], i) =>
+    `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}" style="font-size:10.5px;">${label}</div>`).join('')}</div>`;
+  if (st === 'confirmed') bar += `<div class="lock-bar conf" style="margin-bottom:0;">✅ <b>센터 확인 완료</b>.</div>`;
+  else if (st === 'scanned') bar += `<div class="lock-bar" style="margin-bottom:0;">📨 자필 서명본까지 제출되었습니다.</div>`;
+  else if (st === 'signed') bar += `<div class="lock-bar" style="margin-bottom:0;">🔒 서명이 끝났습니다.<br>
+    <b>인쇄해 자필 서명하신 뒤 사진을 올려주세요.</b></div>`;
+  else bar += `<div class="info-box" data-guide="counsel_form" style="margin-bottom:0;">
+    면담에서 나온 이야기를 항목별로 적어주세요.<br>
+    해당 없는 항목은 비워두셔도 됩니다. <b>임시저장</b>으로 나중에 이어 쓸 수 있습니다.</div>`;
+  bar += '</div>';
+  $('cnLockBar').innerHTML = bar;
+
+  $('cnDate').value = d?.meetDate || localDate();
+  $('cnName').value = d?.authorName || myAccount.name || '';
+  $('cnRole').value = d?.authorRole || '기업현장교사';
+  ['cnDate','cnName','cnRole'].forEach(id => { $(id).disabled = locked; });
+
+  $('cnFields').innerHTML = CN_FIELDS.map(([k, label, sub, ph]) => `
+    <div class="fld">
+      <label>${label} ${sub ? `<span style="font-weight:400;color:var(--gray);font-size:11.5px;">${sub}</span>` : ''}</label>
+      <textarea id="cn_${k}" placeholder="${esc(ph)}" ${locked ? 'disabled' : ''}
+        style="min-height:110px;">${esc(d?.[k] || '')}</textarea>
+    </div>`).join('');
+
+  cnSign.mount(locked, cnScanData, d?.authorName);
+  renderCnActions(st);
+  renderCnScans(st);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+$('cnBack').onclick = () => {
+  $('counselView').style.display = 'none';
+  $('detailView').style.display = 'block';
+  loadCounsels();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+function renderCnActions(st) {
+  const bar = $('cnActions');
+  if (st === 'draft') {
+    bar.innerHTML = `<button class="act-save" id="cnSave">임시저장</button>` +
+                    `<button class="act-sub" id="cnSignBtn">✍️ 서명하고 확정</button>`;
+    $('cnSave').onclick = () => saveCounsel(false);
+    $('cnSignBtn').onclick = () => saveCounsel(true);
+  } else {
+    bar.innerHTML = `<button class="act-print" id="cnPrint">🖨️ 인쇄 · PDF 저장</button>`;
+    $('cnPrint').onclick = printCounsel;
+  }
+}
+
+async function saveCounsel(sign) {
+  const period = $('periodSel').value;
+  const c = {
+    companyId: myAccount.companyId,
+    companyName: myAccount.companyName || '',
+    courseId: curCourse.id,
+    courseType: curCourse.type || '',
+    courseNo: curCourse.courseNo || '',
+    site: curCourse.site || '',
+    workerId: curWorker.id,
+    workerName: curWorker.name || '',
+    round: curWorker.round || '',
+    period,
+    writer: 'company',
+    meetDate: $('cnDate').value || '',
+    authorName: $('cnName').value.trim(),
+    authorRole: $('cnRole').value,
+    authorUid: myAccount.uid,
+    updatedAt: new Date().toISOString()
+  };
+  CN_FIELDS.forEach(([k]) => { c[k] = ($('cn_' + k)?.value || '').trim(); });
+
+  if (sign) {
+    if (!c.meetDate) { toast('면담 일시를 넣어주세요'); return; }
+    if (!c.authorName) { toast('작성자 성명을 입력해주세요'); return; }
+    if (!c.training && !c.work && !c.etc) { toast('면담 내용을 한 항목 이상 적어주세요'); return; }
+    const sig = cnSign.grab();
+    if (!sig) { toast('서명을 입력해주세요'); $('cnPad').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+    if (!confirm(`${c.workerName} 면담일지에 서명합니다.\n\n서명하면 내용이 잠기고,\n출력해서 자필 서명하는 단계로 넘어갑니다.\n\n계속할까요?`)) return;
+    c.signature = sig;
+    c.status = 'signed';
+    c.docHash = await docFingerprint({ t: c.training, w: c.work, e: c.etc, d: c.meetDate, n: c.authorName, wk: c.workerName });
+    c.signMeta = buildSignMeta(c.authorName);
+    c.signedAt = c.signMeta.at;
+  } else {
+    c.signature = cnSign.grab() || cnScanData || '';
+    c.status = 'draft';
+  }
+
+  const btns = $('cnActions').querySelectorAll('button');
+  btns.forEach(b => b.disabled = true);
+  try {
+    let id = curCounsel?.id;
+    if (!id) {
+      c.createdAt = new Date().toISOString();
+      // 같은 학습근로자·같은 달에 여러 번 면담할 수 있으므로 시각을 붙여 새 문서를 만든다
+      id = `${curWorker.id}__${period}__${Date.now()}`;
+    }
+    await setDoc(doc(db, 'ojtCounseling', id), c, { merge: true });
+    const merged = { id, ...(curCounsel || {}), ...c };
+    const at = cnDocs.findIndex(x => x.id === id);
+    if (at >= 0) cnDocs[at] = merged; else cnDocs.push(merged);
+    curCounsel = merged;
+    cnScanData = c.signature;
+    if (sign) { toast('✅ 서명했습니다 — 이제 출력해주세요'); openCounsel(id); }
+    else { toast('💾 임시저장했습니다'); btns.forEach(b => b.disabled = false); openCounsel(id); }
+  } catch(e) {
+    btns.forEach(b => b.disabled = false);
+    alert('저장 실패: ' + (e.message || ''));
+  }
+}
+
+function printCounsel() {
+  const c = curCounsel; if (!c) return;
+  const no = cnNo(c, cnDocs);
+  const dparts = (c.meetDate || '').split('-');
+  const body = `
+  <div style="font-size:12px;margin-bottom:6px;">No. ${esc(no)}</div>
+  <h1 style="letter-spacing:4px;">학습근로자 면담일지</h1>
+  <table style="width:100%;margin-top:10px;">
+    <tr>
+      <td style="vertical-align:top;font-size:12.5px;line-height:2;">
+        ❍ 기업명 : ${esc(c.companyName)}<br>
+        ❍ ${esc(c.authorRole || '기업현장교사')}명 : ${esc(c.authorName)}<br>
+        ❍ 학습근로자명 : ${esc(c.workerName)}<br>
+        ❍ 일  시 : ${esc(dparts[0] || '')}. ${esc(dparts[1] || '')} . ${esc(dparts[2] || '')} .
+      </td>
+      <td style="width:190px;vertical-align:top;">
+        <table class="grid" style="width:100%;">
+          <tr><th rowspan="2" style="width:40px;font-size:11px;">결재</th>
+              <th style="font-size:11px;">총괄책임자<br>(훈련책임자)</th></tr>
+          <tr><td style="height:56px;"></td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <table class="grid" style="margin-top:12px;">
+    <tr><th style="width:120px;">구 분</th><th>면담 내용</th></tr>
+    ${CN_FIELDS.map(([k, label, sub]) => `<tr>
+      <td class="c" style="font-weight:600;">${label}${sub ? `<br><span style="font-size:10.5px;font-weight:400;">${sub}</span>` : ''}</td>
+      <td style="height:96px;">${esc(c[k]).replace(/\n/g, '<br>')}</td>
+    </tr>`).join('')}
+  </table>
+
+  <div class="sign">
+    <div class="who">${esc(c.authorRole || '')} &nbsp; ${esc(c.authorName)} &nbsp; (서명)</div>
+    ${c.signature ? `<img src="${c.signature}">` : ''}
+  </div>
+
+  <div style="margin-top:18px;font-size:10.5px;color:#444;line-height:1.7;">
+    ※ No.(예 : 2022-01-1/2]에서 '2021'는 연도, '01'은 월, '1/2'은 당월 해당 학습근로자에 대해 두 번의 면담이 있었으며, 첫 번째 면담을 의미함. (한번만 면담을 실시했다면 1/1로 작성)<br>
+    ※ 학습근로자에 대한 면담 주기는 기업의 경우 월 단위 최소 1회 이상, 공동훈련센터의 경우 분기별 최소 1회 이상 실시<br>
+    ※ 공동훈련센터의 경우 [근로관련] 항목은 제외<br>
+    ※ [기업현장교사/담당자]는 단독기업형(기업현장교사), 공동훈련센터형(담당자)을 의미함.
+  </div>`;
+  openPrint(`학습근로자 면담일지 - ${c.workerName} ${no}`, body);
+}
+
+// ── 자필 서명본 ──
+function renderCnScans(st) {
+  const card = $('cnScanCard');
+  if (st !== 'signed' && st !== 'scanned' && st !== 'confirmed') { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const scans = curCounsel?.signedScans || [];
+  const locked = st === 'confirmed';
+  $('cnScanBox').innerHTML =
+    scans.map((f, i) => `<div class="file-row">
+      <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
+      <a href="${esc(f.url)}" target="_blank" rel="noopener">보기</a>
+      ${locked ? '' : `<button class="op-btn ghost" data-cnsc="${i}" style="padding:6px 10px;">삭제</button>`}
+    </div>`).join('') +
+    (locked ? '' : `
+    <div class="drop" id="cnDrop">
+      <div class="big">📷</div>
+      <div class="t">자필 서명본 올리기</div>
+      <div class="s">출력물에 서명한 뒤 사진을 찍어 올려주세요.<br>여러 장 한 번에 선택 가능 · 한 개당 20MB까지</div>
+      <input type="file" id="cnScanFile" multiple accept="image/*,.pdf" style="display:none;">
+    </div>
+    <div id="cnScanProgress"></div>
+    ${scans.length && st === 'signed' ? `<div class="act-bar" style="margin-top:12px;">
+      <button class="act-sub" id="cnScanSubmit">📨 자필본 제출하기</button></div>` : ''}`);
+
+  if (locked) return;
+  const drop = $('cnDrop'), input = $('cnScanFile');
+  if (drop) {
+    drop.onclick = () => input.click();
+    input.onchange = () => { if (input.files?.length) uploadCnScans(Array.from(input.files)); };
+  }
+  $('cnScanBox').querySelectorAll('[data-cnsc]').forEach(b => { b.onclick = () => removeCnScan(Number(b.dataset.cnsc)); });
+  const sb = $('cnScanSubmit');
+  if (sb) sb.onclick = async () => {
+    if (!confirm('자필 서명본을 센터에 제출합니다.\n\n계속할까요?')) return;
+    try {
+      const patch = { status: 'scanned', scannedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      await setDoc(doc(db, 'ojtCounseling', curCounsel.id), patch, { merge: true });
+      Object.assign(curCounsel, patch);
+      toast('✅ 제출했습니다');
+      openCounsel(curCounsel.id);
+    } catch(e) { alert('제출 실패: ' + (e.message || '')); }
+  };
+}
+
+async function uploadCnScans(files) {
+  const big = files.filter(f => f.size > MAX_UP);
+  if (big.length) {
+    alert(`20MB를 넘는 파일은 올릴 수 없습니다.\n\n${big.map(f => `· ${f.name} (${fileSize(f.size)})`).join('\n')}`);
+    files = files.filter(f => f.size <= MAX_UP);
+    if (!files.length) return;
+  }
+  const prog = $('cnScanProgress');
+  const { getStorage, ref, uploadBytesResumable, getDownloadURL } =
+    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+  const storage = getStorage(app);
+  const added = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      prog.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--sub);margin-top:10px;">
+        올리는 중 (${i + 1}/${files.length}) · ${esc(f.name)}</div>
+        <div class="up-track"><div class="up-fill" id="cnUpFill"></div></div>`;
+      const safe = Date.now() + '_' + f.name.replace(/[^\w.\-가-힣 ]/g, '_');
+      const path = `docs/${myAccount.companyId}/counseling/${curCounsel.id}/signed/${safe}`;
+      const task = uploadBytesResumable(ref(storage, path), f, { contentType: f.type || 'application/octet-stream' });
+      await new Promise((res, rej) => task.on('state_changed',
+        s => { const el = $('cnUpFill'); if (el) el.style.width = Math.round(s.bytesTransferred / s.totalBytes * 100) + '%'; },
+        rej, res));
+      added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
+    }
+    const list = [...(curCounsel.signedScans || []), ...added];
+    await setDoc(doc(db, 'ojtCounseling', curCounsel.id),
+      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
+    curCounsel.signedScans = list;
+    prog.innerHTML = '';
+    toast(`✅ ${added.length}개 올렸습니다`);
+    renderCnScans(curCounsel.status);
+  } catch(e) {
+    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
+  }
+}
+
+async function removeCnScan(i) {
+  const f = curCounsel?.signedScans?.[i]; if (!f) return;
+  if (!confirm(`${f.name}\n\n이 파일을 지울까요?`)) return;
+  try {
+    try {
+      const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+      await deleteObject(ref(getStorage(app), f.path));
+    } catch(_) {}
+    const list = curCounsel.signedScans.slice(); list.splice(i, 1);
+    await setDoc(doc(db, 'ojtCounseling', curCounsel.id),
+      { signedScans: list, updatedAt: new Date().toISOString() }, { merge: true });
+    curCounsel.signedScans = list;
+    toast('지웠습니다');
+    renderCnScans(curCounsel.status);
   } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
 }
 

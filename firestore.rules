@@ -138,6 +138,25 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── 학습근로자 면담일지 (OJT · 학습근로자별 · 월 1회 이상) ──
+    // 기업은 월 1회 이상, 공동훈련센터는 분기 1회 이상 작성한다.
+    // writer 필드로 작성 주체를 구분한다 ('company' | 'center').
+    // 🔒 서명 후에는 관리자만 손댈 수 있다.
+    match /ojtCounseling/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow create: if isAdmin()
+        || (isCompany() && request.resource.data.companyId == myCompanyId()
+            && request.resource.data.writer == 'company');
+      allow update: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && resource.data.writer == 'company'
+            && request.resource.data.companyId == resource.data.companyId
+            && resource.data.status != 'confirmed');
+      allow delete: if isAdmin();
+    }
+
     // ── 내부평가지 (훈련과정별·월별 · 파일 왕복) ──
     // 실제 파일은 Storage에 있고, 여기에는 상태와 파일 목록(꼬리표)만 둔다.
     // 상태: waiting(대기) → sheetReady(평가지등록) → submitted(완료본제출) → confirmed(확인)

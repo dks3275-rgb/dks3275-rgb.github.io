@@ -1401,6 +1401,19 @@
 
     <div class="card">
       <div class="card-title">
+        🗣️ 학습근로자 면담일지
+        <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
+      </div>
+      <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
+        기업이 <b>학습근로자 한 명당 월 최소 1회</b> 면담하고 기록합니다. 한 달에 여러 번이면 여러 장이 쌓입니다.<br>
+        <small style="opacity:0.9;">공동훈련센터는 분기별 최소 1회 · 센터가 쓸 때는 [근로관련] 항목 제외 · 위 <b>작성 월·기업</b> 선택 적용</small>
+      </div>
+      <button class="send-btn" onclick="downloadCounselExcel()" style="background:#059669;">📊 면담일지 엑셀로 내려받기</button>
+      <div id="cnDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
         ✅ 월별 체크리스트
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
       </div>
@@ -2880,7 +2893,10 @@
       allCourses = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ko') || (a.companyName || '').localeCompare(b.companyName || '', 'ko'));
       refreshWorkerCourseOptions();
-      refreshAccountCourseOptions();
+      // (기업 계정을 '기업당 1개'로 바꾸면서 과정별 선택 기능은 없어졌다.
+      //  refreshAccountCourseOptions 호출문만 남아 오류가 나던 것을 제거)
+      refreshAssessCourseOptions();
+      refreshDraftWorkerOptions();
       if (!el) return;
       if (allCourses.length === 0) {
         el.innerHTML = '<div class="empty-history">등록된 훈련과정이 없어요<br><small>위에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
@@ -4017,7 +4033,7 @@
 
   function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
   // 월·기업 선택을 바꾸면 의견서와 체크리스트를 함께 다시 그린다
-  function renderDocsTab() { renderOpinionDocs(); renderChecklistDocs(); renderAssessDocs(); renderDocsMatrix(); }
+  function renderDocsTab() { renderOpinionDocs(); renderCounselDocs(); renderChecklistDocs(); renderAssessDocs(); renderDocsMatrix(); }
 
   // ══════ 기업 × 월 제출 현황 한눈에 보기 ══════
   // 한 기업이 어느 달에 무엇을 안 냈는지 스크롤 없이 찾으려고 만든 표.
@@ -4144,14 +4160,16 @@
     try {
       const db = await wkDb();
       const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const [snap, ckSnap, asSnap] = await Promise.all([
+      const [snap, ckSnap, asSnap, cnSnap] = await Promise.all([
         getDocs(collection(db, 'teacherOpinions')),
         getDocs(collection(db, 'checklists')),
-        getDocs(collection(db, 'assessments'))
+        getDocs(collection(db, 'assessments')),
+        getDocs(collection(db, 'ojtCounseling'))
       ]);
       allOpinions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       allChecklists = ckSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       allAssessments = asSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allCounsels = cnSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       // 미제출 계산에 필요한 기초 자료
       if (!allCompanies.length) await loadCompanies();
       if (!allCourses.length)   await loadCourses();
@@ -4166,6 +4184,7 @@
         csel.value = cur;
       }
       renderOpinionDocs();
+      renderCounselDocs();
       renderChecklistDocs();
       renderAssessDocs();
       renderDocsMatrix();
@@ -4278,22 +4297,7 @@
       <div class="who">${E(o.teacherName)} &nbsp; (서명)</div>
       ${o.signature ? `<img src="${o.signature}">` : '<div style="font-size:12px;color:#b91c1c;">※ 전자서명 없음 (기업 확인 전)</div>'}
     </div>
-    <div class="hand">
-      <div class="ht">▸ 자필 서명란 — 위 내용을 확인하였음을 자필로 서명해주세요.</div>
-      <div style="text-align:right;">기업현장교사 &nbsp;<span class="line"></span>&nbsp; (서명)</div>
-    </div>
-    <div class="verify">
-      <div class="vt">전자서명 정보</div>
-      <table>
-        <tr><th>서명자</th><td>${E(m.name)}${m.email ? ' &lt;' + E(m.email) + '&gt;' : ''}</td></tr>
-        <tr><th>서명 시각</th><td>${E(opKst(m.at))} (KST)</td></tr>
-        <tr><th>서명 기기</th><td>${E(m.device || '-')}</td></tr>
-        <tr><th>문서번호</th><td>${E(docNo)}</td></tr>
-        <tr><th>문서지문</th><td class="fp">${E(opFpShort(o.docHash))}</td></tr>
-      </table>
-      <div class="vn">※ 문서지문은 내용이 한 글자라도 바뀌면 달라집니다. 이 출력물과 시스템 기록을 대조해 위·변조를 확인할 수 있습니다.<br>
-      ※ <b>이 출력물에 자필로 서명한 뒤, 사진을 앱에 올려주세요.</b> 자필 서명본이 공단 제출용 정식 증빙입니다.</div>
-    </div>`;
+    `;
     openAdminPrint(`OJT 훈련강사의견 - ${E(o.workerName)} ${E(o.period)}`, body);
   }
 
@@ -4638,6 +4642,15 @@
     ['checklist_form', '체크리스트 — 작성 화면',
      '체크리스트를 실제로 쓰는 화면 맨 위입니다.',
      "각 항목을 **예 / 아니오 / 해당없음** 중에서 골라주세요.\n'아니오'가 있으면 아래 **특이사항**에 이유를 적어야 제출됩니다. 센터가 먼저 살펴보기 위한 것이니 편하게 적어주세요."],
+    ['counsel_intro', '면담일지 — 목록 안내',
+     '과정 상세에서 면담일지 카드 위에 나옵니다.',
+     '학습근로자 **한 명당 한 달에 최소 1회** 면담하고 기록합니다.\n한 달에 여러 번 면담하셨으면 그만큼 추가로 작성해주세요.'],
+    ['counsel_form', '면담일지 — 작성 화면',
+     '면담 내용을 쓰는 화면 맨 위입니다.',
+     '면담에서 나온 이야기를 항목별로 적어주세요.\n해당 없는 항목은 비워두셔도 됩니다. **임시저장**으로 나중에 이어 쓸 수 있습니다.'],
+    ['counsel_scan', '면담일지 — 자필본 안내',
+     '면담일지 자필 서명본을 올리는 칸 위에 나옵니다.',
+     '위 **인쇄** 버튼으로 출력한 뒤 **자필로 서명**하시고,\n그 종이를 사진으로 찍거나 스캔해서 올려주세요.'],
     ['assess_intro', '내부평가지 안내',
      '평가지를 내려받고 완료본을 올리는 화면입니다. 촬영 요령 등을 적어두면 좋습니다.',
      '센터가 평가지를 올리면 여기에서 **내려받아 인쇄**해 시험을 보시고,\n작성이 끝난 평가지를 **사진으로 찍거나 스캔해서 올려주시면** 됩니다.']
@@ -4684,6 +4697,231 @@
       if (out) out.innerHTML = `<div style="color:#b91c1c;font-weight:700;">저장 실패: ${escapeHtmlSafe(e.message || '')}</div>`;
     }
     btn.disabled = false; btn.textContent = '💾 안내문구 저장';
+  }
+
+  // ══════ 학습근로자 면담일지 (관리자 확인) ══════
+  const CN_FIELDS_A = [['training', '훈련 관련', '(일학습병행 훈련 관련)'],
+                       ['work', '근로 관련', '(근무 관련)'],
+                       ['etc', '기타', '']];
+  const CN_ST_A = {
+    draft:     ['작성 중',   '#fef3c7', '#92400e'],
+    signed:    ['자필 대기', '#ffedd5', '#9a3412'],
+    scanned:   ['자필본 제출','#dcfce7', '#166534'],
+    confirmed: ['확인 완료', '#dbeafe', '#1e40af']
+  };
+  let allCounsels = [];
+
+  function cnNoA(d, all) {
+    const same = all.filter(x => x.workerId === d.workerId && x.period === d.period)
+      .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+    const seq = same.findIndex(x => x.id === d.id) + 1;
+    return `${d.period}-${seq || 1}/${same.length || 1}`;
+  }
+
+  function renderCounselDocs() {
+    const period = document.getElementById('op-period')?.value;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const el = document.getElementById('cnDocList');
+    if (!el || !period) return;
+
+    const rows = opExpectedRows(period, companyId);   // 대상 학습근로자 (의견서와 동일 기준)
+    const mine = allCounsels.filter(c => c.period === period);
+    if (!rows.length) { el.innerHTML = '<div class="empty-history">해당 조건에 학습근로자가 없습니다.</div>'; return; }
+
+    const none = rows.filter(r => !mine.some(c => c.workerId === r.worker.id)).length;
+    el.innerHTML = `<div style="font-size:12.5px;color:#64748b;margin-bottom:10px;">
+        ${opYmLabel(period)} · 대상 ${rows.length}명 중 <b>${rows.length - none}명</b> 기록 ·
+        ${none ? `<span style="color:#b91c1c;font-weight:700;">미기록 ${none}명</span>` : '전원 기록 완료'}</div>` +
+      rows.map(r => {
+        const list = mine.filter(c => c.workerId === r.worker.id)
+          .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+        return `<div style="border:1.5px solid ${list.length ? '#E3E6EA' : '#fca5a5'};border-radius:11px;padding:12px 14px;margin-bottom:8px;background:${list.length ? 'white' : '#fff7f7'};">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:160px;">
+              <div style="font-size:14px;font-weight:700;">${escapeHtmlSafe(r.worker.name || '-')}
+                <span style="font-size:12px;font-weight:400;color:#64748b;"> · ${escapeHtmlSafe(r.companyName)}</span></div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtmlSafe(r.courseLabel)}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap;
+              background:${list.length ? '#f1f5f9' : '#fee2e2'};color:${list.length ? '#475569' : '#b91c1c'};">
+              ${list.length ? list.length + '회 면담' : '미기록'}</span>
+          </div>
+          ${list.map(c => {
+            const st = CN_ST_A[c.status] ? c.status : 'draft';
+            const [label, bg, fg] = CN_ST_A[st];
+            const n = (c.signedScans || []).length;
+            return `<div style="margin-top:8px;padding:10px 12px;background:#F4F5F7;border-radius:9px;">
+              <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:12.5px;font-weight:700;">No. ${escapeHtmlSafe(cnNoA(c, mine))}</div>
+                  <div style="font-size:11.5px;color:#64748b;margin-top:1px;">
+                    ${escapeHtmlSafe(c.meetDate || '-')} · ${escapeHtmlSafe(c.authorRole || '')} ${escapeHtmlSafe(c.authorName || '')}
+                    ${c.writer === 'center' ? ' · <b>센터 작성</b>' : ''}${n ? ` · 자필본 ${n}장` : ''}</div>
+                </div>
+                <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};white-space:nowrap;">${label}</span>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <button class="mini-btn" onclick="viewCounsel('${c.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
+                ${n ? `<button class="mini-btn" onclick="viewCounselScans('${c.id}')" style="background:#166534;color:white;">📷 자필본 ${n}장</button>` : ''}
+                ${st === 'scanned' ? `<button class="mini-btn" onclick="confirmCounsel('${c.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+                ${(st === 'signed' || st === 'scanned' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockCounsel('${c.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+                <button class="mini-btn" onclick="deleteCounsel('${c.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('');
+  }
+
+  function viewCounsel(id) {
+    const c = allCounsels.find(x => x.id === id);
+    if (!c) { alert('면담일지를 찾지 못했습니다.'); return; }
+    const E = escapeHtmlSafe;
+    const no = cnNoA(c, allCounsels.filter(x => x.period === c.period));
+    const dp = (c.meetDate || '').split('-');
+    const body = `
+    <div style="font-size:12px;margin-bottom:6px;">No. ${E(no)}</div>
+    <h1 style="letter-spacing:4px;">학습근로자 면담일지</h1>
+    <table style="width:100%;margin-top:10px;">
+      <tr>
+        <td style="vertical-align:top;font-size:12.5px;line-height:2;">
+          ❍ 기업명 : ${E(c.companyName)}<br>
+          ❍ ${E(c.authorRole || '기업현장교사')}명 : ${E(c.authorName)}<br>
+          ❍ 학습근로자명 : ${E(c.workerName)}<br>
+          ❍ 일  시 : ${E(dp[0] || '')}. ${E(dp[1] || '')} . ${E(dp[2] || '')} .
+        </td>
+        <td style="width:190px;vertical-align:top;">
+          <table class="grid" style="width:100%;">
+            <tr><th rowspan="2" style="width:40px;font-size:11px;">결재</th>
+                <th style="font-size:11px;">총괄책임자<br>(훈련책임자)</th></tr>
+            <tr><td style="height:56px;"></td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <table class="grid" style="margin-top:12px;">
+      <tr><th style="width:120px;">구 분</th><th>면담 내용</th></tr>
+      ${CN_FIELDS_A.filter(([k]) => !(c.writer === 'center' && k === 'work')).map(([k, label, sub]) => `<tr>
+        <td class="c" style="font-weight:600;">${label}${sub ? `<br><span style="font-size:10.5px;font-weight:400;">${sub}</span>` : ''}</td>
+        <td style="height:96px;">${E(c[k]).replace(/\n/g, '<br>')}</td>
+      </tr>`).join('')}
+    </table>
+    <div class="sign">
+      <div class="who">${E(c.authorRole || '')} &nbsp; ${E(c.authorName)} &nbsp; (서명)</div>
+      ${c.signature ? `<img src="${c.signature}">` : '<div style="font-size:12px;color:#b91c1c;">※ 전자서명 없음 (작성 중)</div>'}
+    </div>
+    <div style="margin-top:18px;font-size:10.5px;color:#444;line-height:1.7;">
+      ※ No.(예 : 2022-01-1/2]에서 '2021'는 연도, '01'은 월, '1/2'은 당월 해당 학습근로자에 대해 두 번의 면담이 있었으며, 첫 번째 면담을 의미함. (한번만 면담을 실시했다면 1/1로 작성)<br>
+      ※ 학습근로자에 대한 면담 주기는 기업의 경우 월 단위 최소 1회 이상, 공동훈련센터의 경우 분기별 최소 1회 이상 실시<br>
+      ※ 공동훈련센터의 경우 [근로관련] 항목은 제외<br>
+      ※ [기업현장교사/담당자]는 단독기업형(기업현장교사), 공동훈련센터형(담당자)을 의미함.
+    </div>`;
+    openAdminPrint(`학습근로자 면담일지 - ${E(c.workerName)} ${E(no)}`, body);
+  }
+
+  function viewCounselScans(id) {
+    const c = allCounsels.find(x => x.id === id); if (!c) return;
+    const E = escapeHtmlSafe;
+    const scans = c.signedScans || [];
+    const imgs = scans.filter(f => /\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const others = scans.filter(f => !/\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const body = `
+    <h1>면담일지 자필 서명본</h1>
+    <div class="docno">${E(c.workerName)} · ${E(c.meetDate || c.period)} · ${E(c.companyName)}</div>
+    ${imgs.map((f, i) => `<div class="pg"><img src="${E(f.url)}" alt=""><div class="cap">${i + 1} / ${imgs.length} — ${E(f.name)}</div></div>`).join('')}
+    ${others.length ? `<div class="list"><b>이미지가 아닌 파일 ${others.length}개:</b><br>
+      ${others.map(f => `<a href="${E(f.url)}" target="_blank">${E(f.name)}</a>`).join('<br>')}</div>` : ''}
+    ${!imgs.length && !others.length ? '<div style="text-align:center;color:#888;padding:40px;">올라온 자필본이 없습니다.</div>' : ''}`;
+    openAdminPrint(`면담일지 자필본 - ${E(c.workerName)}`, body);
+  }
+
+  async function cnPatchA(id, patch, logText) {
+    const c = allCounsels.find(x => x.id === id); if (!c) return;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db, 'ojtCounseling', id), patch);
+      Object.assign(c, patch);
+      await writeLog('update', 'ojtCounseling', id, `${logText}: ${c.companyName || ''} ${c.workerName || ''} ${c.period || ''}`);
+      renderCounselDocs();
+    } catch(e) { alert('처리 실패: ' + e.message); }
+  }
+  async function confirmCounsel(id) {
+    const c = allCounsels.find(x => x.id === id); if (!c) return;
+    if (!await customConfirm({ title: '면담일지 확인 처리',
+      message: `<b>${escapeHtmlSafe(c.workerName || '')}</b> · ${escapeHtmlSafe(c.meetDate || '')} 면담일지를<br>확인 완료로 표시할까요?`,
+      confirmText: '✅ 확인 처리' })) return;
+    cnPatchA(id, { status: 'confirmed', confirmedAt: new Date().toISOString() }, '면담일지 확인');
+  }
+  async function unlockCounsel(id) {
+    const c = allCounsels.find(x => x.id === id); if (!c) return;
+    if (!await customConfirm({ title: '잠금 해제',
+      message: `<b>${escapeHtmlSafe(c.workerName || '')}</b> · ${escapeHtmlSafe(c.meetDate || '')} 면담일지를<br>기업이 다시 수정·서명할 수 있게 열어줄까요?<br><br>
+        <span style="font-size:12px;color:#92400e;">전자서명과 문서지문이 무효 처리됩니다. 올라온 자필본은 남습니다.</span>`,
+      confirmText: '🔓 잠금 해제' })) return;
+    cnPatchA(id, { status: 'draft', signature: '', signMeta: null, docHash: '', signedAt: null,
+                   unlockedAt: new Date().toISOString() }, '면담일지 잠금 해제');
+  }
+  async function deleteCounsel(id) {
+    const c = allCounsels.find(x => x.id === id); if (!c) return;
+    const n = (c.signedScans || []).length;
+    if (!await customConfirm({ title: '면담일지 삭제',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')}</b> · ${escapeHtmlSafe(c.workerName || '')}<br>
+        ${escapeHtmlSafe(c.meetDate || c.period)} 면담일지를 삭제할까요?<br><br>
+        ${n ? `<span style="font-size:12px;color:#92400e;">⚠️ 자필 서명본 ${n}장도 함께 사라집니다.</span>` : ''}`,
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      if (n) {
+        try {
+          const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+          const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+          const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+          const storage = getStorage(app);
+          await Promise.all(c.signedScans.map(f => deleteObject(ref(storage, f.path)).catch(() => {})));
+        } catch(_) {}
+      }
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'ojtCounseling', id));
+      allCounsels = allCounsels.filter(x => x.id !== id);
+      await writeLog('delete', 'ojtCounseling', id, `면담일지 삭제: ${c.companyName || ''} ${c.workerName || ''} ${c.period || ''}`);
+      renderCounselDocs();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  function downloadCounselExcel() {
+    if (typeof XLSX === 'undefined') { alert('엑셀 모듈이 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.'); return; }
+    const period = document.getElementById('op-period')?.value;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const rows = opExpectedRows(period, companyId);
+    const mine = allCounsels.filter(c => c.period === period);
+    if (!rows.length) { alert('내려받을 자료가 없습니다.'); return; }
+    const data = [];
+    rows.forEach((r, i) => {
+      const list = mine.filter(c => c.workerId === r.worker.id)
+        .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+      if (!list.length) {
+        data.push({ '연번': i + 1, '기업명': r.companyName, '훈련과정': r.courseLabel,
+          '학습근로자': r.worker.name || '', '문서번호': '', '면담일': '', '작성자구분': '', '작성자': '',
+          '훈련 관련': '', '근로 관련': '', '기타': '', '상태': '미기록', '자필본': 0 });
+        return;
+      }
+      list.forEach(c => {
+        data.push({
+          '연번': i + 1, '기업명': r.companyName, '훈련과정': r.courseLabel,
+          '학습근로자': c.workerName || '', '문서번호': 'No. ' + cnNoA(c, mine),
+          '면담일': c.meetDate || '', '작성자구분': c.authorRole || '', '작성자': c.authorName || '',
+          '훈련 관련': c.training || '', '근로 관련': c.work || '', '기타': c.etc || '',
+          '상태': (CN_ST_A[c.status] || CN_ST_A.draft)[0], '자필본': (c.signedScans || []).length
+        });
+      });
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = Object.keys(data[0]).map(k =>
+      ({ wch: ['훈련 관련','근로 관련','기타'].includes(k) ? 44 : (k === '기업명' || k === '훈련과정' ? 22 : 13) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '학습근로자면담일지');
+    XLSX.writeFile(wb, `학습근로자_면담일지_${period}_${localToday()}.xlsx`);
   }
 
   // ══════ 월별 체크리스트 (관리자 확인) ══════
