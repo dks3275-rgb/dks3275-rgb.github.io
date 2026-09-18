@@ -387,7 +387,12 @@ import { getFirestore, collection, getDocs, doc, getDoc, setDoc, query, where }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
-const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+// ⚠️ 반드시 별도 이름의 앱을 쓴다.
+//    기본 앱을 쓰면 로그인 세션이 admin.html과 같은 칸에 저장되어,
+//    기업 계정으로 로그인하는 순간 관리자가 로그아웃되고 권한 오류가 난다.
+//    이름을 주면 세션이 따로 보관되어 두 페이지를 동시에 열어둘 수 있다.
+const APP_NAME = 'companyPortal';
+const app = getApps().find(a => a.name === APP_NAME) || initializeApp(FB_CFG, APP_NAME);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
