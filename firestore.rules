@@ -138,6 +138,23 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── 내부평가지 (훈련과정별·월별 · 파일 왕복) ──
+    // 실제 파일은 Storage에 있고, 여기에는 상태와 파일 목록(꼬리표)만 둔다.
+    // 상태: waiting(대기) → sheetReady(평가지등록) → submitted(완료본제출) → confirmed(확인)
+    // 기업은 센터가 확인을 마치기 전까지만 수정할 수 있다.
+    match /assessments/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow create: if isAdmin()
+        || (isCompany() && request.resource.data.companyId == myCompanyId());
+      allow update: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && request.resource.data.companyId == resource.data.companyId
+            && resource.data.status != 'confirmed');
+      allow delete: if isAdmin();
+    }
+
     // ── 중도탈락 관리 (민감: 탈락 사유·개선조치) ──
     // 로그인한 담당자만 접근. 학생 앱에서는 열 수 없음.
     match /dropouts/{id} {

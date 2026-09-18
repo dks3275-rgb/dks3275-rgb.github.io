@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════
+//  Firebase Storage 보안 규칙 — 내부평가지 파일 주고받기
+//
+//  경로 규칙
+//    assessments/{기업ID}/{과정ID}/{작성월}/sheet/{파일}  ← 평가지 원본 (관리자만 올림)
+//    assessments/{기업ID}/{과정ID}/{작성월}/done/{파일}   ← 완료본    (기업이 올림)
+//
+//  원칙
+//   - 기업은 자기 기업 폴더만 본다. 남의 폴더는 목록조차 안 뜬다.
+//   - 기업은 'done' 폴더에만 올릴 수 있다. 평가지 원본은 건드리지 못한다.
+//   - 지우는 건 관리자만. 기업이 제출한 뒤 몰래 없애지 못하게 한다.
+//   - 그 외 모든 경로는 전면 차단 (실수로 열리는 일 방지).
+//
+//  ⚠️ 비용 안전장치: 파일 1개 20MB 제한 + 허용 형식만.
+//     무제한 업로드로 요금이 새는 걸 규칙 단계에서 막는다.
+// ═══════════════════════════════════════════════════════════
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+    function isCompany() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/companyAccounts/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/companyAccounts/$(request.auth.uid)).data.active != false;
+    }
+    function myCompanyId() {
+      return firestore.get(/databases/(default)/documents/companyAccounts/$(request.auth.uid)).data.companyId;
+    }
+
+    // 올릴 수 있는 파일: 20MB 이하 + 서류로 쓸 만한 형식만
+    function okFile() {
+      return request.resource.size < 20 * 1024 * 1024
+        && (
+             request.resource.contentType.matches('image/.*')                 // 사진 촬영본
+          || request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('application/.*hwp.*')      // 한글
+          || request.resource.contentType.matches('application/msword')
+          || request.resource.contentType.matches('application/vnd\\..*')     // 워드·엑셀·한글 신형
+        );
+    }
+
+    match /assessments/{companyId}/{courseId}/{period}/{kind}/{fileName} {
+      allow read: if isAdmin()
+        || (isCompany() && companyId == myCompanyId());
+
+      // 관리자는 어디든, 기업은 자기 폴더의 완료본(done)에만
+      allow create, update: if (isAdmin() && okFile())
+        || (isCompany() && companyId == myCompanyId() && kind == 'done' && okFile());
+
+      allow delete: if isAdmin();
+    }
+
+    // 나머지 전부 차단
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

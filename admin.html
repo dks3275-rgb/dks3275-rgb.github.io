@@ -1394,6 +1394,30 @@
 
     <div class="card">
       <div class="card-title">
+        📄 내부평가지
+        <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
+      </div>
+      <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
+        평가지를 올리면 해당 기업 화면에 <b>내려받기</b>가 생깁니다. 기업이 작성 완료본을 올려 제출하면 여기서 확인합니다.<br>
+        <small style="opacity:0.9;">위 <b>작성 월·기업</b> 선택이 함께 적용됩니다 · 파일 1개 20MB 이하</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">평가지를 올릴 훈련과정</label>
+        <select class="form-input" id="as-course"><option value="">과정을 선택하세요</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">평가지 파일 <span style="font-weight:400;color:#718096;font-size:11px;">(여러 개 선택 가능)</span></label>
+        <input type="file" class="form-input" id="as-file" multiple style="padding:10px 12px;cursor:pointer;"
+               accept="image/*,.pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx">
+      </div>
+      <button class="send-btn" onclick="uploadAssessSheet()" id="asUpBtn" style="background:#059669;">📤 평가지 등록</button>
+      <div id="asUpProgress"></div>
+      <div class="result-box" id="asUpResult"></div>
+      <div id="asDocList" style="margin-top:16px;"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
         📣 기업 화면 안내문구
         <button class="refresh-btn" onclick="loadGuideTexts()">🔄 되돌리기</button>
       </div>
@@ -3773,7 +3797,7 @@
 
   function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
   // 월·기업 선택을 바꾸면 의견서와 체크리스트를 함께 다시 그린다
-  function renderDocsTab() { renderOpinionDocs(); renderChecklistDocs(); renderDocsMatrix(); }
+  function renderDocsTab() { renderOpinionDocs(); renderChecklistDocs(); renderAssessDocs(); renderDocsMatrix(); }
 
   // ══════ 기업 × 월 제출 현황 한눈에 보기 ══════
   // 한 기업이 어느 달에 무엇을 안 냈는지 스크롤 없이 찾으려고 만든 표.
@@ -3816,12 +3840,24 @@
       ckCount[k] = (ckCount[k] || 0) + 1;
     });
 
-    const cell = (op, need, ck, ckNeed) => {
-      if (!need && !ckNeed) return ['–', '#94a3b8', '대상 아님'];
-      const opOk = op >= need, ckOk = ck >= ckNeed;
-      if (opOk && ckOk) return ['●', '#166534', `의견서 ${op}/${need} · 체크리스트 ${ck}/${ckNeed}`];
-      if (op === 0 && ck === 0) return ['○', '#b91c1c', `미제출 (의견서 0/${need} · 체크리스트 0/${ckNeed})`];
-      return ['◐', '#d97706', `의견서 ${op}/${need} · 체크리스트 ${ck}/${ckNeed}`];
+    // 내부평가지는 매달 있는 게 아니라 평가지를 올린 달에만 대상이 된다
+    const asNeed = {}, asDone = {};
+    allAssessments.forEach(a => {
+      if (!(a.sheetFiles || []).length) return;
+      const k = a.companyId + '|' + a.period;
+      asNeed[k] = (asNeed[k] || 0) + 1;
+      if (a.status === 'submitted' || a.status === 'confirmed') asDone[k] = (asDone[k] || 0) + 1;
+    });
+
+    const cell = (op, need, ck, ckNeed, as, asN) => {
+      if (!need && !ckNeed && !asN) return ['–', '#94a3b8', '대상 아님'];
+      const parts = [`의견서 ${op}/${need}`, `체크리스트 ${ck}/${ckNeed}`];
+      if (asN) parts.push(`내부평가지 ${as}/${asN}`);
+      const tip = parts.join(' · ');
+      const allOk = op >= need && ck >= ckNeed && as >= asN;
+      if (allOk) return ['●', '#166534', tip];
+      if (op === 0 && ck === 0 && as === 0) return ['○', '#b91c1c', '미제출 — ' + tip];
+      return ['◐', '#d97706', tip];
     };
 
     const rows = ids.map(id => {
@@ -3842,8 +3878,10 @@
         <td style="padding:8px 6px;border:1px solid #e4eaf4;text-align:center;color:#64748b;white-space:nowrap;">
           ${r.f.workers}명 · ${r.f.courses.size}과정</td>
         ${months.map(m => {
-          const [mark, color, tip] = cell(opCount[r.id + '|' + m] || 0, r.f.workers,
-                                          ckCount[r.id + '|' + m] || 0, r.f.courses.size);
+          const k = r.id + '|' + m;
+          const [mark, color, tip] = cell(opCount[k] || 0, r.f.workers,
+                                          ckCount[k] || 0, r.f.courses.size,
+                                          asDone[k] || 0, asNeed[k] || 0);
           return `<td title="${escapeHtmlSafe(m + ' — ' + tip)}"
             style="padding:8px 6px;border:1px solid #e4eaf4;text-align:center;font-size:17px;color:${color};cursor:default;">${mark}</td>`;
         }).join('')}
@@ -3878,12 +3916,14 @@
     try {
       const db = await wkDb();
       const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const [snap, ckSnap] = await Promise.all([
+      const [snap, ckSnap, asSnap] = await Promise.all([
         getDocs(collection(db, 'teacherOpinions')),
-        getDocs(collection(db, 'checklists'))
+        getDocs(collection(db, 'checklists')),
+        getDocs(collection(db, 'assessments'))
       ]);
       allOpinions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       allChecklists = ckSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allAssessments = asSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       // 미제출 계산에 필요한 기초 자료
       if (!allCompanies.length) await loadCompanies();
       if (!allCourses.length)   await loadCourses();
@@ -3899,6 +3939,7 @@
       }
       renderOpinionDocs();
       renderChecklistDocs();
+      renderAssessDocs();
       renderDocsMatrix();
     } catch(e) {
       if (el) el.innerHTML = '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message || '') + '</div>';
@@ -4069,6 +4110,269 @@
   }
 
   // ══════════════════════════════════════════
+  //  📄 내부평가지 (파일 왕복)
+  //   Storage: assessments/{기업}/{과정}/{월}/sheet|done/{파일}
+  //   Firestore: assessments/{과정__월} 에 상태와 파일 목록
+  // ══════════════════════════════════════════
+  const AS_STATUS = {
+    waiting:    ['대기',       '#f1f5f9', '#64748b'],
+    sheetReady: ['평가지 등록', '#fef3c7', '#92400e'],
+    submitted:  ['완료본 제출', '#dcfce7', '#166534'],
+    confirmed:  ['확인 완료',   '#dbeafe', '#1e40af']
+  };
+  const AS_MAX = 20 * 1024 * 1024;
+  let allAssessments = [];
+  function asFileSize(n) {
+    if (!n && n !== 0) return '';
+    return n < 1024 * 1024 ? Math.round(n / 1024) + ' KB' : (n / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  // 평가지를 올릴 과정 선택지 (학습근로자가 있는 과정만)
+  function refreshAssessCourseOptions() {
+    const sel = document.getElementById('as-course'); if (!sel) return;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const live = new Set(allWorkers.filter(w => !w.deleted && !w.dropout).map(w => w.courseId));
+    const list = allCourses.filter(c => live.has(c.id)).filter(c => !companyId || c.companyId === companyId);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">과정을 선택하세요</option>' + list
+      .sort((a, b) => (a.companyName || '').localeCompare(b.companyName || '', 'ko'))
+      .map(c => {
+        const co = allCompanies.find(x => x.id === c.companyId);
+        return `<option value="${c.id}">${escapeHtmlSafe((co?.name || c.companyName || '') + ' · ' + (c.type || '') + (c.site ? ' · ' + c.site : ''))}</option>`;
+      }).join('');
+    if (list.some(c => c.id === cur)) sel.value = cur;
+  }
+
+  async function uploadAssessSheet() {
+    const period = document.getElementById('op-period')?.value;
+    const courseId = document.getElementById('as-course')?.value;
+    const input = document.getElementById('as-file');
+    const out = document.getElementById('asUpResult');
+    const prog = document.getElementById('asUpProgress');
+    const btn = document.getElementById('asUpBtn');
+    if (!courseId) { alert('평가지를 올릴 훈련과정을 선택해주세요.'); return; }
+    const files = Array.from(input?.files || []);
+    if (!files.length) { alert('올릴 평가지 파일을 선택해주세요.'); return; }
+    const big = files.filter(f => f.size > AS_MAX);
+    if (big.length) { alert(`20MB를 넘는 파일이 있습니다.\n\n${big.map(f => '· ' + f.name).join('\n')}`); return; }
+
+    const course = allCourses.find(c => c.id === courseId);
+    const co = allCompanies.find(x => x.id === course?.companyId);
+    btn.disabled = true; btn.textContent = '올리는 중...';
+    try {
+      const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const { getStorage, ref, uploadBytesResumable, getDownloadURL } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+      const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const storage = getStorage(app);
+      const added = [];
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        prog.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:#4B5765;margin-top:10px;">
+          올리는 중 (${i + 1}/${files.length}) · ${escapeHtmlSafe(f.name)}</div>
+          <div style="background:#e2e8f0;height:7px;border-radius:4px;overflow:hidden;margin-top:6px;">
+            <div id="asFill" style="height:100%;width:0%;background:#3F4A57;transition:width .2s;"></div></div>`;
+        const safe = Date.now() + '_' + f.name.replace(/[^\w.\-가-힣 ]/g, '_');
+        const path = `assessments/${course.companyId}/${courseId}/${period}/sheet/${safe}`;
+        const task = uploadBytesResumable(ref(storage, path), f, { contentType: f.type || 'application/octet-stream' });
+        await new Promise((res, rej) => task.on('state_changed',
+          s => { const el = document.getElementById('asFill'); if (el) el.style.width = Math.round(s.bytesTransferred / s.totalBytes * 100) + '%'; },
+          rej, res));
+        added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
+      }
+      const db = await wkDb();
+      const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const id = `${courseId}__${period}`;
+      const prev = allAssessments.find(a => a.id === id);
+      const next = {
+        companyId: course.companyId, companyName: co?.name || course.companyName || '',
+        courseId, courseType: course.type || '', courseNo: course.courseNo || '', site: course.site || '',
+        period,
+        sheetFiles: [...(prev?.sheetFiles || []), ...added],
+        status: (prev?.status === 'submitted' || prev?.status === 'confirmed') ? prev.status : 'sheetReady',
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'assessments', id), next, { merge: true });
+      if (prev) Object.assign(prev, next); else allAssessments.push({ id, ...next });
+      await writeLog('create', 'assessment', id, `내부평가지 등록: ${next.companyName} ${next.courseType} ${period} (${added.length}개)`);
+      prog.innerHTML = '';
+      input.value = '';
+      out.innerHTML = `<div style="color:#059669;font-weight:700;">✅ 평가지 ${added.length}개를 등록했습니다.<br>
+        <span style="font-weight:400;font-size:12.5px;color:#4a5568;">${escapeHtmlSafe(next.companyName)} 기업 화면에 내려받기가 생겼습니다.</span></div>`;
+      renderAssessDocs();
+      renderDocsMatrix();
+    } catch(e) {
+      prog.innerHTML = '';
+      out.innerHTML = `<div style="color:#b91c1c;font-weight:700;">등록 실패: ${escapeHtmlSafe(e.message || '')}</div>`;
+    }
+    btn.disabled = false; btn.textContent = '📤 평가지 등록';
+  }
+
+  function renderAssessDocs() {
+    const period = document.getElementById('op-period')?.value;
+    const companyId = document.getElementById('op-company')?.value || '';
+    const el = document.getElementById('asDocList');
+    if (!el || !period) return;
+    refreshAssessCourseOptions();
+
+    const live = new Set(allWorkers.filter(w => !w.deleted && !w.dropout).map(w => w.courseId));
+    const courses = allCourses.filter(c => live.has(c.id)).filter(c => !companyId || c.companyId === companyId);
+    if (!courses.length) { el.innerHTML = '<div class="empty-history">해당 조건에 훈련과정이 없습니다.</div>'; return; }
+    const byCourse = {};
+    allAssessments.forEach(a => { if (a.period === period) byCourse[a.courseId] = a; });
+
+    el.innerHTML = courses
+      .sort((a, b) => (a.companyName || '').localeCompare(b.companyName || '', 'ko'))
+      .map(course => {
+        const a = byCourse[course.id];
+        const st = a?.status || 'waiting';
+        const [label, bg, fg] = AS_STATUS[st] || AS_STATUS.waiting;
+        const co = allCompanies.find(x => x.id === course.companyId);
+        const sheets = a?.sheetFiles || [], dones = a?.doneFiles || [];
+        return `<div style="border:1.5px solid #E3E6EA;border-radius:11px;padding:13px 15px;margin-bottom:8px;background:white;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px;">
+              <div style="font-size:14.5px;font-weight:700;">${escapeHtmlSafe(co?.name || course.companyName || '-')}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtmlSafe(course.type || '')}${course.site ? ' · ' + escapeHtmlSafe(course.site) : ''}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};white-space:nowrap;">${label}</span>
+          </div>
+          ${sheets.length ? `<div style="margin-top:9px;font-size:12.5px;color:#4a5568;">
+            📥 평가지 ${sheets.length}개 — ${sheets.map((f, i) =>
+              `<a href="${escapeHtmlSafe(f.url)}" target="_blank" rel="noopener" style="color:#3F4A57;font-weight:600;">${escapeHtmlSafe(f.name)}</a>${a.status !== 'confirmed' ? ` <a href="#" onclick="removeAssessFile('${a.id}','sheet',${i});return false;" style="color:#b91c1c;font-size:11px;">✕</a>` : ''}`
+            ).join(' · ')}</div>` : ''}
+          ${dones.length ? `<div style="margin-top:7px;font-size:12.5px;color:#166534;">
+            📤 완료본 ${dones.length}개 — ${dones.map(f =>
+              `<a href="${escapeHtmlSafe(f.url)}" target="_blank" rel="noopener" style="color:#166534;font-weight:600;">${escapeHtmlSafe(f.name)}</a> <span style="color:#94a3b8;">${asFileSize(f.size)}</span>`
+            ).join(' · ')}</div>` : ''}
+          ${a ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+            ${dones.length ? `<button class="mini-btn" onclick="printAssessDones('${a.id}')" style="background:#3F4A57;color:white;">🖨️ 완료본 인쇄</button>` : ''}
+            ${st === 'submitted' ? `<button class="mini-btn" onclick="confirmAssess('${a.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+            ${st === 'confirmed' ? `<button class="mini-btn" onclick="reopenAssess('${a.id}')" style="background:#f59e0b;color:white;">🔓 다시 열기</button>` : ''}
+            <button class="mini-btn" onclick="deleteAssess('${a.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
+            <span style="font-size:11.5px;color:#94a3b8;align-self:center;">
+              ${a.submittedAt ? '제출 ' + escapeHtmlSafe(a.submittedAt.slice(0,10)) : ''}</span>
+          </div>` : `<div style="margin-top:9px;font-size:12.5px;color:#94a3b8;">아직 평가지가 등록되지 않았습니다.</div>`}
+        </div>`;
+      }).join('');
+  }
+
+  // 완료본 사진들을 A4에 이어 붙여 인쇄한다 (종이 원본 대신 보관용)
+  function printAssessDones(id) {
+    const a = allAssessments.find(x => x.id === id); if (!a) return;
+    const imgs = (a.doneFiles || []).filter(f => /\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const others = (a.doneFiles || []).filter(f => !/\.(png|jpe?g|gif|webp)$/i.test(f.name));
+    const w = window.open('', '_blank', 'width=880,height=1000');
+    if (!w) { alert('팝업이 차단되었습니다. 주소창의 팝업 허용을 켜주세요.'); return; }
+    const E = escapeHtmlSafe;
+    w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+    <title>내부평가지 완료본 - ${E(a.companyName)} ${E(a.period)}</title><style>
+    @page { size:A4; margin:12mm; }
+    body { font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; font-size:12.5px; padding:20px; }
+    h1 { font-size:18px; text-align:center; padding-bottom:10px; border-bottom:2px solid #111; margin-bottom:6px; }
+    .meta { text-align:center; color:#555; margin-bottom:16px; font-size:12px; }
+    .pg { page-break-after:always; text-align:center; }
+    .pg:last-child { page-break-after:auto; }
+    .pg img { max-width:100%; max-height:245mm; }
+    .cap { font-size:11px; color:#666; margin-top:4px; }
+    .list a { color:#1a4a8a; }
+    .bar { text-align:center; margin-bottom:14px; }
+    .bar button { padding:10px 22px; font-size:14px; font-weight:700; border:none; border-radius:8px; background:#3F4A57; color:white; cursor:pointer; }
+    @media print { .bar, .list { display:none; } body { padding:0; } }
+    </style></head><body>
+    <div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>
+    <h1>내부평가지 완료본</h1>
+    <div class="meta">${E(a.companyName)} · ${E(a.courseType)}${a.site ? ' / ' + E(a.site) : ''} · ${E(a.period)}
+      ${a.courseNo ? ' · 과정번호 ' + E(a.courseNo) : ''}</div>
+    ${imgs.map((f, i) => `<div class="pg"><img src="${E(f.url)}" alt=""><div class="cap">${i + 1} / ${imgs.length} — ${E(f.name)}</div></div>`).join('')}
+    ${others.length ? `<div class="list"><b>이미지가 아닌 파일 ${others.length}개는 따로 열어주세요:</b><br>
+      ${others.map(f => `<a href="${E(f.url)}" target="_blank">${E(f.name)}</a>`).join('<br>')}</div>` : ''}
+    ${!imgs.length ? '<div style="text-align:center;color:#888;padding:40px;">인쇄할 이미지가 없습니다.</div>' : ''}
+    </body></html>`);
+    w.document.close();
+  }
+
+  async function asPatch(id, patch, logText) {
+    const a = allAssessments.find(x => x.id === id); if (!a) return;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db, 'assessments', id), patch);
+      Object.assign(a, patch);
+      await writeLog('update', 'assessment', id, `${logText}: ${a.companyName || ''} ${a.courseType || ''} ${a.period || ''}`);
+      renderAssessDocs(); renderDocsMatrix();
+    } catch(e) { alert('처리 실패: ' + e.message); }
+  }
+  async function confirmAssess(id) {
+    const a = allAssessments.find(x => x.id === id); if (!a) return;
+    if (!await customConfirm({ title: '내부평가지 확인 처리',
+      message: `<b>${escapeHtmlSafe(a.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(a.period))}<br>
+        완료본 ${(a.doneFiles || []).length}개를 확인 완료로 표시할까요?<br><br>
+        <span style="font-size:12px;color:#64748b;">확인 후에는 기업이 파일을 더 올리거나 지울 수 없습니다.</span>`,
+      confirmText: '✅ 확인 처리' })) return;
+    asPatch(id, { status: 'confirmed', confirmedAt: new Date().toISOString() }, '내부평가지 확인');
+  }
+  async function reopenAssess(id) {
+    const a = allAssessments.find(x => x.id === id); if (!a) return;
+    if (!await customConfirm({ title: '다시 열기',
+      message: `<b>${escapeHtmlSafe(a.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(a.period))}<br>
+        기업이 완료본을 다시 올릴 수 있게 열어줄까요?`,
+      confirmText: '🔓 다시 열기' })) return;
+    asPatch(id, { status: 'submitted', reopenedAt: new Date().toISOString() }, '내부평가지 다시 열기');
+  }
+
+  // 파일 하나만 지우기 (평가지 원본을 잘못 올렸을 때)
+  async function removeAssessFile(id, kind, idx) {
+    const a = allAssessments.find(x => x.id === id); if (!a) return;
+    const key = kind === 'sheet' ? 'sheetFiles' : 'doneFiles';
+    const f = (a[key] || [])[idx]; if (!f) return;
+    if (!await customConfirm({ title: '파일 삭제',
+      message: `<b>${escapeHtmlSafe(f.name)}</b><br>이 파일을 지울까요?`, confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      try {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+        await deleteObject(ref(getStorage(app), f.path));
+      } catch(_) { /* 저장소에서 못 지워도 목록에서는 빼준다 */ }
+      const list = a[key].slice(); list.splice(idx, 1);
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const patch = { [key]: list, updatedAt: new Date().toISOString() };
+      if (kind === 'sheet' && !list.length && a.status === 'sheetReady') patch.status = 'waiting';
+      await updateDoc(doc(db, 'assessments', id), patch);
+      Object.assign(a, patch);
+      renderAssessDocs(); renderDocsMatrix();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  async function deleteAssess(id) {
+    const a = allAssessments.find(x => x.id === id); if (!a) return;
+    const n = (a.sheetFiles || []).length + (a.doneFiles || []).length;
+    if (!await customConfirm({ title: '내부평가지 기록 삭제',
+      message: `<b>${escapeHtmlSafe(a.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(a.period))}<br>
+        기록을 통째로 지울까요?<br><br>
+        <span style="font-size:12px;color:#92400e;">⚠️ 올라간 파일 ${n}개도 함께 사라지며 되돌릴 수 없습니다.</span>`,
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      try {
+        const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+        const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+        const storage = getStorage(app);
+        await Promise.all([...(a.sheetFiles || []), ...(a.doneFiles || [])]
+          .map(f => deleteObject(ref(storage, f.path)).catch(() => {})));
+      } catch(_) {}
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'assessments', id));
+      allAssessments = allAssessments.filter(x => x.id !== id);
+      await writeLog('delete', 'assessment', id, `내부평가지 삭제: ${a.companyName || ''} ${a.courseType || ''} ${a.period || ''}`);
+      renderAssessDocs(); renderDocsMatrix();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  // ══════════════════════════════════════════
   //  📣 기업 화면 안내문구 관리
   //   app_config/guides 문서 하나에 모아 저장한다.
   //   비워두면 company.html에 적힌 기본 문구가 그대로 나온다.
@@ -4088,7 +4392,10 @@
      '훈련과정마다 **한 달에 한 장** 작성합니다.\n출결 확인 · OJT 비용 신청 · 활동수당 신청을 점검하고 마지막에 서명합니다.'],
     ['checklist_form', '체크리스트 — 작성 화면',
      '체크리스트를 실제로 쓰는 화면 맨 위입니다.',
-     "각 항목을 **예 / 아니오 / 해당없음** 중에서 골라주세요.\n'아니오'가 있으면 아래 **특이사항**에 이유를 적어야 제출됩니다. 센터가 먼저 살펴보기 위한 것이니 편하게 적어주세요."]
+     "각 항목을 **예 / 아니오 / 해당없음** 중에서 골라주세요.\n'아니오'가 있으면 아래 **특이사항**에 이유를 적어야 제출됩니다. 센터가 먼저 살펴보기 위한 것이니 편하게 적어주세요."],
+    ['assess_intro', '내부평가지 안내',
+     '평가지를 내려받고 완료본을 올리는 화면입니다. 촬영 요령 등을 적어두면 좋습니다.',
+     '센터가 평가지를 올리면 여기에서 **내려받아 인쇄**해 시험을 보시고,\n작성이 끝난 평가지를 **사진으로 찍거나 스캔해서 올려주시면** 됩니다.']
   ];
 
   async function loadGuideTexts() {

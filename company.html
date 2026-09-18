@@ -150,6 +150,26 @@
   .ck-opts button:disabled { opacity:.6; cursor:default; }
   .ck-sum { display:flex; align-items:center; gap:10px; padding:14px 15px; border:1.5px solid var(--line);
             border-radius:11px; background:#f8fafc; }
+
+  /* ══ 내부평가지 ══ */
+  .file-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--line);
+              border-radius:10px; margin-bottom:7px; background:white; }
+  .file-row .fn { font-size:13.5px; font-weight:600; word-break:break-all; }
+  .file-row .fs { font-size:11.5px; color:var(--gray); margin-top:2px; }
+  .file-row a { color:var(--navy); font-weight:700; font-size:12.5px; text-decoration:none; white-space:nowrap; }
+  .drop { border:2px dashed #94a3b8; border-radius:12px; background:#fcfdff; padding:20px 16px; text-align:center;
+          cursor:pointer; transition:all .15s; }
+  .drop:hover, .drop.over { border-color:var(--navy); background:#f1f6ff; }
+  .drop .big { font-size:26px; }
+  .drop .t { font-size:13.5px; font-weight:700; margin-top:6px; }
+  .drop .s { font-size:11.5px; color:var(--gray); margin-top:4px; line-height:1.5; }
+  .up-track { background:#e2e8f0; height:7px; border-radius:4px; overflow:hidden; margin-top:8px; }
+  .up-fill { height:100%; background:var(--navy); width:0%; transition:width .2s; }
+  .step-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:14px; }
+  .step { text-align:center; padding:9px 3px; border-radius:9px; background:#f1f5f9; color:#94a3b8;
+          font-size:11.5px; font-weight:700; line-height:1.4; }
+  .step.done { background:#dcfce7; color:#166534; }
+  .step.now  { background:var(--navy); color:white; }
   @media (max-width:420px) { .two { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -224,10 +244,14 @@
     </div>
 
     <div class="card">
-      <div class="card-title">📄 그 밖의 서류</div>
-      <div class="empty">
-        내부평가지 주고받기 기능이<br>이 자리에 추가될 예정입니다.
+      <div class="card-title">📄 내부평가지
+        <span class="st-badge" id="asBadge" style="margin-left:auto;">-</span>
       </div>
+      <div class="info-box" data-guide="assess_intro">
+        센터가 평가지를 올리면 여기에서 <b>내려받아 인쇄</b>해 시험을 보시고,<br>
+        작성이 끝난 평가지를 <b>사진으로 찍거나 스캔해서 올려주시면</b> 됩니다.
+      </div>
+      <div id="asBox"><div class="empty">불러오는 중...</div></div>
     </div>
   </div>
 
@@ -563,6 +587,7 @@ async function loadWorkers(course) {
     curWorkers = list;
     loadOpinions();
     loadChecklist();
+    loadAssessment();
     $('workerCount').textContent = `${list.length}명`;
     if (list.length === 0) {
       el.innerHTML = '<div class="empty">📭 이 과정에 등록된 학습근로자가 없습니다.<br>센터에 문의해주세요.</div>';
@@ -623,7 +648,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&
   }
   sel.innerHTML = html;
   sel.value = ymNow();
-  sel.onchange = () => { loadOpinions(); loadChecklist(); };
+  sel.onchange = () => { loadOpinions(); loadChecklist(); loadAssessment(); };
 })();
 
 let opinions = {};   // workerId → 문서
@@ -1208,6 +1233,200 @@ function printChecklist() {
   </style></head><body>${body}</body></html>`);
   w.document.close();
   setTimeout(() => { w.focus(); w.print(); }, 450);
+}
+
+// ══════════════════════════════════════════
+//  내부평가지 (훈련과정별 · 월 1회 · 파일 왕복)
+//   대기 → 평가지 등록 → 완료본 제출 → 센터 확인
+// ══════════════════════════════════════════
+const AS_STEPS = [
+  ['waiting',    '① 대기'],
+  ['sheetReady', '② 평가지 받기'],
+  ['submitted',  '③ 완료본 제출'],
+  ['confirmed',  '④ 센터 확인']
+];
+const AS_ORDER = AS_STEPS.map(s => s[0]);
+let curAssess = null, asUploading = false;
+const asId = (courseId, period) => `${courseId}__${period}`;
+function fileSize(n) {
+  if (!n && n !== 0) return '';
+  return n < 1024 * 1024 ? Math.round(n / 1024) + ' KB' : (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+async function loadAssessment() {
+  const el = $('asBox'); if (!el || !curCourse) return;
+  const period = $('periodSel').value;
+  el.innerHTML = '<div class="empty">불러오는 중...</div>';
+  curAssess = null;
+  try {
+    // 규칙 통과를 위해 companyId 조건을 건 목록 질의 (getDoc은 문서가 없을 때 거부된다)
+    const snap = await getDocs(query(collection(db, 'assessments'),
+      where('companyId', '==', myAccount.companyId)));
+    const wanted = asId(curCourse.id, period);
+    snap.docs.forEach(d => { if (d.id === wanted) curAssess = { id: d.id, ...d.data() }; });
+  } catch(e) {
+    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    return;
+  }
+  renderAssessment();
+}
+
+function renderAssessment() {
+  const el = $('asBox');
+  const period = $('periodSel').value;
+  const a = curAssess;
+  const status = a?.status || 'waiting';
+  const sheets = a?.sheetFiles || [];
+  const dones  = a?.doneFiles || [];
+  const idx = Math.max(0, AS_ORDER.indexOf(status));
+
+  const badge = $('asBadge');
+  if (badge) {
+    const map = { waiting:['대기','st-none'], sheetReady:['작성 대기','st-draft'],
+                  submitted:['제출 완료','st-sub'], confirmed:['센터 확인','st-conf'] };
+    const [t, c] = map[status] || map.waiting;
+    badge.textContent = t; badge.className = 'st-badge ' + c; badge.style.marginLeft = 'auto';
+  }
+
+  const steps = `<div class="step-bar">${AS_STEPS.map(([k, label], i) =>
+    `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}">${label}</div>`).join('')}</div>`;
+
+  if (status === 'waiting' || !sheets.length) {
+    el.innerHTML = steps + `<div class="empty">
+      ${esc(ymLabel(period))} 평가지가 아직 등록되지 않았습니다.<br>
+      <small>센터에서 올리면 이 자리에 내려받기 버튼이 생깁니다.</small></div>`;
+    return;
+  }
+
+  const locked = status === 'confirmed';
+  el.innerHTML = steps + `
+    <div style="font-size:13px;font-weight:700;margin:4px 0 8px;">📥 평가지 내려받기</div>
+    ${sheets.map(f => `<div class="file-row">
+      <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
+      <a href="${esc(f.url)}" target="_blank" rel="noopener" download>내려받기 ↓</a>
+    </div>`).join('')}
+
+    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;">📤 작성 완료본 올리기
+      <span class="hint">${dones.length ? dones.length + '개 올림' : '아직 없음'}</span></div>
+    ${dones.map((f, i) => `<div class="file-row">
+      <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
+      <a href="${esc(f.url)}" target="_blank" rel="noopener">보기</a>
+      ${locked ? '' : `<button class="op-btn ghost" data-rm="${i}" style="padding:6px 10px;">삭제</button>`}
+    </div>`).join('')}
+
+    ${locked ? `<div class="lock-bar conf" style="margin-top:10px;">✅ 센터에서 확인을 마쳤습니다. 더 올리거나 지울 수 없습니다.</div>` : `
+    <div class="drop" id="asDrop">
+      <div class="big">📎</div>
+      <div class="t">여기를 눌러 파일 선택</div>
+      <div class="s">작성한 평가지를 사진으로 찍거나 스캔해서 올려주세요.<br>
+        여러 장 한 번에 선택할 수 있습니다 · 한 개당 20MB까지</div>
+      <input type="file" id="asFile" multiple accept="image/*,.pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx" style="display:none;">
+    </div>
+    <div id="asProgress"></div>
+    ${dones.length ? `<div class="act-bar" style="margin-top:12px;">
+      <button class="act-sub" id="asSubmit">${status === 'submitted' ? '✅ 제출됨 — 다시 알리기' : '📨 제출하기'}</button>
+    </div>` : ''}
+    ${status === 'submitted' ? `<div style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.55;">
+      제출된 상태입니다. 센터가 확인하기 전까지는 파일을 더 올리거나 지울 수 있습니다.</div>` : ''}`}`;
+
+  if (locked) return;
+  const drop = $('asDrop'), input = $('asFile');
+  drop.onclick = () => input.click();
+  input.onchange = () => { if (input.files?.length) uploadDoneFiles(Array.from(input.files)); };
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => {
+    const fs = Array.from(e.dataTransfer?.files || []);
+    if (fs.length) uploadDoneFiles(fs);
+  });
+  el.querySelectorAll('[data-rm]').forEach(b => { b.onclick = () => removeDoneFile(Number(b.dataset.rm)); });
+  const sb = $('asSubmit'); if (sb) sb.onclick = submitAssessment;
+}
+
+const MAX_UP = 20 * 1024 * 1024;
+async function uploadDoneFiles(files) {
+  if (asUploading) { toast('이미 올리는 중입니다'); return; }
+  const tooBig = files.filter(f => f.size > MAX_UP);
+  if (tooBig.length) {
+    alert(`20MB를 넘는 파일은 올릴 수 없습니다.\n\n${tooBig.map(f => `· ${f.name} (${fileSize(f.size)})`).join('\n')}\n\n사진이라면 촬영 화질을 낮추거나, 파일을 나눠서 올려주세요.`);
+    files = files.filter(f => f.size <= MAX_UP);
+    if (!files.length) return;
+  }
+  asUploading = true;
+  const period = $('periodSel').value;
+  const prog = $('asProgress');
+  const { getStorage, ref, uploadBytesResumable, getDownloadURL } =
+    await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+  const storage = getStorage(app);
+  const added = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      prog.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--sub);margin-top:10px;">
+        올리는 중 (${i + 1}/${files.length}) · ${esc(f.name)}</div>
+        <div class="up-track"><div class="up-fill" id="upFill"></div></div>`;
+      // 파일명이 겹치거나 한글·공백이 섞여도 안전하도록 시각을 앞에 붙인다
+      const safe = Date.now() + '_' + f.name.replace(/[^\w.\-가-힣 ]/g, '_');
+      const path = `assessments/${myAccount.companyId}/${curCourse.id}/${period}/done/${safe}`;
+      const task = uploadBytesResumable(ref(storage, path), f, { contentType: f.type || 'application/octet-stream' });
+      await new Promise((resolve, reject) => {
+        task.on('state_changed',
+          s => { const fill = $('upFill'); if (fill) fill.style.width = Math.round(s.bytesTransferred / s.totalBytes * 100) + '%'; },
+          reject, resolve);
+      });
+      added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
+    }
+    const next = Object.assign({}, curAssess, {
+      companyId: myAccount.companyId, companyName: myAccount.companyName || '',
+      courseId: curCourse.id, courseType: curCourse.type || '', courseNo: curCourse.courseNo || '',
+      site: curCourse.site || '', period,
+      doneFiles: [...(curAssess?.doneFiles || []), ...added],
+      updatedAt: new Date().toISOString()
+    });
+    delete next.id;
+    await setDoc(doc(db, 'assessments', asId(curCourse.id, period)), next, { merge: true });
+    curAssess = { id: asId(curCourse.id, period), ...next };
+    prog.innerHTML = '';
+    toast(`✅ ${added.length}개 올렸습니다`);
+    renderAssessment();
+  } catch(e) {
+    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
+  }
+  asUploading = false;
+}
+
+async function removeDoneFile(i) {
+  const f = curAssess?.doneFiles?.[i]; if (!f) return;
+  if (!confirm(`${f.name}\n\n이 파일을 지울까요?`)) return;
+  try {
+    // 저장소 파일도 함께 지운다 (지워지지 않아도 목록에서는 빠지도록 오류는 넘긴다)
+    try {
+      const { getStorage, ref, deleteObject } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+      await deleteObject(ref(getStorage(app), f.path));
+    } catch(_) {}
+    const list = curAssess.doneFiles.slice(); list.splice(i, 1);
+    await setDoc(doc(db, 'assessments', curAssess.id),
+      { doneFiles: list, updatedAt: new Date().toISOString() }, { merge: true });
+    curAssess.doneFiles = list;
+    toast('지웠습니다');
+    renderAssessment();
+  } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
+}
+
+async function submitAssessment() {
+  if (!curAssess?.doneFiles?.length) { toast('완료본을 먼저 올려주세요'); return; }
+  if (!confirm(`완료본 ${curAssess.doneFiles.length}개를 센터에 제출합니다.\n\n계속할까요?`)) return;
+  const btn = $('asSubmit'); if (btn) { btn.disabled = true; btn.textContent = '제출 중...'; }
+  try {
+    const patch = { status: 'submitted', submittedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    await setDoc(doc(db, 'assessments', curAssess.id), patch, { merge: true });
+    Object.assign(curAssess, patch);
+    toast('✅ 제출했습니다');
+    renderAssessment();
+  } catch(e) {
+    alert('제출 실패: ' + (e.message || ''));
+    if (btn) { btn.disabled = false; btn.textContent = '📨 제출하기'; }
+  }
 }
 
 // ══════════ 비밀번호 변경 ══════════
