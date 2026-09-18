@@ -637,16 +637,24 @@ function ymNow() { const d = new Date(); return d.getFullYear() + '-' + String(d
 function ymLabel(ym) { const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-// 최근 12개월 선택지
-(function buildPeriods() {
-  const sel = $('periodSel'); if (!sel) return;
-  const d = new Date(); let html = '';
-  for (let i = 0; i < 12; i++) {
+// 작성 월 선택지 — 앞으로 3개월 + 지난 15개월
+//  미리 준비하는 경우(평가지 사전 등록 등)가 있어 다음 달들도 열어둔다.
+const MONTHS_AHEAD = 3, MONTHS_BACK = 15;
+function monthOptions() {
+  const now = new Date();
+  const cur = ymNow();
+  const out = [];
+  const d = new Date(now.getFullYear(), now.getMonth() + MONTHS_AHEAD, 1);
+  for (let i = 0; i < MONTHS_AHEAD + MONTHS_BACK; i++) {
     const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    html += `<option value="${ym}">${ymLabel(ym)}</option>`;
+    out.push({ ym, label: ymLabel(ym) + (ym > cur ? ' (예정)' : '') });
     d.setMonth(d.getMonth() - 1);
   }
-  sel.innerHTML = html;
+  return out;
+}
+(function buildPeriods() {
+  const sel = $('periodSel'); if (!sel) return;
+  sel.innerHTML = monthOptions().map(o => `<option value="${o.ym}">${o.label}</option>`).join('');
   sel.value = ymNow();
   sel.onchange = () => { loadOpinions(); loadChecklist(); loadAssessment(); };
 })();
