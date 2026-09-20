@@ -4936,11 +4936,12 @@
 
   // ══════ 월별 체크리스트 (관리자 확인) ══════
   // 월별 확인서 항목 — company.html의 CK_GROUPS와 항상 같게 유지할 것
+  // 월별 확인서 항목 — company.html의 CK_GROUPS와 항상 같게 유지할 것
   const CK_GROUPS_A = [
-    ['📝 작성 내용 확인', [
-      ['doc1', '훈련강사의견 내용이 실제 실시와 일치'],
-      ['doc2', '면담일지 면담을 실제 실시'],
-      ['doc3', '내부평가 실시·결과 제출']
+    ['📝 훈련 실시 확인', [
+      ['doc1', '능력단위에 맞게 훈련 진행'],
+      ['doc2', '학습근로자 면담 실시'],
+      ['doc3', '내부평가 실시']
     ]],
     ['✅ 최종 확인', [
       ['final', '사실과 다른 부분 없음']
@@ -5049,7 +5050,7 @@
     w.document.close();
   }
 
-  // 체크리스트 출력물 서명란 — 겸임이면 1칸, 아니면 2칸
+  // 체크리스트 출력물 서명란 — HRD담당자 · 기업현장교사 2칸
   function ckSignRowA(c) {
     const E = escapeHtmlSafe;
     const a = c.signHrd || (c.signature ? { name: c.name || '', role: c.role || '작성자', signature: c.signature } : null);
@@ -5062,7 +5063,7 @@
                         : '<div style="height:48px;"></div>'}
       </td>`;
     return `<table class="grid" style="margin-top:10px;">
-      <tr>${cell(a, c.dualExempt ? 'HRD담당자 겸 기업현장교사' : 'HRD담당자')}${b || !c.dualExempt ? cell(b, '기업현장교사') : ''}</tr>
+      <tr>${cell(a, 'HRD담당자')}${cell(b, '기업현장교사')}</tr>
     </table>`;
   }
 
@@ -5177,9 +5178,8 @@
       };
       CK_ALL_A.forEach(([k, q]) => { out[q] = CK_TEXT_A[c.items?.[k]] || ''; });
       out['특이사항'] = c.note || '';
-      out['겸임'] = byCourse[course.id] ? (c.dualExempt ? '겸임' : '') : '';
       out['HRD담당자'] = c.signHrd?.name || c.name || '';
-      out['기업현장교사'] = c.dualExempt ? (c.signHrd?.name || '') : (c.signTeacher?.name || '');
+      out['기업현장교사'] = c.signTeacher?.name || '';
       out['자필본'] = (c.signedScans || []).length;
       out['제출일'] = (c.signedAt || '').slice(0, 10);
       out['센터확인일'] = (c.confirmedAt || '').slice(0, 10);
