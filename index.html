@@ -175,6 +175,12 @@
     .info-card.apply-card .label { color: #0D4A9C; font-weight: 600; }
     .info-card.apply-card .value { color: #1B64DA; font-weight: 700; }
     /* e-book 카드 (책 톤 — 따뜻한 베이지/갈색) */
+    /* 학습기업 학습일지 관리 — 전담인력이 실제 업무를 보는 곳이라 가장 눈에 띄게 */
+    .info-card.docs-card { background: linear-gradient(135deg, #E8EDF3, #CFD8E3); border-color: #3F4A57; }
+    .info-card.docs-card:hover { background: linear-gradient(135deg, #DCE3EB, #BCC7D6); border-color: #2C3641; }
+    .info-card.docs-card .icon { color: #3F4A57; }
+    .info-card.docs-card .label { color: #2C3641; font-weight: 600; }
+    .info-card.docs-card .value { color: #3F4A57; font-weight: 700; }
     .info-card.ebook-card { background: linear-gradient(135deg, #FFF4E0, #FFE0B2); border-color: #FF9F1C; }
     .info-card.ebook-card:hover { background: linear-gradient(135deg, #FFE7B2, #FFCC80); border-color: #E68A00; }
     .info-card.ebook-card .icon { color: #B36500; }
@@ -592,6 +598,11 @@
   </div>
   <!-- 학습기업 전담인력 메뉴 -->
   <div class="info-grid" id="menuCompany" style="display:none;">
+    <a class="info-card full docs-card" href="company.html">
+      <div class="icon">📋</div>
+      <div class="label">훈련강사의견 · 면담일지 · 내부평가지 · 체크리스트</div>
+      <div class="value">학습기업 학습일지 관리 ›</div>
+    </a>
     <a class="info-card full ebook-card" href="files/ebook/안산대학교_일학습병행_기업용_배포본.html" target="_blank" rel="noopener noreferrer"><div class="icon">📖</div><div class="label">학습기업 안내 자료를 한눈에 확인해주세요</div><div class="value">기업용 소개 자료 (e-book)</div></a>
     <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
     <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
