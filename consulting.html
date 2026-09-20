@@ -185,6 +185,7 @@
           <option value="호텔관광학과">호텔관광학과</option>
           <option value="졸업생">졸업생</option>
           <option value="예비 신입생">예비 신입생</option>
+          <option value="교·강사">교·강사</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">상담 내용 <span class="required">*</span></label><textarea class="form-textarea" id="inputContent" placeholder="상담 받고 싶은 내용을 간략하게 작성해주세요" maxlength="300" oninput="updateCharCount()"></textarea><div class="char-count" id="charCount">0 / 300</div></div>
@@ -286,9 +287,13 @@
       if (userInfo.role) document.getElementById('cInputRole').value = userInfo.role;
       if (userInfo.phone) document.getElementById('cInputPhone').value = userInfo.phone;
     } else {
-      // 재학생/졸업생/예비신입생 자동 채움
+      // 재학생/졸업생/예비신입생/교·강사 자동 채움
       if (userInfo.name) document.getElementById('inputName').value = userInfo.name;
       if (userInfo.grade) document.getElementById('inputDept').value = userInfo.grade;
+      // 교·강사는 학년 정보가 없으므로 구분값을 자동으로 넣어준다
+      if (userCategory === 'teacher') document.getElementById('inputDept').value = '교·강사';
+      else if (userCategory === 'graduate' && !userInfo.grade) document.getElementById('inputDept').value = '졸업생';
+      else if (userCategory === 'prospect' && !userInfo.grade) document.getElementById('inputDept').value = '예비 신입생';
     }
   });
 

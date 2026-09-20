@@ -196,7 +196,8 @@
       allResources = allResources.filter(r => {
         const sub = Array.isArray(r.subTarget) ? r.subTarget : [];
         if (sub.length === 0) return true;       // 학과/학년 지정 X → 카테고리 전체
-        if (userCategory === 'company') return true;  // 전담인력은 학과 매칭 안 함
+        // 전담인력·교·강사는 학과 매칭을 하지 않는다 (가입 정보에 학과 값이 없다)
+        if (userCategory === 'company' || userCategory === 'teacher') return true;
         return userSubKey && sub.includes(userSubKey);
       });
 
@@ -342,10 +343,11 @@
   // 학과 클릭 시 → 서브 카테고리 표시 (재학생/졸업생)
   // 단, 서브 카테고리 없이 바로 파일 목록으로 가는 케이스:
   //  - 전담인력(company): 학과 구분 자체가 없음
+  //  - 교·강사(teacher): 관리자가 서브 분류를 지정하지 않아 들어가면 빈 화면이 된다
   //  - 산업안전보건/공통: 학습안내서/NCS 모듈 구분이 무의미한 공유 카테고리
   window.showSubCategories = function(categoryName) {
     const FLAT_CATEGORIES = ['산업안전보건', '공통'];
-    if (userCategory === 'company' || FLAT_CATEGORIES.includes(categoryName)) {
+    if (userCategory === 'company' || userCategory === 'teacher' || FLAT_CATEGORIES.includes(categoryName)) {
       window.showFiles(categoryName);
       return;
     }
