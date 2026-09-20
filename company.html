@@ -673,7 +673,8 @@ async function loadWorkers(course) {
   try {
     // 규칙 통과를 위해 companyId로 질의한 뒤, 이 과정 소속만 걸러낸다
     const snap = await getDocs(query(collection(db, 'workers'), where('companyId', '==', myAccount.companyId)));
-    const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(w => !w.deleted);
+    // 관리자 화면과 같은 기준: 중도탈락자는 서류 대상에서 제외한다
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(w => !w.deleted && !w.dropout);
     const list = all.filter(w => w.courseId === course.id)
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
     curWorkers = list;
@@ -962,7 +963,9 @@ function openOpinion(workerId) {
   opRows = JSON.parse(JSON.stringify(curOpinion?.rows || []));
   signData = curOpinion?.signature || '';
 
-  const st = curOpinion?.status || 'ready';
+  // ⚠️ 목록과 같은 기준으로 보정한다. 보정하지 않으면 옛 상태값(draft/submitted 등) 문서가
+  //    "편집은 되는데 저장 버튼이 없는" 막다른 화면이 된다.
+  const st = OP_ORDER.includes(curOpinion?.status) ? curOpinion.status : 'ready';
   const locked = st === 'signed' || st === 'confirmed';
 
   $('detailView').style.display = 'none';
@@ -1197,12 +1200,22 @@ function localDate() {
   const d = new Date(), p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
-// No. 2026-03-1/2 — 그 달 몇 번째 면담인지 / 총 몇 번인지
-function cnNo(doc, all) {
-  const same = all.filter(x => x.workerId === doc.workerId && x.period === doc.period)
+// No. 2026-03-1/2 — 그 달 몇 번째 면담(분자) / 그 달 총 면담 횟수(분모)
+//
+// 분자(seq)는 서명할 때 문서에 박아 둔다. 나중에 다른 면담이 지워져도
+// 이미 출력·결재한 문서의 순번이 밀리지 않게 하기 위해서다.
+// 분모는 양식 주석("당월 두 번의 면담이 있었으며 그 중 첫 번째")대로
+// 그 달 확정 건수를 그때그때 센다.
+function cnFixedList(workerId, period, all) {
+  return all.filter(x => x.workerId === workerId && x.period === period
+      && (x.docSeq || x.status === 'signed' || x.status === 'confirmed'))
     .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
-  const seq = same.findIndex(x => x.id === doc.id) + 1;
-  return `${doc.period}-${seq || 1}/${same.length || 1}`;
+}
+function cnNo(d, all) {
+  const fixed = cnFixedList(d.workerId, d.period, all);
+  const total = Math.max(fixed.length, d.docSeq || 1);
+  const seq = d.docSeq || (fixed.findIndex(x => x.id === d.id) + 1) || (total || 1);
+  return `${d.period}-${seq}/${total || 1}`;
 }
 
 async function loadCounsels() {
@@ -1354,7 +1367,10 @@ async function saveCounsel(sign) {
     if (!confirm(`${c.workerName} 면담일지에 서명합니다.\n\n서명하면 내용이 잠기고,\n출력해서 자필 서명하는 단계로 넘어갑니다.\n\n계속할까요?`)) return;
     c.signature = sig;
     c.status = 'signed';
-    c.docHash = await docFingerprint({ t: c.training, w: c.work, e: c.etc, d: c.meetDate, n: c.authorName, wk: c.workerName });
+    // 순번을 문서에 박아 둔다 — 이미 확정된 건수 + 1
+    c.docSeq = curCounsel?.docSeq
+      || cnFixedList(c.workerId, c.period, cnDocs.filter(x => x.id !== curCounsel?.id)).length + 1;
+    c.docHash = await docFingerprint({ t: c.training, w: c.work, e: c.etc, d: c.meetDate, n: c.authorName, wk: c.workerName, seq: c.docSeq });
     c.signMeta = buildSignMeta(c.authorName);
     c.signedAt = c.signMeta.at;
   } else {
@@ -1377,7 +1393,8 @@ async function saveCounsel(sign) {
     if (at >= 0) cnDocs[at] = merged; else cnDocs.push(merged);
     curCounsel = merged;
     cnScanData = c.signature;
-    if (sign) { toast('✅ 서명했습니다 — 이제 출력해주세요'); openCounsel(id); }
+    await loadCounsels();   // 목록·작성 횟수를 최신으로
+    if (sign) { toast('✅ 서명했습니다'); openCounsel(id); }
     else { toast('💾 임시저장했습니다'); btns.forEach(b => b.disabled = false); openCounsel(id); }
   } catch(e) {
     btns.forEach(b => b.disabled = false);
@@ -1887,7 +1904,8 @@ function renderAssessment() {
   const steps = `<div class="step-bar">${AS_STEPS.map(([k, label], i) =>
     `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}">${label}</div>`).join('')}</div>`;
 
-  if (status === 'waiting' || !sheets.length) {
+  // 평가지도 없고 올린 완료본도 없을 때만 빈 화면
+  if (!sheets.length && !dones.length) {
     el.innerHTML = steps + `<div class="empty">
       ${esc(ymLabel(period))} 평가지가 아직 등록되지 않았습니다.<br>
       <small>센터에서 올리면 이 자리에 내려받기 버튼이 생깁니다.</small></div>`;
@@ -1896,7 +1914,7 @@ function renderAssessment() {
 
   const locked = status === 'confirmed';
   el.innerHTML = steps + `
-    <div style="font-size:13px;font-weight:700;margin:4px 0 8px;">📥 평가지 내려받기</div>
+    ${sheets.length ? `<div style="font-size:13px;font-weight:700;margin:4px 0 8px;">📥 평가지 내려받기</div>` : ''}
     ${sheets.map(f => `<div class="file-row">
       <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
       <a href="${esc(f.url)}" target="_blank" rel="noopener" download>내려받기 ↓</a>
@@ -1972,16 +1990,17 @@ async function uploadDoneFiles(files) {
       });
       added.push({ name: f.name, size: f.size, path, url: await getDownloadURL(task.snapshot.ref), at: new Date().toISOString() });
     }
-    const next = Object.assign({}, curAssess, {
+    // ⚠️ 문서 전체를 다시 쓰면 그 사이 센터가 올린 평가지·바꾼 상태를 덮어쓴다.
+    //    바뀐 필드(완료본 목록)만 저장한다.
+    const next = {
       companyId: myAccount.companyId, companyName: myAccount.companyName || '',
       courseId: curCourse.id, courseType: curCourse.type || '', courseNo: curCourse.courseNo || '',
       site: curCourse.site || '', period,
       doneFiles: [...(curAssess?.doneFiles || []), ...added],
       updatedAt: new Date().toISOString()
-    });
-    delete next.id;
+    };
     await setDoc(doc(db, 'assessments', asId(curCourse.id, period)), next, { merge: true });
-    curAssess = { id: asId(curCourse.id, period), ...next };
+    await loadAssessment();   // 최신 상태를 서버에서 다시 읽어온다
     prog.innerHTML = '';
     toast(`✅ ${added.length}개 올렸습니다`);
     renderAssessment();
@@ -2001,9 +2020,11 @@ async function removeDoneFile(i) {
       await deleteObject(ref(getStorage(app), f.path));
     } catch(_) {}
     const list = curAssess.doneFiles.slice(); list.splice(i, 1);
-    await setDoc(doc(db, 'assessments', curAssess.id),
-      { doneFiles: list, updatedAt: new Date().toISOString() }, { merge: true });
-    curAssess.doneFiles = list;
+    const patch = { doneFiles: list, updatedAt: new Date().toISOString() };
+    // 완료본을 모두 지웠으면 '제출됨' 상태를 되돌린다 (빈 제출을 센터가 확인하는 사고 방지)
+    if (!list.length && curAssess.status === 'submitted') patch.status = 'sheetReady';
+    await setDoc(doc(db, 'assessments', curAssess.id), patch, { merge: true });
+    Object.assign(curAssess, patch);
     toast('지웠습니다');
     renderAssessment();
   } catch(e) { alert('삭제 실패: ' + (e.message || '')); }

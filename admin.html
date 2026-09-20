@@ -1358,8 +1358,8 @@
       </div>
       <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
         <b>센터가 훈련기간별 의견 초안을 등록</b>하면, 기업현장교사가 확인·수정하고 전자서명합니다.<br>
-        이어서 출력해 <b>자필 서명</b>한 사진을 올리면 그것이 공단 제출용 정식 증빙이 됩니다.<br>
-        <small style="opacity:0.9;">단계: 초안 대기 → 확인·서명 → 출력·자필 → 자필본 제출 → 센터 확인</small>
+
+        <small style="opacity:0.9;">단계: 초안 대기 → 확인·서명 → 센터 확인 · 자필 증빙은 월별 확인서 한 장으로 받습니다</small>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
@@ -3981,6 +3981,8 @@
     const course = allCourses.find(c => c.id === w?.courseId);
     const co = allCompanies.find(x => x.id === w?.companyId);
     if (!w?.companyId) { alert('이 학습근로자에게 소속 기업이 연결되어 있지 않습니다.\n기업 탭에서 먼저 연결해주세요.'); return; }
+    // ⚠️ 훈련과정이 없으면 기업 화면은 과정별로 걸러 보여주므로 영영 나타나지 않는다
+    if (!w?.courseId) { alert('이 학습근로자에게 훈련과정이 연결되어 있지 않습니다.\n기업 탭 → 학습근로자에서 과정을 먼저 연결해주세요.\n\n연결하지 않으면 기업 화면에 의견서가 표시되지 않습니다.'); return; }
 
     const id = `${workerId}__${period}`;
     const prev = allOpinions.find(o => o.id === id);
@@ -4045,7 +4047,10 @@
 
   function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
   // 월·기업 선택을 바꾸면 의견서와 체크리스트를 함께 다시 그린다
-  function renderDocsTab() { renderOpinionDocs(); renderCounselDocs(); renderChecklistDocs(); renderAssessDocs(); renderDocsMatrix(); }
+  function renderDocsTab() {
+    renderOpinionDocs(); renderCounselDocs(); renderChecklistDocs(); renderAssessDocs(); renderDocsMatrix();
+    loadOpinionDraft();   // ⚠️ 월이 바뀌면 초안 편집기도 그 달 내용으로 다시 채운다
+  }
 
   // ══════ 기업 × 월 제출 현황 한눈에 보기 ══════
   // 한 기업이 어느 달에 무엇을 안 냈는지 스크롤 없이 찾으려고 만든 표.
@@ -4270,12 +4275,11 @@
           <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};white-space:nowrap;">${label}</span>
         </div>
         ${o ? `<div style="margin-top:8px;font-size:12.5px;color:#4a5568;">
-          훈련기간 ${nRows}개${o.signedAt ? ` · 전자서명 ${escapeHtmlSafe(opKst(o.signedAt))}` : ''}${nScans ? ` · 자필본 ${nScans}장` : ''}
+          훈련기간 ${nRows}개${o.signedAt ? ` · 서명 ${escapeHtmlSafe(opKst(o.signedAt))}` : ''}
           ${o.docHash ? `<br><span style="font-family:Consolas,monospace;font-size:11px;color:#94a3b8;">지문 ${opFpShort(o.docHash)}</span>` : ''}
         </div>` : ''}
         ${o ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
           <button class="mini-btn" onclick="viewOpinion('${o.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
-          ${nScans ? `<button class="mini-btn" onclick="viewOpinionScans('${o.id}')" style="background:#166534;color:white;">📷 자필본 ${nScans}장</button>` : ''}
           ${st === 'signed' ? `<button class="mini-btn" onclick="confirmOpinionDoc('${o.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
           ${(st === 'signed' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockOpinion('${o.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
           <button class="mini-btn" onclick="deleteOpinion('${o.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
@@ -4332,10 +4336,8 @@
 
   async function confirmOpinionDoc(id) {
     const o = allOpinions.find(x => x.id === id); if (!o) return;
-    const n = (o.signedScans || []).length;
     if (!await customConfirm({ title: '의견서 확인 처리',
-      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>확인 완료로 표시할까요?<br><br>
-        <span style="font-size:12px;color:#64748b;">자필 서명본 ${n}장이 올라와 있습니다. 확인 후에는 기업이 더 올리거나 지울 수 없습니다.</span>`,
+      message: `<b>${escapeHtmlSafe(o.workerName || '')}</b> · ${escapeHtmlSafe(opYmLabel(o.period))} 의견서를<br>확인 완료로 표시할까요?`,
       confirmText: '✅ 확인 처리' })) return;
     try {
       const db = await wkDb();
@@ -4374,7 +4376,7 @@
   // ══════════════════════════════════════════
   const AS_STATUS = {
     waiting:    ['대기',       '#f1f5f9', '#64748b'],
-    sheetReady: ['평가지 등록', '#fef3c7', '#92400e'],
+    sheetReady: ['작성 대기', '#fef3c7', '#92400e'],
     submitted:  ['완료본 제출', '#dcfce7', '#166534'],
     confirmed:  ['확인 완료',   '#dbeafe', '#1e40af']
   };
@@ -4598,6 +4600,7 @@
       const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const patch = { [key]: list, updatedAt: new Date().toISOString() };
       if (kind === 'sheet' && !list.length && a.status === 'sheetReady') patch.status = 'waiting';
+      if (kind === 'done' && !list.length && a.status === 'submitted') patch.status = 'sheetReady';
       await updateDoc(doc(db, 'assessments', id), patch);
       Object.assign(a, patch);
       renderAssessDocs(); renderDocsMatrix();
@@ -4721,11 +4724,15 @@
   };
   let allCounsels = [];
 
+  // No. 2026-03-1/2 — 분자는 서명 시 고정된 순번(docSeq), 분모는 그 달 확정 건수
+  // company.html의 cnNo와 같은 규칙을 유지할 것
   function cnNoA(d, all) {
-    const same = all.filter(x => x.workerId === d.workerId && x.period === d.period)
+    const fixed = all.filter(x => x.workerId === d.workerId && x.period === d.period
+        && (x.docSeq || x.status === 'signed' || x.status === 'confirmed'))
       .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
-    const seq = same.findIndex(x => x.id === d.id) + 1;
-    return `${d.period}-${seq || 1}/${same.length || 1}`;
+    const total = Math.max(fixed.length, d.docSeq || 1);
+    const seq = d.docSeq || (fixed.findIndex(x => x.id === d.id) + 1) || (total || 1);
+    return `${d.period}-${seq}/${total || 1}`;
   }
 
   function renderCounselDocs() {
@@ -4766,13 +4773,12 @@
                   <div style="font-size:12.5px;font-weight:700;">No. ${escapeHtmlSafe(cnNoA(c, mine))}</div>
                   <div style="font-size:11.5px;color:#64748b;margin-top:1px;">
                     ${escapeHtmlSafe(c.meetDate || '-')} · ${escapeHtmlSafe(c.authorRole || '')} ${escapeHtmlSafe(c.authorName || '')}
-                    ${c.writer === 'center' ? ' · <b>센터 작성</b>' : ''}${n ? ` · 자필본 ${n}장` : ''}</div>
+                    ${c.writer === 'center' ? ' · <b>센터 작성</b>' : ''}</div>
                 </div>
                 <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};white-space:nowrap;">${label}</span>
               </div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
                 <button class="mini-btn" onclick="viewCounsel('${c.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
-                ${n ? `<button class="mini-btn" onclick="viewCounselScans('${c.id}')" style="background:#166534;color:white;">📷 자필본 ${n}장</button>` : ''}
                 ${st === 'signed' ? `<button class="mini-btn" onclick="confirmCounsel('${c.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
                 ${(st === 'signed' || st === 'confirmed') ? `<button class="mini-btn" onclick="unlockCounsel('${c.id}')" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
                 <button class="mini-btn" onclick="deleteCounsel('${c.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
@@ -4939,12 +4945,12 @@
   // 월별 확인서 항목 — company.html의 CK_GROUPS와 항상 같게 유지할 것
   const CK_GROUPS_A = [
     ['📝 훈련 실시 확인', [
-      ['doc1', '능력단위에 맞게 훈련 진행'],
-      ['doc2', '학습근로자 면담 실시'],
-      ['doc3', '내부평가 실시']
+      ['doc1', '능력단위에 맞게 훈련을 진행하였다'],
+      ['doc2', '학습근로자와 면담을 실시하였다'],
+      ['doc3', '내부평가를 실시하였다']
     ]],
     ['✅ 최종 확인', [
-      ['final', '사실과 다른 부분 없음']
+      ['final', '위 내용에 사실과 다른 부분이 없다']
     ]]
   ];
   const CK_ALL_A = CK_GROUPS_A.flatMap(g => g[1]);
@@ -5116,7 +5122,7 @@
       await updateDoc(doc(db, 'checklists', id), patch);
       Object.assign(c, patch);
       await writeLog('update', 'checklist', id, `${logText}: ${c.companyName || ''} ${c.courseType || ''} ${c.period || ''}`);
-      renderChecklistDocs();
+      renderChecklistDocs(); renderDocsMatrix();
       return true;
     } catch(e) { alert('처리 실패: ' + e.message); return false; }
   }
@@ -5130,9 +5136,15 @@
   async function unlockChecklist(id) {
     const c = allChecklists.find(x => x.id === id); if (!c) return;
     if (!await customConfirm({ title: '잠금 해제',
-      message: `<b>${escapeHtmlSafe(c.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(c.period))} 체크리스트를<br>기업이 다시 수정할 수 있게 열어줄까요?`,
+      message: `<b>${escapeHtmlSafe(c.companyName || '')}</b> · ${escapeHtmlSafe(opYmLabel(c.period))} 확인서를<br>기업이 다시 수정·서명할 수 있게 열어줄까요?<br><br>
+        <span style="font-size:12px;color:#92400e;">두 분의 서명이 무효 처리되어 <b>다시 받아야 합니다.</b><br>
+        올라온 자필 서명본은 그대로 남습니다.</span>`,
       confirmText: '🔓 잠금 해제' })) return;
-    ckPatch(id, { locked: false, status: 'draft', unlockedAt: new Date().toISOString() }, '체크리스트 잠금 해제');
+    // ⚠️ 서명을 남겨두면 다음 제출 때 옛 서명이 그대로 재사용되어
+    //    아무도 새로 확인하지 않은 문서가 2인 서명을 통과한다. 반드시 함께 무효화한다.
+    ckPatch(id, { locked: false, status: 'draft',
+                  signHrd: null, signTeacher: null, signature: '', docHash: '', signedAt: null,
+                  unlockedAt: new Date().toISOString() }, '체크리스트 잠금 해제');
   }
   async function deleteChecklist(id) {
     const c = allChecklists.find(x => x.id === id); if (!c) return;
@@ -5147,7 +5159,7 @@
       await deleteDoc(doc(db, 'checklists', id));
       allChecklists = allChecklists.filter(x => x.id !== id);
       await writeLog('delete', 'checklist', id, `체크리스트 삭제: ${c.companyName || ''} ${c.courseType || ''} ${c.period || ''}`);
-      renderChecklistDocs();
+      renderChecklistDocs(); renderDocsMatrix();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
