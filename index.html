@@ -1160,16 +1160,25 @@
 
   // ============ 카테고리별 메뉴 표시 ============
   function applyMenuByCategory(category) {
-    document.getElementById('menuStudent').style.display = 'none';
-    document.getElementById('menuGraduate').style.display = 'none';
-    document.getElementById('menuProspect').style.display = 'none';
-    document.getElementById('menuCompany').style.display = 'none';
-    document.getElementById('menuTeacher').style.display = 'none';
-    if (category === 'student') document.getElementById('menuStudent').style.display = 'grid';
-    else if (category === 'graduate') document.getElementById('menuGraduate').style.display = 'grid';
-    else if (category === 'prospect') document.getElementById('menuProspect').style.display = 'grid';
-    else if (category === 'company') document.getElementById('menuCompany').style.display = 'grid';
-    else if (category === 'teacher') document.getElementById('menuTeacher').style.display = 'grid';
+    // ⚠️ 메뉴 하나가 없어도 나머지가 멈추면 안 된다.
+    //    예전에 요소 하나가 빠져 여기서 오류가 나는 바람에
+    //    "숨기기"까지만 실행되고 "보여주기"에 도달하지 못해
+    //    모든 카테고리가 빈 화면이 된 적이 있다.
+    const MENUS = {
+      student:  'menuStudent',
+      graduate: 'menuGraduate',
+      prospect: 'menuProspect',
+      company:  'menuCompany',
+      teacher:  'menuTeacher'
+    };
+    Object.values(MENUS).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+      else console.warn('[menu] 요소 없음:', id);
+    });
+    const mine = document.getElementById(MENUS[category] || '');
+    if (mine) mine.style.display = 'grid';
+    else console.warn('[menu] 표시할 메뉴를 찾지 못함:', category);
   }
 
   function showToast(msg, type = 'info') {
