@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AU 자료실</title>
+<script src="js/back-nav.js"></script>
 <script src="device-check.js" data-auto-block></script>
 <script src="dark-mode.js"></script>
 <meta name="theme-color" content="#FFFFFF" />
@@ -87,7 +88,7 @@
   <h1 id="pageTitle">AU 일학습병행 자료실</h1>
 </div>
 <div class="container">
-  <button class="back-btn" id="backBtn" onclick="showCategories()">← 카테고리로 돌아가기</button>
+  <button class="back-btn" id="backBtn" onclick="goStepBack()">← 카테고리로 돌아가기</button>
   <div class="section-title" id="sectionTitle">카테고리 선택</div>
   <input type="text" id="resourceSearch" placeholder="🔍 자료명 검색..." class="resource-search-input" oninput="filterResources()">
   <div class="category-grid" id="categoryGrid"></div>
@@ -206,7 +207,7 @@
       if (userCategory === 'prospect') {
         showFlatList();
       } else {
-        showCategories();
+        window._drawCategories();   // 첫 화면은 그리기만 (기록은 BackNav가 이미 심어둠)
       }
     } catch(e) {
       console.error('자료실 로드 실패:', e);
@@ -271,7 +272,28 @@
     return '학습안내서';
   }
 
+  // ── 휴대폰 뒤로가기 연결 ──
+  // 단계: 카테고리(루트) → 서브분류 → 파일목록
+  // 뒤로가기로 돌아오면 아래 renderStep이 그 단계를 다시 그린다.
+  function renderStep(st) {
+    st = st || { s: 'cat' };
+    if (st.s === 'files')     window._drawFiles(st.c, st.sub);
+    else if (st.s === 'sub')  window._drawSub(st.c);
+    else                      window._drawCategories();
+  }
+  if (window.BackNav) BackNav.init(renderStep, { s: 'cat' });
+  function stepTo(st) { if (window.BackNav) BackNav.go(st); }
+  // 화면 안 '뒤로' 버튼 = 브라우저 뒤로가기와 같은 동작
+  window.goStepBack = function() {
+    if (window.BackNav) BackNav.back();
+    else window._drawCategories();
+  };
+
   window.showCategories = function() {
+    window._drawCategories();
+    stepTo({ s: 'cat' });
+  };
+  window._drawCategories = function() {
     document.getElementById('backBtn').classList.remove('visible');
     document.getElementById('sectionTitle').textContent = '카테고리 선택';
     document.getElementById('fileList').style.display = 'none';
@@ -346,14 +368,18 @@
   //  - 교·강사(teacher): 관리자가 서브 분류를 지정하지 않아 들어가면 빈 화면이 된다
   //  - 산업안전보건/공통: 학습안내서/NCS 모듈 구분이 무의미한 공유 카테고리
   window.showSubCategories = function(categoryName) {
-    const FLAT_CATEGORIES = ['산업안전보건', '공통'];
-    if (userCategory === 'company' || userCategory === 'teacher' || FLAT_CATEGORIES.includes(categoryName)) {
+    const flat = ['산업안전보건', '공통'];
+    if (userCategory === 'company' || userCategory === 'teacher' || flat.includes(categoryName)) {
       window.showFiles(categoryName);
       return;
     }
+    window._drawSub(categoryName);
+    stepTo({ s: 'sub', c: categoryName });
+  };
+  window._drawSub = function(categoryName) {
     document.getElementById('backBtn').classList.add('visible');
     document.getElementById('backBtn').textContent = '← 학과 선택으로';
-    document.getElementById('backBtn').setAttribute('onclick', 'showCategories()');
+    document.getElementById('backBtn').setAttribute('onclick', 'goStepBack()');
     document.getElementById('sectionTitle').textContent = categoryName;
     document.getElementById('fileList').style.display = 'none';
     document.getElementById('categoryGrid').style.display = 'grid';
@@ -382,17 +408,21 @@
   };
 
   window.showFiles = function(categoryName, subCategory) {
+    window._drawFiles(categoryName, subCategory);
+    stepTo({ s: 'files', c: categoryName, sub: subCategory || null });
+  };
+  window._drawFiles = function(categoryName, subCategory) {
     document.getElementById('backBtn').classList.add('visible');
     // 재학생: 학과 → 서브 카테고리 → 파일 (3단계)
     // 전담인력: 카테고리 → 파일 (2단계)
     if (subCategory && userCategory !== 'company') {
       document.getElementById('backBtn').textContent = '← ' + categoryName;
-      document.getElementById('backBtn').setAttribute('onclick', `showSubCategories('${categoryName}')`);
+      document.getElementById('backBtn').setAttribute('onclick', 'goStepBack()');
       const subDisplay = subCategory === 'ALL' ? '전체 보기' : subCategory;
       document.getElementById('sectionTitle').textContent = `${categoryName} · ${subDisplay}`;
     } else {
       document.getElementById('backBtn').textContent = '← 카테고리로 돌아가기';
-      document.getElementById('backBtn').setAttribute('onclick', 'showCategories()');
+      document.getElementById('backBtn').setAttribute('onclick', 'goStepBack()');
       document.getElementById('sectionTitle').textContent = categoryName;
     }
     document.getElementById('categoryGrid').style.display = 'none';

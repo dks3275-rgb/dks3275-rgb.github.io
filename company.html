@@ -493,6 +493,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="js/back-nav.js"></script>
 <script type="module">
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword }
@@ -604,6 +605,48 @@ function guideHtml(s) {
   return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 }
 
+// ══════════════════════════════════════════
+//  화면 단계 ↔ 휴대폰 뒤로가기
+//   과정목록 → 과정상세 → (의견서 | 면담일지 | 확인서)
+//   각 단계를 브라우저 기록에 쌓아, 뒤로가기가 한 단계씩 되돌아가게 한다.
+// ══════════════════════════════════════════
+const VIEW_IDS = {
+  course:    'courseView',
+  detail:    'detailView',
+  opinion:   'opinionView',
+  counsel:   'counselView',
+  checklist: 'checklistView'
+};
+function showOnly(name) {
+  Object.values(VIEW_IDS).forEach(id => { const el = $(id); if (el) el.style.display = 'none'; });
+  const el = $(VIEW_IDS[name] || 'courseView');
+  if (el) el.style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// 뒤로가기로 돌아왔을 때 화면을 되살린다.
+// 필요한 자료가 없으면(새로고침 등) 한 단계 위로 떨어뜨린다.
+function renderView(name) {
+  if (name === 'detail' && !curCourse) name = 'course';
+  if (name === 'opinion'   && !curOpinion)  name = 'detail';
+  if (name === 'counsel'   && !curWorker)   name = 'detail';
+  if (name === 'checklist' && !curCourse)   name = 'detail';
+  showOnly(name);
+  if (name === 'detail') {   // 돌아왔을 때 목록을 최신으로
+    loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment();
+  }
+}
+if (window.BackNav) BackNav.init(renderView, 'course');
+// 같은 화면을 다시 그릴 때(저장 후 새로고침 등)는 기록을 쌓지 않는다.
+// 안 그러면 뒤로가기를 두 번 눌러야 빠져나가게 된다.
+function navTo(name) {
+  showOnly(name);
+  if (window.BackNav && BackNav.current() !== name) BackNav.go(name);
+}
+function navBack() {
+  if (window.BackNav) BackNav.back();
+  else showOnly('detail');   // 도구를 못 불러왔을 때의 대비
+}
+
 // ══════════ 훈련과정 목록 ══════════
 let myCourses = [];
 async function loadCourses() {
@@ -643,11 +686,7 @@ function openCourse(courseId) {
   const c = myCourses.find(x => x.id === courseId);
   if (!c) return;
   curCourse = c;
-  $('courseView').style.display = 'none';
-  $('opinionView').style.display = 'none';
-  $('counselView').style.display = 'none';
-  $('checklistView').style.display = 'none';
-  $('detailView').style.display = 'block';
+  navTo('detail');
   $('detailTitle').textContent = `📘 ${c.type || ''}`;
   $('detailMeta').innerHTML =
     `<b>사업장</b> ${c.site || '-'}<br>` +
@@ -657,14 +696,7 @@ function openCourse(courseId) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   loadWorkers(c);
 }
-$('backBtn').onclick = () => {
-  $('detailView').style.display = 'none';
-  $('opinionView').style.display = 'none';
-  $('counselView').style.display = 'none';
-  $('checklistView').style.display = 'none';
-  $('courseView').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+$('backBtn').onclick = navBack;
 
 async function loadWorkers(course) {
   const el = $('workerList');
@@ -968,8 +1000,7 @@ function openOpinion(workerId) {
   const st = OP_ORDER.includes(curOpinion?.status) ? curOpinion.status : 'ready';
   const locked = st === 'signed' || st === 'confirmed';
 
-  $('detailView').style.display = 'none';
-  $('opinionView').style.display = 'block';
+  navTo('opinion');
   $('opTitle').textContent = `📝 ${w.round ? w.round + '_' : ''}${w.name || ''}`;
   $('opMeta').innerHTML =
     `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
@@ -1006,12 +1037,7 @@ function openOpinion(workerId) {
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-$('opBack').onclick = () => {
-  $('opinionView').style.display = 'none';
-  $('detailView').style.display = 'block';
-  loadOpinions();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+$('opBack').onclick = navBack;
 
 function renderOpRows(locked) {
   const el = $('opRows');
@@ -1278,8 +1304,7 @@ function openCounsel(docId, workerId) {
   const locked = st === 'signed' || st === 'confirmed';
   const period = $('periodSel').value;
 
-  $('detailView').style.display = 'none';
-  $('counselView').style.display = 'block';
+  navTo('counsel');
   $('cnTitle').textContent = `🗣️ ${w.name || ''} 면담일지`;
   $('cnMeta').innerHTML =
     (d ? `<b>문서번호</b> No. ${esc(cnNo(d, cnDocs))}<br>` : `<b>문서번호</b> 저장하면 자동으로 부여됩니다<br>`) +
@@ -1316,12 +1341,7 @@ function openCounsel(docId, workerId) {
   renderCnActions(st);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-$('cnBack').onclick = () => {
-  $('counselView').style.display = 'none';
-  $('detailView').style.display = 'block';
-  loadCounsels();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+$('cnBack').onclick = navBack;
 
 function renderCnActions(st) {
   const bar = $('cnActions');
@@ -1522,8 +1542,7 @@ function openChecklist() {
   const locked = !!curChecklist?.locked;
   const status = curChecklist?.status || 'none';
 
-  $('detailView').style.display = 'none';
-  $('checklistView').style.display = 'block';
+  navTo('checklist');
   $('ckTitle').textContent = `✅ ${ymLabel(period)} 체크리스트`;
   $('ckMeta').innerHTML =
     `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
@@ -1559,12 +1578,7 @@ function openChecklist() {
   renderCkScans(status);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-$('ckBack').onclick = () => {
-  $('checklistView').style.display = 'none';
-  $('detailView').style.display = 'block';
-  loadChecklist();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+$('ckBack').onclick = navBack;
 
 function renderCkGroups(locked) {
   $('ckGroups').innerHTML = CK_GROUPS.map(([, title, items]) => `

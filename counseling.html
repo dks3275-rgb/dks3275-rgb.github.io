@@ -6,6 +6,7 @@
 <title>면담일지 - AU 일학습병행</title>
 <meta name="theme-color" content="#1976d2">
 <meta name="robots" content="noindex, nofollow">
+<script src="js/back-nav.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
@@ -1167,7 +1168,13 @@ $('printBtn').onclick = () => {
 
 // ══════════ 기록 보기 (전체 조회 · 검색 · 삭제) ══════════
 let allRecords = [];
+// 휴대폰 뒤로가기로 이전 화면(작성/기록/중도탈락)으로 돌아가게 한다
+if (window.BackNav) BackNav.init(m => drawView(m || 'write'), 'write');
 function switchView(mode) {
+  drawView(mode);
+  if (window.BackNav && BackNav.current() !== mode) BackNav.go(mode);
+}
+function drawView(mode) {
   $('writeView').style.display = mode === 'write' ? 'block' : 'none';
   $('listView').style.display = mode === 'list' ? 'block' : 'none';
   $('dropoutView').style.display = mode === 'dropout' ? 'block' : 'none';

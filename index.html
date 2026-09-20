@@ -15,7 +15,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="AU일학습병행" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
+  <script src="js/back-nav.js"></script>
+<script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     OneSignalDeferred.push(async function(OneSignal) {
@@ -759,8 +760,15 @@
     selectedGrade = grade;
   }
   // ============ 모달 표시/수정 ============
+  // 모달이 열린 상태에서 휴대폰 뒤로가기를 누르면
+  // 페이지를 벗어나는 대신 모달만 닫히게 한다.
+  window.addEventListener('popstate', function () {
+    const ov = document.getElementById('modalOverlay');
+    if (ov && ov.style.display !== 'none') ov.style.display = 'none';
+  });
   function showModal() {
     selectedGrade = null;
+    try { history.pushState({ modal: 1 }, ''); } catch (e) {}
     document.getElementById('modalOverlay').style.display = 'flex';
     document.getElementById('modalStep1').style.display = 'block';
     document.getElementById('modalStep2Student').style.display = 'none';
