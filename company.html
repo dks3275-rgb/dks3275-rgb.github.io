@@ -158,6 +158,18 @@
   .sb-tag { background:var(--navy); color:white; font-size:11.5px; font-weight:700;
             width:22px; height:22px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; }
 
+  /* ══ 센터 알림 (접기/펴기) ══ */
+  .nt-head { display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; }
+  .nt-peek { flex:1; min-width:0; font-size:12.5px; color:var(--gray);
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nt-arrow { font-size:12px; color:var(--gray); transition:transform .15s; flex-shrink:0; }
+  .nt-head.open .nt-arrow { transform:rotate(180deg); }
+  .nt-item { border:1.5px solid var(--line); border-radius:11px; padding:13px 15px; margin-bottom:8px; background:white; }
+  .nt-item.new { border-color:var(--navy); background:#f8fbff; }
+  .nt-body { font-size:13px; color:var(--sub); line-height:1.7; white-space:pre-wrap; }
+  .nt-body.clip { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .nt-expand { font-size:12px; color:var(--navy); font-weight:700; cursor:pointer; margin-top:5px; display:inline-block; }
+
   /* ══ 내부평가지 ══ */
   .file-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--line);
               border-radius:10px; margin-bottom:7px; background:white; }
@@ -215,14 +227,17 @@
 <div class="container">
   <!-- 과정 목록 -->
   <div id="courseView">
-    <div class="card" id="noticeCard">
-      <div class="card-title">📣 센터 알림
-        <span class="st-badge" id="ntBadge" style="margin-left:auto;display:none;"></span>
+    <div class="card" id="noticeCard" style="padding-bottom:14px;">
+      <div class="nt-head" id="ntHead">
+        <span style="font-size:15px;font-weight:700;">📣 센터 알림</span>
+        <span class="st-badge" id="ntBadge" style="display:none;"></span>
+        <span class="nt-peek" id="ntPeek"></span>
+        <span class="nt-arrow" id="ntArrow">▾</span>
       </div>
-      <div id="ntList"></div>
-      <button type="button" class="op-btn ghost" id="ntMore" style="width:100%;margin-top:4px;display:none;">
-        지난 알림 더 보기
-      </button>
+      <div id="ntBody" style="display:none;margin-top:12px;">
+        <div id="ntList"></div>
+        <button type="button" class="op-btn ghost" id="ntMore" style="width:100%;margin-top:4px;display:none;"></button>
+      </div>
     </div>
 
     <div class="card">
@@ -621,12 +636,11 @@ function guideHtml(s) {
 //   푸시는 글자가 잘려서 무슨 말인지 모를 때가 있다.
 //   여기서 제목·내용 전문을 다시 볼 수 있게 남긴다.
 // ══════════════════════════════════════════
-let ntDocs = [], ntShowAll = false;
+let ntDocs = [], ntLimit = 3, ntOpen = false;
 const NT_SEEN = 'firmNoticeSeenAt';
 
 async function loadFirmNotices() {
   const card = $('noticeCard'); if (!card || !myAccount) return;
-  $('ntList').innerHTML = '<div class="empty">불러오는 중...</div>';
   try {
     const snap = await getDocs(query(collection(db, 'firmNotifications'),
       where('companyId', '==', myAccount.companyId)));
@@ -634,18 +648,53 @@ async function loadFirmNotices() {
       .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
   } catch(e) {
     // 조용히 숨기면 "기능이 없는 건지 비어 있는 건지" 알 수 없다. 이유를 보여준다.
-    $('ntList').innerHTML = `<div class="empty">⚠️ 알림을 불러오지 못했습니다.<br>
-      <small>${esc(e.message || '')}</small></div>`;
-    $('ntMore').style.display = 'none';
+    $('ntPeek').textContent = '불러오지 못했습니다';
+    $('ntList').innerHTML = `<div class="empty">⚠️ ${esc(e.message || '')}</div>`;
     return;
   }
+  // 안 읽은 게 있을 때만 펼친 채로 시작한다.
+  // 다 읽었으면 한 줄로 접어둬서 과정 목록을 가리지 않는다.
+  ntOpen = ntUnread() > 0;
+  ntLimit = 3;
   renderFirmNotices();
 }
 
+function ntUnread() {
+  const seen = localStorage.getItem(NT_SEEN) || '';
+  return ntDocs.filter(n => (n.at || '') > seen).length;
+}
+function ntWhen(at) {
+  if (!at) return '';
+  const d = new Date(at), now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleString('ko-KR', sameYear
+    ? { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }
+    : { year: '2-digit', month: '2-digit', day: '2-digit' });
+}
+
 function renderFirmNotices() {
-  const badgeEl = $('ntBadge');
+  const head = $('ntHead'), body = $('ntBody'), badge = $('ntBadge'), peek = $('ntPeek');
+  const unread = ntUnread();
+
+  head.classList.toggle('open', ntOpen);
+  body.style.display = ntOpen ? 'block' : 'none';
+  head.onclick = () => { ntOpen = !ntOpen; renderFirmNotices(); };
+
+  if (unread) {
+    badge.textContent = `새 알림 ${unread}`;
+    badge.className = 'st-badge st-sub';
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // 접혀 있을 때는 가장 최근 것만 한 줄로 귀띔한다
+  peek.textContent = ntOpen ? ''
+    : (ntDocs.length ? `${ntDocs[0].title || ''} · ${ntWhen(ntDocs[0].at)}` : '받은 알림 없음');
+
+  if (!ntOpen) return;
+
   if (!ntDocs.length) {
-    if (badgeEl) badgeEl.style.display = 'none';
     $('ntList').innerHTML = `<div class="empty">
       아직 받은 알림이 없습니다.<br>
       <small>센터에서 보낸 알림이 여기에 쌓입니다.<br>
@@ -655,43 +704,43 @@ function renderFirmNotices() {
   }
 
   const seen = localStorage.getItem(NT_SEEN) || '';
-  const unread = ntDocs.filter(n => (n.at || '') > seen).length;
-  const badge = $('ntBadge');
-  if (unread) {
-    badge.textContent = `새 알림 ${unread}건`;
-    badge.className = 'st-badge st-sub';
-    badge.style.display = 'inline-block';
-  } else {
-    badge.style.display = 'none';
-  }
-
-  const list = ntShowAll ? ntDocs : ntDocs.slice(0, 3);
-  $('ntList').innerHTML = list.map(n => {
+  $('ntList').innerHTML = ntDocs.slice(0, ntLimit).map((n, i) => {
     const isNew = (n.at || '') > seen;
-    const when = n.at ? new Date(n.at).toLocaleString('ko-KR',
-      { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-    return `<div style="border:1.5px solid ${isNew ? 'var(--navy)' : 'var(--line)'};border-radius:11px;
-      padding:13px 15px;margin-bottom:8px;background:${isNew ? '#f8fbff' : 'white'};">
+    const long = (n.body || '').length > 90;
+    return `<div class="nt-item ${isNew ? 'new' : ''}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         ${isNew ? '<span style="font-size:11px;font-weight:700;color:var(--navy);">● 새 알림</span>' : ''}
         <span style="flex:1;"></span>
-        <span style="font-size:11.5px;color:var(--gray);">${esc(when)}</span>
+        <span style="font-size:11.5px;color:var(--gray);">${esc(ntWhen(n.at))}</span>
       </div>
       <div style="font-size:14px;font-weight:700;margin-bottom:5px;">${esc(n.title || '')}</div>
-      <div style="font-size:13px;color:var(--sub);line-height:1.7;white-space:pre-wrap;">${esc(n.body || '')}</div>
+      <div class="nt-body ${long ? 'clip' : ''}" id="ntb${i}">${esc(n.body || '')}</div>
+      ${long ? `<span class="nt-expand" data-exp="${i}">전체 보기</span>` : ''}
     </div>`;
   }).join('');
 
+  $('ntList').querySelectorAll('[data-exp]').forEach(el => {
+    el.onclick = () => {
+      const t = $('ntb' + el.dataset.exp);
+      const clipped = t.classList.toggle('clip');
+      el.textContent = clipped ? '전체 보기' : '접기';
+    };
+  });
+
   const more = $('ntMore');
-  if (ntDocs.length > 3) {
+  if (ntDocs.length > ntLimit) {
     more.style.display = 'block';
-    more.textContent = ntShowAll ? '접기' : `지난 알림 더 보기 (${ntDocs.length - 3}건)`;
-    more.onclick = () => { ntShowAll = !ntShowAll; renderFirmNotices(); };
+    more.textContent = `지난 알림 더 보기 (${ntDocs.length - ntLimit}건)`;
+    more.onclick = () => { ntLimit += 5; renderFirmNotices(); };
+  } else if (ntLimit > 3) {
+    more.style.display = 'block';
+    more.textContent = '접기';
+    more.onclick = () => { ntLimit = 3; renderFirmNotices(); };
   } else {
     more.style.display = 'none';
   }
 
-  // 화면에 띄웠으면 읽은 것으로 본다 (다음에 열면 '새 알림' 표시가 사라진다)
+  // 펼쳐서 본 뒤에는 읽은 것으로 처리한다
   if (unread) {
     setTimeout(() => {
       try { localStorage.setItem(NT_SEEN, ntDocs[0].at || new Date().toISOString()); } catch(e) {}
