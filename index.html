@@ -306,7 +306,7 @@
   <div class="modal" id="modalStep1">
     <div class="modal-logo">AU 일학습병행</div>
     <h2>어떻게 <span>가입</span>하시겠어요?</h2>
-    <p class="modal-sub">해당되는 분류를 선택해주세요</p>
+    <p class="modal-sub">선택하면 바로 시작됩니다 · 비밀번호 없어요</p>
     <div class="category-grid">
       <button class="category-btn" onclick="selectCategory('student')">
         <div class="cat-icon">🎓</div>
@@ -337,9 +337,9 @@
   </div>
   <!-- 학습기업 전담인력 -->
   <div class="modal" id="modalStep2Company" style="display:none;">
-    <div class="modal-logo">🏢 학습기업 전담인력 가입</div>
+    <div class="modal-logo">🏢 학습기업 전담인력</div>
     <h2>정보를 <span>입력</span>해주세요</h2>
-    <p class="modal-sub">학습기업 전담인력으로 가입해주세요</p>
+    <p class="modal-sub">이름과 소속 기업만 알려주세요</p>
     <div class="modal-label">이름</div>
     <input class="modal-input" type="text" id="companyName" placeholder="이름을 입력해주세요" maxlength="10" />
     <div class="modal-label">회사명</div>
@@ -357,9 +357,9 @@
   </div>
   <!-- 재학생 -->
   <div class="modal" id="modalStep2Student" style="display:none;">
-    <div class="modal-logo">재학생 가입</div>
+    <div class="modal-logo">재학생</div>
     <h2>정보를 <span>입력</span>해주세요</h2>
-    <p class="modal-sub">알림 수신을 위해 이름과 학과를 선택해주세요</p>
+    <p class="modal-sub">이름과 학과만 알려주세요</p>
     <div class="modal-label">이름</div>
     <input class="modal-input" type="text" id="studentName" placeholder="이름을 입력해주세요" maxlength="10" />
     <div class="modal-label">학과 선택</div>
@@ -376,9 +376,9 @@
   </div>
   <!-- 교·강사 -->
   <div class="modal" id="modalStep2Teacher" style="display:none;">
-    <div class="modal-logo">🧑‍🏫 교·강사 가입</div>
+    <div class="modal-logo">🧑‍🏫 교·강사</div>
     <h2>정보를 <span>입력</span>해주세요</h2>
-    <p class="modal-sub">알림 수신을 위해 이름을 입력해주세요</p>
+    <p class="modal-sub">이름만 알려주세요</p>
     <div class="modal-label">이름</div>
     <input class="modal-input" type="text" id="teacherName" placeholder="이름을 입력해주세요" maxlength="10" />
     <button class="modal-submit" onclick="submitTeacher()">✅ 등록하기</button>
@@ -386,9 +386,9 @@
   </div>
   <!-- 졸업생 -->
   <div class="modal" id="modalStep2Graduate" style="display:none;">
-    <div class="modal-logo">🎉 졸업생 가입</div>
+    <div class="modal-logo">🎉 졸업생</div>
     <h2>정보를 <span>입력</span>해주세요</h2>
-    <p class="modal-sub">외부평가 문제 풀이를 위한 가입이에요</p>
+    <p class="modal-sub">외부평가 문제를 풀어보실 수 있어요</p>
     <div class="modal-label">이름</div>
     <input class="modal-input" type="text" id="graduateName" placeholder="이름을 입력해주세요" maxlength="10" />
     <div class="modal-label">졸업 학과</div>
@@ -409,7 +409,7 @@
   </div>
   <!-- 예비 신입생 -->
   <div class="modal" id="modalStep2Prospect" style="display:none;">
-    <div class="modal-logo">🌱 예비 신입생 가입</div>
+    <div class="modal-logo">🌱 예비 신입생</div>
     <h2>정보를 <span>입력</span>해주세요</h2>
     <p class="modal-sub">AU 일학습병행에 관심 있어 주셔서 감사해요!</p>
     <div class="modal-label">이름</div>
@@ -1333,11 +1333,9 @@
 
   // ============ 초기화 ============
   window.addEventListener('load', () => {
-    // iOS Safari(비 standalone) 진입자 가입 차단
-    if (window.DeviceCheck && window.DeviceCheck.shouldBlockSignup()) {
-      window.DeviceCheck.renderIOSInstallBlock();
-      return;
-    }
+    // ⚠️ 예전에는 여기서 아이폰 사파리 진입자를 막고 return 했다.
+    //    설치 안 하면 공지·자료실·상담까지 전부 못 보게 되어 이탈이 컸다.
+    //    이제는 막지 않는다. 설치 안내는 위쪽 띠(device-check.js)로만 한다.
     updateInstallBanner();
     const saved = localStorage.getItem('userInfo');
     if (saved) {
@@ -1366,7 +1364,9 @@
     // URL 파라미터로 카테고리 지정 (onboarding에서 넘어온 경우)
     const urlParams = new URLSearchParams(window.location.search);
     const paramCategory = urlParams.get('category');
-    if (paramCategory === 'student' || paramCategory === 'graduate' || paramCategory === 'prospect' || paramCategory === 'company') {
+    // QR을 대상별로 따로 만들면 (?category=student 등) 카테고리 고르는 단계가 사라진다.
+    // 학생이 QR을 찍으면 곧바로 이름 입력 화면이 뜬다.
+    if (['student','graduate','prospect','company','teacher'].includes(paramCategory)) {
       setTimeout(() => selectCategory(paramCategory), 100);
     }
   });
