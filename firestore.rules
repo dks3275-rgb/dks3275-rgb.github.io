@@ -106,25 +106,36 @@ service cloud.firestore {
 
     // ── 기업현장교사 의견서 (학습근로자별·월별) ──
     // 기업 계정: 자기 기업 것만 읽고 쓸 수 있다.
-    // 🔒 잠금 원칙: 서명 후 locked=true 가 되면 기업은 더 이상 수정할 수 없다.
-    //    되돌리려면 관리자가 잠금을 해제해야 한다(증빙 무결성).
+    // 🔒 잠금 원칙: 센터가 확인(status='confirmed')하면 기업은 더 이상 수정할 수 없다.
+    //    되돌리려면 관리자가 확인을 해제해야 한다(증빙 무결성).
+    //
+    // ⚠️ 여기서 크게 한 번 데였다 — 같은 실수를 반복하지 말 것.
+    //    예전에는 resource.data.locked != true 로 막았는데,
+    //    자필본 방식을 없애면서 코드가 locked 를 더 이상 쓰지 않게 됐다.
+    //    Firestore 규칙은 "없는 필드를 . 으로 읽으면 오류"로 보고 그대로 거부한다.
+    //    그래서 기업이 서명만 누르면 무조건 '저장 실패'가 떴다.
+    //    → 규칙이 보는 필드는 코드가 반드시 쓰는 필드여야 한다.
+    //      혹시 없을 수도 있는 필드는 get('필드', 기본값) 으로 안전하게 읽는다.
     // ⚠️ 기업이 목록을 조회할 때는 반드시 where('companyId','==',내기업) 으로 질의해야 통과한다.
     match /teacherOpinions/{id} {
       allow read: if isAdmin()
         || (isCompany() && resource.data.companyId == myCompanyId());
       allow create: if isAdmin()
         || (isCompany() && request.resource.data.companyId == myCompanyId());
-      // 기업 수정: 잠기지 않았을 때만, 그리고 소속 기업을 바꿔치기할 수 없다
+      // 기업 수정: 센터 확인 전까지만, 그리고 소속 기업을 바꿔치기할 수 없다
       allow update: if isAdmin()
         || (isCompany()
             && resource.data.companyId == myCompanyId()
             && request.resource.data.companyId == resource.data.companyId
-            && resource.data.locked != true);
+            && resource.data.get('status', '') != 'confirmed'
+            && resource.data.get('locked', false) != true);
       allow delete: if isAdmin();
     }
 
     // ── 월별 체크리스트 (훈련과정별·월별) ──
     // 의견서와 같은 원칙: 자기 기업 것만, 서명 제출(locked) 후에는 관리자만 손댈 수 있다.
+    // (체크리스트는 저장할 때마다 locked 를 true/false 로 꼭 쓰지만,
+    //  옛 문서에 없을 수 있으니 여기도 get 으로 안전하게 읽는다.)
     match /checklists/{id} {
       allow read: if isAdmin()
         || (isCompany() && resource.data.companyId == myCompanyId());
@@ -134,7 +145,7 @@ service cloud.firestore {
         || (isCompany()
             && resource.data.companyId == myCompanyId()
             && request.resource.data.companyId == resource.data.companyId
-            && resource.data.locked != true);
+            && resource.data.get('locked', false) != true);
       allow delete: if isAdmin();
     }
 
@@ -160,9 +171,9 @@ service cloud.firestore {
       allow update: if isAdmin()
         || (isCompany()
             && resource.data.companyId == myCompanyId()
-            && resource.data.writer == 'company'
+            && resource.data.get('writer', '') == 'company'
             && request.resource.data.companyId == resource.data.companyId
-            && resource.data.status != 'confirmed');
+            && resource.data.get('status', '') != 'confirmed');
       allow delete: if isAdmin();
     }
 
@@ -179,7 +190,7 @@ service cloud.firestore {
         || (isCompany()
             && resource.data.companyId == myCompanyId()
             && request.resource.data.companyId == resource.data.companyId
-            && resource.data.status != 'confirmed');
+            && resource.data.get('status', '') != 'confirmed');
       allow delete: if isAdmin();
     }
 
