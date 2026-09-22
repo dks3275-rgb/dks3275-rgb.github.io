@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>신청 접수 - AU 일학습병행</title>
 <meta name="theme-color" content="#FFFFFF">
+<script src="js/notify-admin.js"></script>
 <script src="device-check.js" data-auto-block></script>
 <script src="dark-mode.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -567,43 +568,24 @@ async function submitApplication(db, existing, app, selectedTrack, selectedDept)
   }
 }
 
-// 관리자에게 OneSignal 푸시 발송
+// 관리자에게 알림 (공용 발송기 사용 — js/notify-admin.js)
+// 예전에는 여기서 직접 OneSignal을 불렀는데, 응답을 확인하지 않아
+// 아무도 못 받아도 "발송 완료" 로그만 남았다. 이제 결과가 기록된다.
 async function notifyAdmins(data, isUpdate) {
   try {
+    if (!window.NotifyAdmin) { console.warn('[apply] 발송기 미로드'); return; }
     const db = getFirestore();
-    // app_config/admin_targets에서 OneSignal ID 목록 가져옴
-    const ref = doc(db, 'app_config', 'admin_targets');
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      console.log('[apply] admin_targets 미설정, 알림 미발송');
-      return;
-    }
-    const targets = snap.data().oneSignalIds || [];
-    if (targets.length === 0) {
-      console.log('[apply] admin OneSignal ID 없음, 알림 미발송');
-      return;
-    }
     const deptName = DEPARTMENTS[data.track]?.find(d => d.code === data.department)?.name || data.department;
-    const title = isUpdate ? '✏️ 신청서 수정' : '📝 새 신청서 접수';
-    const message = `${data.name} (${TRACK_NAME[data.track]} ${deptName})`;
-    const body = {
-      app_id: APP_ID,
-      headings: { en: title, ko: title },
-      contents: { en: message, ko: message },
-      include_aliases: { onesignal_id: targets },
-      target_channel: 'push',
-      priority: 10,
-      url: 'https://dks3275-rgb.github.io/admin.html#apply',
-      web_url: 'https://dks3275-rgb.github.io/admin.html#apply'
-    };
-    await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+    const r = await NotifyAdmin.send({
+      db,
+      kind: 'apply',
+      title: isUpdate ? '✏️ 신청서 수정' : '📝 새 신청서 접수',
+      message: `${data.name} (${TRACK_NAME[data.track]} ${deptName})`,
+      url: 'https://dks3275-rgb.github.io/admin.html#apply'
     });
-    console.log('[apply] 관리자 알림 발송 시도 완료');
+    console.log('[apply] 관리자 알림:', r.ok ? `${r.sent}명 전달` : `실패 — ${r.reason}`);
   } catch(e) {
-    console.warn('[apply] 관리자 알림 발송 실패 (무시):', e);
+    console.warn('[apply] 관리자 알림 실패 (신청 자체는 정상):', e);
   }
 }
 </script>

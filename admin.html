@@ -14,6 +14,7 @@
   <script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="js/notify-admin.js"></script>
   <script>
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
@@ -63,6 +64,12 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+    /* 탭 이름 옆 미확인 건수 — 알림이 안 와도 놓치지 않게 */
+    .tab-badge { display: none; margin-left: 6px; background: #dc2626; color: white;
+                 font-size: 10.5px; font-weight: 700; min-width: 17px; height: 17px;
+                 line-height: 17px; padding: 0 5px; border-radius: 9px; text-align: center;
+                 vertical-align: middle; }
+    .tab-badge.on { display: inline-block; }
     /* 목록 안 작은 실행 버튼 (서류 탭 등) */
     .mini-btn { border: none; border-radius: 8px; padding: 7px 12px; font-family: inherit;
                 font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -631,12 +638,12 @@
   <button onclick="switchTab('notice', this)">📢 공지</button>
   <button onclick="switchTab('scheduled', this)">⏰ 예약</button>
   <button onclick="switchTab('survey', this)">📋 만족도</button>
-  <button onclick="switchTab('consulting', this)">💬 상담</button>
+  <button onclick="switchTab('consulting', this)">💬 상담<span class="tab-badge" id="badgeConsulting"></span></button>
   <button onclick="switchTab('company', this)">🏢 기업</button>
   <button onclick="switchTab('docs', this)">📝 서류</button>
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
-  <button onclick="switchTab('apply', this)">📝 신청</button>
+  <button onclick="switchTab('apply', this)">📝 신청<span class="tab-badge" id="badgeApply"></span></button>
   <button onclick="switchTab('library', this)">📚 자료실</button>
   <button onclick="switchTab('logs', this)">📜 로그</button>
 </div>
@@ -644,15 +651,6 @@
 <!-- 통계 대시보드 탭 -->
 <div class="tab-content active" id="tab-stats">
   <div class="container">
-    <div class="card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-left:4px solid #f59e0b;margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <div>
-          <div style="font-size:13px;font-weight:700;color:#92400e;">🔐 관리자 권한 상태</div>
-          <div id="adminRoleStatus" style="font-size:12px;color:#78350f;margin-top:4px;">확인 중...</div>
-        </div>
-        <button class="refresh-btn" onclick="refreshAdminRole()" style="background:#f59e0b;color:white;">🔄 권한 새로고침</button>
-      </div>
-    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <div class="card-title" style="margin:0;">📊 통계 대시보드</div>
@@ -706,6 +704,39 @@
 <!-- 알림 발송 탭 -->
 <div class="tab-content" id="tab-push">
 <div class="container">
+
+  <!-- 관리자 알림 받기 — 예전에는 통계 탭·신청 탭에 흩어져 있어
+       한쪽만 켜고 끝내는 일이 잦았다. 버튼 하나로 합쳤다. -->
+  <div class="card" style="border-left:4px solid #3F4A57;">
+    <div class="card-title">
+      🔔 관리자 알림 받기
+      <button class="refresh-btn" onclick="loadAdminNotifySetup()">🔄 새로고침</button>
+    </div>
+    <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#37404B;line-height:1.65;">
+      새 <b>신청서</b>·<b>1:1 상담</b>이 들어오면 이 기기로 알림이 옵니다.<br>
+      <small style="opacity:0.9;">기기마다 한 번씩 눌러주세요 (휴대폰·PC 따로) ·
+      <b>아이폰</b>은 사파리에서 "홈 화면에 추가"로 설치한 뒤에만 알림을 받을 수 있습니다.</small>
+    </div>
+
+    <div id="notifyFailWarn"></div>
+
+    <div id="myNotifyStatus" style="background:#F4F5F7;border:1.5px solid #E3E6EA;border-radius:11px;
+         padding:13px 15px;margin-bottom:10px;font-size:13px;color:#37404B;">🔍 상태 확인 중...</div>
+
+    <div class="form-group">
+      <label class="form-label">내 이름 <span style="font-weight:400;color:#718096;font-size:11px;">(누가 받고 있는지 구분용)</span></label>
+      <input type="text" class="form-input" id="myNotifyName" placeholder="예: 도규석" maxlength="20">
+    </div>
+    <button class="send-btn" id="myNotifyBtn" onclick="toggleMyNotify()" style="background:#059669;">🔔 이 기기로 알림 받기</button>
+    <button class="send-btn" onclick="sendTestNotify()" style="background:#EEF0F3;color:#37404B;margin-top:8px;">🧪 테스트 알림 보내보기</button>
+    <div class="result-box" id="notifyTestResult"></div>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #E3E6EA;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:9px;">알림 받는 기기</div>
+      <div id="adminTargetList"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">📢 알림 발송</div>
     <div class="form-group">
@@ -1720,20 +1751,6 @@
 <div class="tab-content" id="tab-apply">
   <div class="container">
 
-    <!-- 관리자 알림 등록 카드 -->
-    <div class="card" style="background:linear-gradient(135deg,#FFF8E6,#FFE7A8);border-left:4px solid #F59E0B;">
-      <div class="card-title">🔔 새 신청 알림 받기</div>
-      <div style="font-size:12.5px;color:#7A5800;line-height:1.6;margin-bottom:12px;">
-        새 신청서가 접수되면 <b>이 기기로 푸시 알림</b>이 와요.<br>
-        아래 버튼을 누르면 알림 권한을 요청하고 자동으로 등록됩니다.<br>
-        <b>📱 아이폰</b>은 사파리에서 "홈 화면에 추가"로 앱 설치 후에만 알림을 받을 수 있어요.
-      </div>
-      <div id="adminTargetStatus" style="background:white;border-radius:10px;padding:11px 14px;margin-bottom:10px;font-size:12.5px;color:#475569;">
-        🔍 상태 확인 중...
-      </div>
-      <button class="send-btn" id="adminTargetBtn" onclick="toggleAdminTarget()" style="background:linear-gradient(135deg,#F59E0B,#D97706);">🔔 내 기기로 알림 받기 등록</button>
-    </div>
-
     <!-- 신청 목록 카드 -->
     <div class="card">
       <div class="card-title">
@@ -1782,15 +1799,16 @@
       try { location.hash = tab; } catch (e) {}
     }
     if (tab === 'stats') loadStats();
+    if (tab === 'push') loadAdminNotifySetup();
     if (tab === 'notice') loadNotices();
     if (tab === 'scheduled') loadScheduledItems();
     if (tab === 'survey') loadSurveyStatus();
-    if (tab === 'consulting') loadConsulting();
+    if (tab === 'consulting') { loadConsulting(); setTimeout(refreshTabBadges, 1200); }
     if (tab === 'company') { loadCompanies(); loadCourses(); loadCompanyAccounts(); if (!document.getElementById('ca-pw').value) genCompanyPw(); }
     if (tab === 'docs') { loadOpinionDocs(); loadGuideTexts(); }
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
-    if (tab === 'apply') { loadApplications(); checkAdminTargetStatus(); }
+    if (tab === 'apply') { loadApplications(); markApplySeen(); }
     if (tab === 'library') loadLibrary();
     if (tab === 'logs') loadLogs();
   }
@@ -1817,6 +1835,8 @@
   // 페이지 첫 진입 시 통계 자동 로드 (인증 후)
   runAfterAuth(() => {
     setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);
+    setTimeout(refreshTabBadges, 900);
+    setInterval(refreshTabBadges, 3 * 60 * 1000);   // 3분마다 다시 센다
   });
 
   // 알림을 눌러 admin.html#consulting 같은 주소로 들어오면 해당 탭 자동 열기
@@ -5371,92 +5391,8 @@
     }).join('') + paginationHtml;
   }
 
-  // ═══════════════════════════════════════════
-  // ── 관리자 권한 상태 확인 + 새로고침 ──
-  // ═══════════════════════════════════════════
-  async function checkAdminRoleStatus() {
-    const statusEl = document.getElementById('adminRoleStatus');
-    if (!statusEl) return;
-    try {
-      // OneSignal SDK가 로드된 경우 태그 직접 확인
-      if (window.OneSignalDeferred) {
-        window.OneSignalDeferred.push(async function(OneSignal) {
-          try {
-            const tags = await OneSignal.User.getTags();
-            const isAdmin = tags && (tags.role === 'admin' || tags['역할'] === '관리자');
-            const subscribed = OneSignal.User.PushSubscription.optedIn;
-            if (isAdmin && subscribed) {
-              statusEl.innerHTML = '✅ <b>관리자 알림 ON</b> · 새 상담 신청이 오면 알림을 받습니다';
-              statusEl.style.color = '#065f46';
-            } else if (isAdmin && !subscribed) {
-              statusEl.innerHTML = '⚠️ 관리자 태그는 있지만 <b>알림 미구독</b> · "권한 새로고침" 클릭 필요';
-              statusEl.style.color = '#9a3412';
-            } else {
-              statusEl.innerHTML = '❌ <b>관리자 권한 없음</b> · "권한 새로고침" 클릭 필요';
-              statusEl.style.color = '#991b1b';
-            }
-          } catch(e) {
-            statusEl.innerHTML = '⚠️ 상태 확인 실패: ' + e.message;
-          }
-        });
-      } else {
-        statusEl.innerHTML = '⏳ OneSignal SDK 로딩 중...';
-      }
-    } catch(e) {
-      statusEl.innerHTML = '⚠️ 확인 불가';
-    }
-  }
-  // 페이지 로드 시 자동 확인
-  setTimeout(checkAdminRoleStatus, 1500);
+  // (관리자 권한 상태 카드는 🔔 알림 탭의 '관리자 알림 받기'로 통합됨)
 
-  async function refreshAdminRole() {
-    const btn = event?.target;
-    if (btn) { btn.disabled = true; btn.textContent = '설정 중...'; }
-    try {
-      // OneSignal SDK 로드 확인
-      if (!window.OneSignalDeferred) {
-        // SDK 없으면 동적 로드
-        await new Promise((resolve) => {
-          const s = document.createElement('script');
-          s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
-          s.onload = resolve;
-          s.onerror = resolve;
-          document.head.appendChild(s);
-          window.OneSignalDeferred = window.OneSignalDeferred || [];
-          window.OneSignalDeferred.push(async function(OneSignal) {
-            try {
-              await OneSignal.init({ appId: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', notifyButton: { enable: false } });
-            } catch(e) {}
-          });
-          setTimeout(resolve, 3000);
-        });
-      }
-      await new Promise((resolve, reject) => {
-        window.OneSignalDeferred.push(async function(OneSignal) {
-          try {
-            // 1. 알림 구독 활성화
-            const subscribed = OneSignal.User.PushSubscription.optedIn;
-            if (!subscribed) {
-              await OneSignal.Notifications.requestPermission();
-              await new Promise(r => setTimeout(r, 1500));
-            }
-            // 2. role 태그 강제 설정
-            await OneSignal.User.addTags({ role: 'admin', 역할: '관리자' });
-            resolve();
-          } catch(e) { reject(e); }
-        });
-      });
-      alert('✅ 관리자 권한 새로고침 완료!\n이제 새 상담 알림을 받을 수 있어요.');
-      checkAdminRoleStatus();
-    } catch(e) {
-      alert('❌ 새로고침 실패: ' + e.message);
-    }
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 권한 새로고침'; }
-  }
-
-  // ═══════════════════════════════════════════
-  // ── 통계 대시보드 ──
-  // ═══════════════════════════════════════════
   async function loadStats() {
     document.getElementById('statsContent').innerHTML = '<div class="c-loading">📊 데이터 불러오는 중...</div>';
     try {
@@ -7869,215 +7805,283 @@
   // ── 신청 접수: 학습기업 관리 + 신청 목록 ──
   // ═══════════════════════════════════════════
 
-  // 관리자 OneSignal ID 등록 (app_config/admin_targets)
-  // admin 페이지에서 직접 OneSignal SDK를 통해 ID 조회/구독
-  // 반환: { state: 'ok'|'sdk-not-loaded'|'not-subscribed'|'no-id'|'error', oneSignalId }
-  async function _getMyOneSignalId() {
-    return new Promise((resolve) => {
-      if (!window.OneSignalDeferred) { resolve({ state: 'sdk-not-loaded' }); return; }
-      // SDK 초기화 대기 (최대 5초)
-      let timer = setTimeout(() => resolve({ state: 'sdk-not-loaded' }), 5000);
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        clearTimeout(timer);
-        try {
-          let optedIn = false;
-          try { optedIn = OneSignal.User.PushSubscription.optedIn; } catch(e) {}
-          if (!optedIn) { resolve({ state: 'not-subscribed' }); return; }
-          let oneSignalId = '';
-          try { oneSignalId = OneSignal.User.onesignalId || ''; } catch(e) {}
-          if (!oneSignalId) { resolve({ state: 'no-id' }); return; }
-          resolve({ state: 'ok', oneSignalId });
-        } catch(e) {
-          resolve({ state: 'error', error: e.message });
-        }
-      });
-    });
+  // ══════════════════════════════════════════
+  //  탭 옆 미확인 건수 배지
+  //   알림이 안 와도 관리자가 앱을 열면 바로 눈에 띄게 하는 안전망.
+  //   · 상담  = 상태가 '대기중'인 건수 (모든 관리자에게 동일)
+  //   · 신청  = 이 기기에서 마지막으로 신청 탭을 연 뒤 들어온 건수
+  //            (사람마다 확인 시점이 다르므로 기기별로 센다)
+  // ══════════════════════════════════════════
+  const APPLY_SEEN_KEY = 'adminApplySeenAt';
+
+  function setBadge(id, n) {
+    const el = document.getElementById(id); if (!el) return;
+    if (n > 0) { el.textContent = n > 99 ? '99+' : String(n); el.classList.add('on'); }
+    else { el.textContent = ''; el.classList.remove('on'); }
   }
 
-  // 알림 권한 요청 (OneSignal)
-  async function _requestAdminPushPermission() {
-    return new Promise((resolve) => {
-      if (!window.OneSignalDeferred) { resolve(false); return; }
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          await OneSignal.Notifications.requestPermission();
-          // 권한 허용 후 OneSignal이 ID 발급할 시간 잠시 대기
-          await new Promise(r => setTimeout(r, 1500));
-          resolve(true);
-        } catch(e) {
-          console.warn('권한 요청 실패', e);
-          resolve(false);
-        }
-      });
-    });
-  }
-
-  // iOS 판별
-  function _isIOS() {
-    return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  }
-  // PWA(홈 화면에 추가) 모드 판별
-  function _isStandalone() {
-    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  }
-
-  async function checkAdminTargetStatus() {
-    const statusEl = document.getElementById('adminTargetStatus');
-    const btnEl = document.getElementById('adminTargetBtn');
-    statusEl.innerHTML = '🔍 상태 확인 중...';
-    const result = await _getMyOneSignalId();
-
-    const ios = _isIOS();
-    const standalone = _isStandalone();
-
-    if (result.state === 'sdk-not-loaded') {
-      statusEl.innerHTML = '⏳ OneSignal SDK 로드 중... 잠시 후 다시 시도해주세요.';
-      btnEl.disabled = false;
-      btnEl.textContent = '🔄 다시 시도';
-      btnEl.style.background = 'linear-gradient(135deg,#3182F6,#1B64DA)';
-      return;
-    }
-
-    if (result.state === 'not-subscribed' || result.state === 'no-id') {
-      let msg = '⚠️ <b>이 기기는 알림 권한이 없어요</b><br>아래 버튼으로 알림을 허용해주세요.';
-      if (ios && !standalone) {
-        msg += '<br><br>📱 <b>아이폰 사용자는 먼저:</b><br>① 사파리 공유 버튼(↑) → "홈 화면에 추가"<br>② 홈 화면의 앱 아이콘으로 다시 진입<br>③ 다시 이 페이지에서 권한 허용';
-      }
-      statusEl.innerHTML = msg;
-      btnEl.disabled = false;
-      btnEl.textContent = '🔔 알림 권한 허용하기';
-      btnEl.style.background = 'linear-gradient(135deg,#F59E0B,#D97706)';
-      return;
-    }
-
-    if (result.state !== 'ok') {
-      statusEl.innerHTML = '❌ 상태 확인 실패: ' + (result.error || result.state);
-      btnEl.disabled = false;
-      btnEl.textContent = '🔄 다시 시도';
-      btnEl.style.background = 'linear-gradient(135deg,#3182F6,#1B64DA)';
-      return;
-    }
-
-    const myId = result.oneSignalId;
+  async function refreshTabBadges() {
     try {
-      const { db } = await _applyDb();
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const [cSnap, aSnap] = await Promise.all([
+        getDocs(collection(db, 'consulting')),
+        getDocs(collection(db, 'applications'))
+      ]);
+      const waiting = cSnap.docs.map(d => d.data())
+        .filter(c => !c.deleted && c.status === '대기중').length;
+      setBadge('badgeConsulting', waiting);
+
+      const seen = Number(localStorage.getItem(APPLY_SEEN_KEY) || 0);
+      const fresh = aSnap.docs.map(d => d.data()).filter(a => {
+        const t = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return t > seen;
+      }).length;
+      setBadge('badgeApply', fresh);
+    } catch(e) { /* 배지는 보조 장치라 실패해도 넘어간다 */ }
+  }
+
+  // 신청 탭을 열면 그 시점을 '확인함'으로 기록한다
+  function markApplySeen() {
+    try { localStorage.setItem(APPLY_SEEN_KEY, String(Date.now())); } catch(e) {}
+    setBadge('badgeApply', 0);
+  }
+
+  // ══════════════════════════════════════════
+  //  🔔 관리자 알림 받기 (알림 탭)
+  //   예전에는 "상담용 태그"와 "신청용 ID 등록"이 서로 다른 탭에 있어
+  //   한쪽만 켜고 끝내는 일이 잦았다. 버튼 하나로 둘 다 처리한다.
+  //   목록에 이름·기기·등록시각을 같이 저장해, 누가 받고 있는지 보이게 한다.
+  // ══════════════════════════════════════════
+  const ONESIGNAL_APP_ID = '6bed6730-b167-48a8-a98d-83cdcb1cbc10';
+
+  function _deviceLabel() {
+    const ua = navigator.userAgent || '';
+    const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android'
+             : /iPhone|iPad/.test(ua) ? 'iPhone/iPad' : /Mac/.test(ua) ? 'Mac'
+             : /Linux/.test(ua) ? 'Linux' : '기타';
+    const br = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome'
+             : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '기타';
+    return os + ' · ' + br;
+  }
+
+  // OneSignal 준비 + 내 ID 얻기 (필요하면 권한 요청까지)
+  async function _ensureOneSignal(askPermission) {
+    if (!window.OneSignalDeferred) {
+      await new Promise(res => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+        sc.onload = res; sc.onerror = res;
+        document.head.appendChild(sc);
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async OneSignal => {
+          try { await OneSignal.init({ appId: ONESIGNAL_APP_ID, notifyButton: { enable: false } }); } catch(e) {}
+        });
+        setTimeout(res, 3500);
+      });
+    }
+    return await new Promise(resolve => {
+      let done = false;
+      const finish = v => { if (!done) { done = true; resolve(v); } };
+      setTimeout(() => finish({ state: 'timeout' }), 12000);
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async OneSignal => {
+        try {
+          if (askPermission && !OneSignal.User.PushSubscription.optedIn) {
+            await OneSignal.Notifications.requestPermission();
+            await new Promise(r => setTimeout(r, 1500));
+          }
+          if (!OneSignal.Notifications.permission) return finish({ state: 'denied' });
+          // 상담 알림이 태그로 가던 시절 호환 — 켜두면 손해 볼 게 없다
+          try { await OneSignal.User.addTags({ role: 'admin', 역할: '관리자' }); } catch(e) {}
+          const id = OneSignal.User.onesignalId;
+          finish(id ? { state: 'ok', id } : { state: 'no-id' });
+        } catch(e) { finish({ state: 'error', error: e.message }); }
+      });
+    });
+  }
+
+  let _myOsId = null;
+  let _adminTargets = [];   // [{id, name, device, at}]
+
+  async function loadAdminNotifySetup() {
+    const statusEl = document.getElementById('myNotifyStatus');
+    const listEl = document.getElementById('adminTargetList');
+    const btn = document.getElementById('myNotifyBtn');
+    if (!statusEl) return;
+    statusEl.innerHTML = '🔍 상태 확인 중...';
+    try {
+      const db = await wkDb();
       const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const snap = await getDoc(doc(db, 'app_config', 'admin_targets'));
-      const targets = snap.exists() ? (snap.data().oneSignalIds || []) : [];
-      const registered = targets.includes(myId);
-      if (registered) {
-        statusEl.innerHTML = `✅ <b style="color:#059669;">알림 받는 중</b> (등록된 관리자 ${targets.length}명)`;
-        btnEl.style.background = 'linear-gradient(135deg,#dc2626,#991b1b)';
-        btnEl.textContent = '🔕 알림 받기 해제';
-        btnEl.disabled = false;
+      const d = snap.exists() ? snap.data() : {};
+      const ids = d.oneSignalIds || [];
+      const meta = d.devices || {};      // id → {name, device, at}
+      _adminTargets = ids.map(id => Object.assign({ id }, meta[id] || {}));
+
+      const r = await _ensureOneSignal(false);
+      _myOsId = (r.state === 'ok') ? r.id : null;
+      const on = _myOsId && ids.includes(_myOsId);
+
+      if (r.state === 'denied') {
+        statusEl.innerHTML = '🚫 <b style="color:#b91c1c;">이 브라우저에서 알림이 차단</b>돼 있습니다.<br>' +
+          '<span style="font-size:12px;">주소창 왼쪽 자물쇠 → 알림 → 허용으로 바꾼 뒤 다시 눌러주세요.</span>';
+        btn.textContent = '🔔 이 기기로 알림 받기'; btn.style.background = '#059669'; btn.disabled = false;
+      } else if (on) {
+        const mine = _adminTargets.find(t => t.id === _myOsId) || {};
+        statusEl.innerHTML = '✅ <b style="color:#166534;">이 기기로 알림을 받고 있습니다.</b>' +
+          (mine.name ? ' (' + escapeHtmlSafe(mine.name) + ')' : '') +
+          '<br><span style="font-size:12px;color:#64748b;">' + escapeHtmlSafe(_deviceLabel()) + '</span>';
+        btn.textContent = '🔕 이 기기 알림 끄기'; btn.style.background = '#94a3b8'; btn.disabled = false;
+        const nameEl = document.getElementById('myNotifyName');
+        if (nameEl && !nameEl.value) nameEl.value = mine.name || '';
       } else {
-        statusEl.innerHTML = `📵 알림 미등록 상태 (현재 등록된 관리자 ${targets.length}명)`;
-        btnEl.style.background = 'linear-gradient(135deg,#F59E0B,#D97706)';
-        btnEl.textContent = '🔔 내 기기로 알림 받기 등록';
-        btnEl.disabled = false;
+        statusEl.innerHTML = '📵 이 기기는 <b>아직 알림을 받지 않습니다.</b><br>' +
+          '<span style="font-size:12px;color:#64748b;">아래 버튼을 눌러 켜주세요.</span>';
+        btn.textContent = '🔔 이 기기로 알림 받기'; btn.style.background = '#059669'; btn.disabled = false;
       }
+      renderAdminTargets();
+      await checkNotifyFailure();
     } catch(e) {
-      statusEl.innerHTML = '❌ 상태 확인 실패: ' + e.message;
+      statusEl.innerHTML = '❌ 확인 실패: ' + escapeHtmlSafe(e.message);
+      if (listEl) listEl.innerHTML = '';
     }
   }
 
-  async function toggleAdminTarget() {
-    const btnEl = document.getElementById('adminTargetBtn');
-    btnEl.disabled = true;
-    btnEl.textContent = '처리 중...';
+  function renderAdminTargets() {
+    const el = document.getElementById('adminTargetList'); if (!el) return;
+    if (!_adminTargets.length) {
+      el.innerHTML = '<div class="empty-history">아직 아무도 등록하지 않았습니다.<br>' +
+        '<small>이 상태에서는 신청·상담이 들어와도 알림이 가지 않습니다.</small></div>';
+      return;
+    }
+    el.innerHTML = _adminTargets.map(t => {
+      const me = t.id === _myOsId;
+      return `<div style="display:flex;align-items:center;gap:9px;padding:10px 12px;border:1.5px solid ${me ? '#3F4A57' : '#E3E6EA'};
+        border-radius:10px;margin-bottom:7px;background:${me ? '#F4F5F7' : 'white'};">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">${escapeHtmlSafe(t.name || '(이름 없음)')}
+            ${me ? '<span style="font-size:11px;font-weight:400;color:#3F4A57;"> · 이 기기</span>' : ''}</div>
+          <div style="font-size:11.5px;color:#64748b;margin-top:2px;">
+            ${escapeHtmlSafe(t.device || '기기 정보 없음')}${t.at ? ' · ' + escapeHtmlSafe(String(t.at).slice(0,10)) : ''}</div>
+        </div>
+        <button class="mini-btn" onclick="removeAdminTarget('${t.id}')" style="background:#fee2e2;color:#b91c1c;">해제</button>
+      </div>`;
+    }).join('');
+  }
+
+  async function _saveTargets(ids, devices) {
+    const db = await wkDb();
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(db, 'app_config', 'admin_targets'),
+      { oneSignalIds: ids, devices: devices, updatedAt: Date.now() }, { merge: true });
+  }
+
+  async function toggleMyNotify() {
+    const btn = document.getElementById('myNotifyBtn');
+    btn.disabled = true; btn.textContent = '처리 중...';
     try {
-      let result = await _getMyOneSignalId();
-
-      // 미구독 상태면 권한 요청부터
-      if (result.state === 'not-subscribed' || result.state === 'no-id') {
-        btnEl.textContent = '권한 요청 중...';
-        await _requestAdminPushPermission();
-        // 다시 확인
-        result = await _getMyOneSignalId();
-        if (result.state !== 'ok') {
-          // 권한 거부됐거나 iOS 사파리(PWA 미설치)
-          await checkAdminTargetStatus();
-          return;
-        }
+      const r = await _ensureOneSignal(true);
+      if (r.state === 'denied') {
+        alert('브라우저에서 알림이 차단돼 있습니다.\n주소창 왼쪽 자물쇠 → 알림 → 허용으로 바꾼 뒤 다시 시도해주세요.');
+        await loadAdminNotifySetup(); return;
       }
-
-      // SDK 로드 안 됨 / 에러 케이스
-      if (result.state === 'sdk-not-loaded') {
-        alert('OneSignal SDK가 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.');
-        await checkAdminTargetStatus();
-        return;
+      if (r.state !== 'ok') {
+        alert('알림 기기 등록에 실패했습니다: ' + (r.error || r.state) +
+              '\n\n아이폰이라면 사파리에서 "홈 화면에 추가"로 설치한 뒤 다시 시도해주세요.');
+        await loadAdminNotifySetup(); return;
       }
-      if (result.state !== 'ok') {
-        alert('OneSignal ID 조회 실패: ' + (result.error || result.state));
-        await checkAdminTargetStatus();
-        return;
-      }
+      const myId = r.id;
+      const db = await wkDb();
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(db, 'app_config', 'admin_targets'));
+      const d = snap.exists() ? snap.data() : {};
+      let ids = d.oneSignalIds || [];
+      const devices = d.devices || {};
 
-      const myId = result.oneSignalId;
-      const { db } = await _applyDb();
-      const { doc, getDoc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const ref = doc(db, 'app_config', 'admin_targets');
-      const snap = await getDoc(ref);
-      let targets = snap.exists() ? (snap.data().oneSignalIds || []) : [];
-      let action = '';
-      if (targets.includes(myId)) {
-        targets = targets.filter(t => t !== myId);
-        action = '해제';
+      if (ids.includes(myId)) {
+        ids = ids.filter(x => x !== myId);
+        delete devices[myId];
+        await _saveTargets(ids, devices);
+        await writeLog('update', 'admin_target', null, '관리자 알림 해제: ' + myId.slice(0,8));
       } else {
-        targets.push(myId);
-        action = '등록';
+        const nm = (document.getElementById('myNotifyName')?.value || '').trim();
+        ids.push(myId);
+        devices[myId] = { name: nm, device: _deviceLabel(), at: new Date().toISOString() };
+        await _saveTargets(ids, devices);
+        await writeLog('update', 'admin_target', null, '관리자 알림 등록: ' + (nm || myId.slice(0,8)));
       }
-      await setDoc(ref, { oneSignalIds: targets, updatedAt: Date.now() }, { merge: true });
-      await writeLog('update', 'admin_target', null, `관리자 알림 ${action}: ${myId.slice(0,8)}...`);
-      await checkAdminTargetStatus();
+      await loadAdminNotifySetup();
     } catch(e) {
       alert('처리 실패: ' + e.message);
-      await checkAdminTargetStatus();
+      document.getElementById('myNotifyBtn').disabled = false;
     }
   }
 
+  async function removeAdminTarget(id) {
+    const t = _adminTargets.find(x => x.id === id);
+    if (!await customConfirm({ title: '알림 기기 해제',
+      message: `<b>${escapeHtmlSafe(t?.name || '(이름 없음)')}</b><br>
+        <span style="font-size:12px;color:#64748b;">${escapeHtmlSafe(t?.device || '')}</span><br><br>
+        이 기기로 알림을 보내지 않게 할까요?`, confirmText: '해제', danger: true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(db, 'app_config', 'admin_targets'));
+      const d = snap.exists() ? snap.data() : {};
+      const ids = (d.oneSignalIds || []).filter(x => x !== id);
+      const devices = d.devices || {}; delete devices[id];
+      await _saveTargets(ids, devices);
+      await writeLog('update', 'admin_target', null, '관리자 알림 해제: ' + (t?.name || id.slice(0,8)));
+      await loadAdminNotifySetup();
+    } catch(e) { alert('해제 실패: ' + e.message); }
+  }
 
-  // 학과 마스터 (코드 상수)
-  const APPLY_DEPARTMENTS = {
-    ptech: [
-      { code: 'ptech-tourism', name: '글로벌호텔관광학과' },
-      { code: 'ptech-cooking', name: '글로벌호텔조리학과' }
-    ],
-    college: [
-      { code: 'college-tourism', name: '호텔관광학과' },
-      { code: 'college-marketing', name: '마케팅경영학과' },
-      { code: 'college-tax', name: '회계세무학과' }
-    ]
-  };
-  const APPLY_TRACK_NAME = { ptech: 'P-TECH', college: '전문대' };
-  function applyDeptName(code) {
-    for (const t in APPLY_DEPARTMENTS) {
-      const d = APPLY_DEPARTMENTS[t].find(x => x.code === code);
-      if (d) return d.name;
+  // 실제로 가는지 직접 확인 — 가장 확실한 점검 방법
+  async function sendTestNotify() {
+    const out = document.getElementById('notifyTestResult');
+    out.innerHTML = '<div style="color:#4a5568;">보내는 중...</div>';
+    try {
+      const db = await wkDb();
+      const r = await NotifyAdmin.send({
+        db, kind: 'test',
+        title: '🧪 테스트 알림',
+        message: '이 알림이 보이면 정상입니다 (' + new Date().toLocaleTimeString('ko-KR') + ')',
+        url: 'https://dks3275-rgb.github.io/admin.html#push'
+      });
+      out.innerHTML = r.ok
+        ? `<div style="color:#059669;font-weight:700;">✅ ${r.sent}명에게 전달했습니다.<br>
+           <span style="font-weight:400;font-size:12.5px;color:#4a5568;">등록 ${r.targets}명 중 ${r.sent}명 도달.
+           ${r.sent < r.targets ? '못 받은 기기는 브라우저 데이터를 지웠거나 알림을 끈 경우입니다 — 해당 담당자가 다시 등록해야 합니다.' : ''}</span></div>`
+        : `<div style="color:#b91c1c;font-weight:700;">❌ 전달 실패<br>
+           <span style="font-weight:400;font-size:12.5px;">${escapeHtmlSafe(r.reason)}</span></div>`;
+      await loadAdminNotifySetup();
+    } catch(e) {
+      out.innerHTML = '<div style="color:#b91c1c;font-weight:700;">오류: ' + escapeHtmlSafe(e.message) + '</div>';
     }
-    return code;
-  }
-  function applyDeptTrack(code) {
-    for (const t in APPLY_DEPARTMENTS) {
-      if (APPLY_DEPARTMENTS[t].find(x => x.code === code)) return t;
-    }
-    return '';
   }
 
-  async function _applyDb() {
-    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy }
-      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
-    return { db: getFirestore(app), collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy };
+  // 마지막 발송이 실패였으면 알림 탭 위에 경고를 띄운다
+  async function checkNotifyFailure() {
+    const el = document.getElementById('notifyFailWarn'); if (!el) return;
+    el.innerHTML = '';
+    try {
+      const db = await wkDb();
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(db, 'app_config', 'notify_log'));
+      const last = snap.exists() ? snap.data().last : null;
+      if (!last || last.ok) return;
+      const when = last.at ? new Date(last.at).toLocaleString('ko-KR') : '';
+      el.innerHTML = `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:11px;
+        padding:12px 15px;margin-bottom:14px;font-size:13px;color:#991b1b;line-height:1.6;">
+        ⚠️ <b>마지막 알림이 전달되지 않았습니다.</b><br>
+        <span style="font-size:12px;">${escapeHtmlSafe(when)} · ${escapeHtmlSafe(last.title || '')}
+        — ${escapeHtmlSafe(last.reason || '')}</span><br>
+        <span style="font-size:12px;">아래 <b>테스트 알림</b>으로 확인해보세요.</span>
+      </div>`;
+    } catch(e) {}
   }
 
-  function escapeHtmlSafe(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
-
-  // 신청 목록
   let _applications = [];
   async function loadApplications() {
     const listEl = document.getElementById('applicationList');

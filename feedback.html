@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>익명 의견함 - AU 일학습병행</title>
 <meta name="theme-color" content="#FFFFFF">
+<script src="js/notify-admin.js"></script>
 <script src="device-check.js" data-auto-block></script>
 <script src="dark-mode.js"></script>
 <style>
@@ -114,24 +115,15 @@
         status: 'new',
         createdAt: serverTimestamp()
       });
-      // 관리자에게 알림 (식별정보 없음)
+      // 관리자에게 알림 (식별정보 없음) — 공용 발송기 사용
       try {
-        const WORKER_URL = 'https://damp-leaf-0c5c.dks3275.workers.dev';
-        await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
-            filters: [
-              { field: 'tag', key: 'role', relation: '=', value: 'admin' },
-              { operator: 'OR' },
-              { field: 'tag', key: '역할', relation: '=', value: '관리자' }
-            ],
-            contents: { ko: '새 익명 의견이 도착했어요', en: 'New anonymous feedback' },
-            headings: { ko: '📨 익명 의견함', en: 'Anonymous Feedback' }
-          })
+        await NotifyAdmin.send({
+          db, kind: 'feedback',
+          title: '📨 익명 의견함',
+          message: '새 익명 의견이 도착했어요',
+          url: 'https://dks3275-rgb.github.io/admin.html#feedback'
         });
-      } catch(e) { console.warn('알림 발송 실패:', e); }
+      } catch(e) { console.warn('알림 발송 실패 (의견은 정상 접수):', e); }
       result.className = 'result-msg success';
       result.innerHTML = '✅ 의견이 전송됐어요. 소중한 의견 감사합니다!';
       document.getElementById('title').value = '';

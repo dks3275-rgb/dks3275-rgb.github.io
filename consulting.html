@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>문의 · 상담신청 - AU 일학습병행</title>
 <meta name="theme-color" content="#FFFFFF">
+<script src="js/notify-admin.js"></script>
 <script src="dark-mode.js"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
@@ -329,9 +330,17 @@
       }
     } catch(e) { console.warn('Firebase 저장 실패:', e); }
     const pushMsg = `${name} (${dept})\n${content.substring(0, 80)}${content.length > 80 ? '...' : ''}`;
+    // 관리자 알림 — 공용 발송기(js/notify-admin.js)로 통일.
+    // 예전에는 태그(role=admin) 필터를 썼는데, 브라우저 데이터를 지우면
+    // 태그가 날아가 조용히 아무도 못 받는 일이 있었다.
     try {
-      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }], contents: { ko: pushMsg, en: pushMsg }, headings: { ko: '💬 1:1 상담 신청이 왔어요!', en: 'Consulting Request' }, url: 'https://dks3275-rgb.github.io/admin.html#consulting', web_url: 'https://dks3275-rgb.github.io/admin.html#consulting' }) });
-    } catch(e) { console.warn('알림 발송 실패:', e); }
+      const r = await NotifyAdmin.send({
+        db: window._firebaseDb, kind: 'consulting',
+        title: '💬 1:1 상담 신청이 왔어요!', message: pushMsg,
+        url: 'https://dks3275-rgb.github.io/admin.html#consulting'
+      });
+      console.log('[consulting] 관리자 알림:', r.ok ? `${r.sent}명 전달` : `실패 — ${r.reason}`);
+    } catch(e) { console.warn('알림 발송 실패 (상담 접수는 정상):', e); }
     document.getElementById('resultMsg').innerHTML = `<strong>${name}</strong>님의 상담 신청이 접수됐어요.<br>담당자가 확인 후 연락드릴게요.`;
     document.getElementById('resultOverlay').classList.add('show');
     document.getElementById('inputName').value = ''; document.getElementById('inputDept').value = ''; document.getElementById('inputContent').value = ''; updateCharCount();
@@ -364,8 +373,13 @@
     } catch(e) { console.warn('Firebase 저장 실패:', e); }
     const pushMsg = `🏢 ${name} (${firm} · ${role})\n[${type}] ${content.substring(0, 60)}${content.length > 60 ? '...' : ''}`;
     try {
-      await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10', filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }], contents: { ko: pushMsg, en: pushMsg }, headings: { ko: '🏢 전담인력 문의가 왔어요!', en: 'Company Inquiry' }, url: 'https://dks3275-rgb.github.io/admin.html#consulting', web_url: 'https://dks3275-rgb.github.io/admin.html#consulting' }) });
-    } catch(e) { console.warn('알림 발송 실패:', e); }
+      const r = await NotifyAdmin.send({
+        db: window._firebaseDb, kind: 'consulting-company',
+        title: '🏢 전담인력 문의가 왔어요!', message: pushMsg,
+        url: 'https://dks3275-rgb.github.io/admin.html#consulting'
+      });
+      console.log('[consulting] 관리자 알림:', r.ok ? `${r.sent}명 전달` : `실패 — ${r.reason}`);
+    } catch(e) { console.warn('알림 발송 실패 (문의 접수는 정상):', e); }
     document.getElementById('resultMsg').innerHTML = `<strong>${name}</strong>님의 문의가 접수됐어요.<br>담당자가 확인 후 연락드릴게요.`;
     document.getElementById('resultOverlay').classList.add('show');
     document.getElementById('cInputContent').value = ''; document.getElementById('cInputPhone').value = '';
@@ -548,15 +562,11 @@
       const isCompany = userCategory === 'company';
       const pushMsg = `${c.name || '?'} (${c.dept || '-'})\n${text.substring(0, 80)}${text.length > 80 ? '...' : ''}`;
       try {
-        await fetch(WORKER_URL, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
-            filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }, { operator: 'OR' }, { field: 'tag', key: '역할', relation: '=', value: '관리자' }],
-            contents: { ko: pushMsg, en: pushMsg },
-            headings: { ko: isCompany ? '🏢 새 문의 메시지' : '💬 새 상담 메시지', en: 'New Message' },
-            url: 'https://dks3275-rgb.github.io/admin.html'
-          })
+        await NotifyAdmin.send({
+          db: window._firebaseDb, kind: 'consulting-reply',
+          title: isCompany ? '🏢 새 문의 메시지' : '💬 새 상담 메시지',
+          message: pushMsg,
+          url: 'https://dks3275-rgb.github.io/admin.html#consulting'
         });
       } catch(e) { console.warn('알림 발송 실패:', e); }
     } catch(e) {

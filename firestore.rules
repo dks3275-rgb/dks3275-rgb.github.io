@@ -185,13 +185,21 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // ── 앱 설정 (관리자 알림 대상 등) ──
-    // apply.html이 admin_targets 문서를 읽어 관리자에게 푸시 발송 → get 공개
-    // 수정은 관리자만 → 알림 대상 바꿔치기 차단
+    // ── 앱 설정 (관리자 알림 대상, 화면 안내문구 등) ──
+    // 신청·상담 화면이 admin_targets를 읽어 관리자에게 푸시를 보내므로 get은 공개.
+    // 수정은 관리자만 → 알림 대상 바꿔치기 차단.
+    //
+    // 예외: notify_log 한 문서만 쓰기를 연다.
+    //   로그인하지 않은 학생 화면에서 "알림이 실제로 전달됐는지"를 남겨야
+    //   관리자가 조용한 실패를 알아챌 수 있다.
+    //   덮어쓰기만 가능한 단일 문서라 피해 범위가 없고,
+    //   last 필드 하나만 건드리도록 제한한다.
     match /app_config/{id} {
       allow get: if true;
       allow list: if isAdmin();
-      allow write: if isAdmin();
+      allow write: if isAdmin()
+        || (id == 'notify_log'
+            && request.resource.data.keys().hasOnly(['last']));
     }
 
     // ── 예약 발송 ──
