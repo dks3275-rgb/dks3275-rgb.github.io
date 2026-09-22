@@ -2616,6 +2616,9 @@
         // Firestore 기반 발송 (휴지통 사용자 자동 제외)
         try {
           const { collection: col, getDocs: gDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+          // ⚠️ 위쪽 db는 if 블록 안에서 선언돼 여기서 보이지 않는다.
+          //    그래서 공지 알림 발송이 늘 조용히 실패하고 있었다. 공용 wkDb()를 쓴다.
+          const db = await wkDb();
           const userSnap = await gDocs(col(db, 'users'));
           const allUsers = userSnap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
           let recipients = target === 'all' ? allUsers
@@ -7804,6 +7807,22 @@
   // ═══════════════════════════════════════════
   // ── 신청 접수: 학습기업 관리 + 신청 목록 ──
   // ═══════════════════════════════════════════
+
+  // ── 신청 탭 기초 데이터 ──
+  // ⚠️ 옛 알림 코드와 같은 블록에 있어 함께 지워졌던 상수들.
+  const APPLY_TRACK_NAME = { ptech: 'P-TECH', college: '전문대' };
+
+  const APPLY_DEPARTMENTS = {
+    ptech: [
+      { code: 'ptech-tourism', name: '글로벌호텔관광학과' },
+      { code: 'ptech-cooking', name: '글로벌호텔조리학과' }
+    ],
+    college: [
+      { code: 'college-tourism', name: '호텔관광학과' },
+      { code: 'college-marketing', name: '마케팅경영학과' },
+      { code: 'college-tax', name: '회계세무학과' }
+    ]
+  };
 
   // ── 공용 헬퍼 (신청 탭 등에서 쓰임) ──
   // ⚠️ 옛 알림 코드를 정리할 때 함께 지워졌던 것들. 같은 블록에 섞여 있었다.
