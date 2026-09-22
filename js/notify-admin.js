@@ -69,41 +69,58 @@
       var db = await getDb(m);
       var ref = m.doc(db, 'app_config', 'admin_targets');
       var snap = await m.getDoc(ref);
-      var targets = snap.exists() ? (snap.data().oneSignalIds || []) : [];
-      out.targets = targets.length;
+      var d = snap.exists() ? snap.data() : {};
+      var subIds = d.subscriptionIds || [];      // 웹 푸시 구독 ID (이게 가장 확실하다)
+      var userIds = d.oneSignalIds || [];        // 예전 방식: 사용자 ID
+      out.targets = subIds.length || userIds.length;
 
-      if (!targets.length) {
+      if (!out.targets) {
         out.reason = '등록된 관리자 기기가 없습니다';
         await log(m, opts, out);
         return out;
       }
 
+      var body = {
+        app_id: APP_ID,
+        headings: { en: withOrg(opts.title), ko: withOrg(opts.title) },
+        contents: { en: opts.message, ko: opts.message },
+        target_channel: 'push',
+        priority: 10,
+        // ⚠️ url 과 web_url 을 함께 보내면 OneSignal이 통째로 거부한다.
+        //    ("Remove url field when setting app_url or web_url")
+        //    웹앱이므로 web_url 하나만 보낸다.
+        web_url: opts.url
+      };
+      // ⚠️ 웹 푸시는 "구독 ID"로 쏘는 게 확실하다.
+      //    사용자 ID(onesignal_id)로 보내면 구독이 제대로 안 잡혀 수신자 0명이 되는 일이 있다.
+      //    구독 ID가 있으면 그걸 쓰고, 없으면 예전 방식으로 떨어진다.
+      if (subIds.length) body.include_subscription_ids = subIds;
+      else body.include_aliases = { onesignal_id: userIds };
+
       var res = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          app_id: APP_ID,
-          headings: { en: withOrg(opts.title), ko: withOrg(opts.title) },
-          contents: { en: opts.message, ko: opts.message },
-          include_aliases: { onesignal_id: targets },
-          target_channel: 'push',
-          priority: 10,
-          // ⚠️ url 과 web_url 을 함께 보내면 OneSignal이 통째로 거부한다.
-          //    ("Remove url field when setting app_url or web_url")
-          //    웹앱이므로 web_url 하나만 보낸다.
-          web_url: opts.url
-        })
+        body: JSON.stringify(body)
       });
 
       var data = {};
       try { data = await res.json(); } catch (e) {}
 
-      // OneSignal은 아무도 못 받아도 200을 준다. recipients를 직접 봐야 한다.
-      out.sent = Number(data.recipients || 0);
-      out.ok = out.sent > 0;
+      // 성공 판정
+      //  · errors 가 있으면 실패 (거부되거나 대상이 없음)
+      //  · id 가 돌아오면 접수된 것 = 성공
+      //  ⚠️ recipients 로만 판정하면 안 된다. include_aliases 로 보내면
+      //     OneSignal이 recipients 를 아예 안 돌려주는데, 그걸 0명으로 읽어
+      //     멀쩡히 나간 알림을 '실패'로 표시하던 문제가 있었다.
+      var errs = data.errors;
+      var hasErr = !!errs && (Array.isArray(errs) ? errs.length > 0 : Object.keys(errs).length > 0);
+      out.sent = (data.recipients === undefined || data.recipients === null)
+        ? null                      // 서버가 알려주지 않음 (실패가 아니다)
+        : Number(data.recipients);
+      out.ok = res.ok && !!data.id && !hasErr;
       if (!out.ok) {
-        out.reason = (data.errors && JSON.stringify(data.errors))
-          || ('수신자 0명 (HTTP ' + res.status + ')');
+        out.reason = hasErr ? JSON.stringify(errs)
+          : (!res.ok ? ('HTTP ' + res.status) : '발송 접수 응답이 없습니다');
       }
 
       // 더 이상 유효하지 않은 ID는 기록만 남긴다.

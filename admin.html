@@ -8438,8 +8438,21 @@
           if (!OneSignal.Notifications.permission) return finish({ state: 'denied' });
           // 상담 알림이 태그로 가던 시절 호환 — 켜두면 손해 볼 게 없다
           try { await OneSignal.User.addTags({ role: 'admin', 역할: '관리자' }); } catch(e) {}
+
+          // 구독이 꺼져 있으면 켠다 (권한만 있고 구독이 꺼진 상태가 실제로 있다)
+          try {
+            if (OneSignal.User.PushSubscription.optedIn === false) {
+              await OneSignal.User.PushSubscription.optIn();
+              await new Promise(r => setTimeout(r, 1200));
+            }
+          } catch(e) {}
+
+          // ⚠️ 웹 푸시는 구독 ID(PushSubscription.id)로 쏘는 게 확실하다.
+          //    사용자 ID만 저장했더니 수신자 0명으로 나가는 일이 있었다.
           const id = OneSignal.User.onesignalId;
-          finish(id ? { state: 'ok', id } : { state: 'no-id' });
+          const subId = OneSignal.User.PushSubscription.id;
+          const optedIn = OneSignal.User.PushSubscription.optedIn;
+          finish((id || subId) ? { state: 'ok', id, subId, optedIn } : { state: 'no-id' });
         } catch(e) { finish({ state: 'error', error: e.message }); }
       });
     });
@@ -8475,7 +8488,8 @@
         const mine = _adminTargets.find(t => t.id === _myOsId) || {};
         statusEl.innerHTML = '✅ <b style="color:#166534;">이 기기로 알림을 받고 있습니다.</b>' +
           (mine.name ? ' (' + escapeHtmlSafe(mine.name) + ')' : '') +
-          '<br><span style="font-size:12px;color:#64748b;">' + escapeHtmlSafe(_deviceLabel()) + '</span>';
+          '<br><span style="font-size:12px;color:#64748b;">' + escapeHtmlSafe(_deviceLabel()) + '</span>' +
+          (r.subId ? '' : '<br><span style="font-size:12px;color:#b91c1c;font-weight:700;">⚠️ 구독 ID를 못 받았습니다. 한 번 해제했다가 다시 등록해주세요.</span>');
         btn.textContent = '🔕 이 기기 알림 끄기'; btn.style.background = '#94a3b8'; btn.disabled = false;
         const nameEl = document.getElementById('myNotifyName');
         if (nameEl && !nameEl.value) nameEl.value = mine.name || '';
@@ -8518,7 +8532,8 @@
             ${me ? '<span style="font-size:11px;font-weight:400;color:#3F4A57;"> · 이 기기</span>' : ''}</div>
           <div style="font-size:11.5px;color:#64748b;margin-top:2px;">
             ${old ? '예전 등록 · ' + escapeHtmlSafe(t.id.slice(0, 8)) + '…'
-                  : escapeHtmlSafe(t.device || '기기 정보 없음') + (t.at ? ' · ' + escapeHtmlSafe(String(t.at).slice(0,10)) : '')}</div>
+                  : escapeHtmlSafe(t.device || '기기 정보 없음') + (t.at ? ' · ' + escapeHtmlSafe(String(t.at).slice(0,10)) : '')}
+            ${(!old && !t.subId) ? '<br><span style="color:#b91c1c;font-weight:700;">⚠️ 구독 ID 없음 — 해제 후 다시 등록해주세요</span>' : ''}</div>
         </div>
         <button class="mini-btn" onclick="removeAdminTarget('${t.id}')" style="background:#fee2e2;color:#b91c1c;">해제</button>
       </div>`;
@@ -8528,8 +8543,10 @@
   async function _saveTargets(ids, devices) {
     const db = await wkDb();
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    // 실제 발송은 구독 ID로 한다. devices에 저장해둔 값을 모아 따로 보관한다.
+    const subs = [...new Set(ids.map(i => devices[i]?.subId).filter(Boolean))];
     await setDoc(doc(db, 'app_config', 'admin_targets'),
-      { oneSignalIds: ids, devices: devices, updatedAt: Date.now() }, { merge: true });
+      { oneSignalIds: ids, subscriptionIds: subs, devices: devices, updatedAt: Date.now() }, { merge: true });
   }
 
   async function toggleMyNotify() {
@@ -8562,7 +8579,8 @@
       } else {
         const nm = (document.getElementById('myNotifyName')?.value || '').trim();
         ids.push(myId);
-        devices[myId] = { name: nm, device: _deviceLabel(), at: new Date().toISOString() };
+        devices[myId] = { name: nm, device: _deviceLabel(), at: new Date().toISOString(),
+                          subId: r.subId || '', optedIn: r.optedIn !== false };
         await _saveTargets(ids, devices);
         await writeLog('update', 'admin_target', null, '관리자 알림 등록: ' + (nm || myId.slice(0,8)));
       }
@@ -8605,10 +8623,13 @@
         url: 'https://dks3275-rgb.github.io/admin.html#push'
       });
       out.innerHTML = r.ok
-        ? `<div style="color:#059669;font-weight:700;">✅ ${r.sent}명에게 전달했습니다.<br>
-           <span style="font-weight:400;font-size:12.5px;color:#4a5568;">등록 ${r.targets}명 중 ${r.sent}명 도달.
-           ${r.sent < r.targets ? '못 받은 기기는 브라우저 데이터를 지웠거나 알림을 끈 경우입니다 — 해당 담당자가 다시 등록해야 합니다.' : ''}</span></div>`
-        : `<div style="color:#b91c1c;font-weight:700;">❌ 전달 실패<br>
+        ? `<div style="color:#059669;font-weight:700;">✅ 발송했습니다 (등록 ${r.targets}대)<br>
+           <span style="font-weight:400;font-size:12.5px;color:#4a5568;">
+           ${r.sent === null || r.sent === undefined
+             ? '휴대폰에 알림이 오는지 직접 확인해주세요. OneSignal이 도달 수를 알려주지 않는 경우가 있습니다.'
+             : `${r.sent}대 도달.${r.sent < r.targets ? ' 못 받은 기기는 브라우저 데이터를 지웠거나 알림을 끈 경우입니다 — 해당 담당자가 다시 등록해야 합니다.' : ''}`}
+           </span></div>`
+        : `<div style="color:#b91c1c;font-weight:700;">❌ 발송 실패<br>
            <span style="font-weight:400;font-size:12.5px;">${escapeHtmlSafe(r.reason)}</span></div>`;
       await loadAdminNotifySetup();
       const lb = document.getElementById('notifyLogList');
@@ -8643,7 +8664,9 @@
       const db = await wkDb();
       const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const snap = await getDoc(doc(db, 'app_config', 'notify_log'));
-      const recent = (snap.exists() ? snap.data().recent : null) || [];
+      const d = snap.exists() ? snap.data() : {};
+      // recent가 생기기 전에 남은 기록도 버리지 않는다
+      const recent = d.recent || (d.last ? [d.last] : []);
       const cnt = document.getElementById('nlCount');
       const fails = recent.filter(r => !r.ok).length;
       if (cnt) cnt.textContent = recent.length
@@ -8661,7 +8684,7 @@
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;
               background:${r.ok ? '#dcfce7' : '#fee2e2'};color:${r.ok ? '#166534' : '#b91c1c'};">
-              ${r.ok ? `전달 ${r.sent}/${r.targets}` : '실패'}</span>
+              ${r.ok ? (r.sent === null || r.sent === undefined ? `발송 ${r.targets}대` : `전달 ${r.sent}/${r.targets}`) : '실패'}</span>
             <span style="font-size:12px;color:#64748b;">${escapeHtmlSafe(NL_KIND[r.kind] || r.kind || '')}</span>
             <span style="flex:1;"></span>
             <span style="font-size:11.5px;color:#94a3b8;">${escapeHtmlSafe(when)}</span>
