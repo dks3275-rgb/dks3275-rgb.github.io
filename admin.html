@@ -640,7 +640,7 @@
   <button onclick="switchTab('survey', this)">📋 만족도</button>
   <button onclick="switchTab('consulting', this)">💬 상담<span class="tab-badge" id="badgeConsulting"></span></button>
   <button onclick="switchTab('company', this)">🏢 기업</button>
-  <button onclick="switchTab('docs', this)">📝 서류</button>
+  <button onclick="switchTab('docs', this)">📝 서류<span class="tab-badge" id="badgeDocs"></span></button>
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
   <button onclick="switchTab('apply', this)">📝 신청<span class="tab-badge" id="badgeApply"></span></button>
@@ -1805,7 +1805,7 @@
     if (tab === 'survey') loadSurveyStatus();
     if (tab === 'consulting') { loadConsulting(); setTimeout(refreshTabBadges, 1200); }
     if (tab === 'company') { loadCompanies(); loadCourses(); loadCompanyAccounts(); if (!document.getElementById('ca-pw').value) genCompanyPw(); }
-    if (tab === 'docs') { loadOpinionDocs(); loadGuideTexts(); }
+    if (tab === 'docs') { loadOpinionDocs(); loadGuideTexts(); setTimeout(refreshTabBadges, 1500); }
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
     if (tab === 'apply') { loadApplications(); markApplySeen(); }
@@ -7895,6 +7895,20 @@
         return t > seen;
       }).length;
       setBadge('badgeApply', fresh);
+
+      // 서류 = 기업이 제출했지만 센터가 아직 확인하지 않은 건수
+      //   의견서·면담일지는 서명하면 'signed', 체크리스트·평가지는 'submitted'가 된다.
+      //   센터가 확인 처리하면 'confirmed'로 바뀌어 숫자에서 빠진다.
+      const [opS, cnS, ckS, asS] = await Promise.all([
+        getDocs(collection(db, 'teacherOpinions')),
+        getDocs(collection(db, 'ojtCounseling')),
+        getDocs(collection(db, 'checklists')),
+        getDocs(collection(db, 'assessments'))
+      ]);
+      const pending = [opS, cnS, ckS, asS].reduce((sum, snap) =>
+        sum + snap.docs.map(d => d.data())
+          .filter(x => x.status === 'signed' || x.status === 'submitted').length, 0);
+      setBadge('badgeDocs', pending);
     } catch(e) { /* 배지는 보조 장치라 실패해도 넘어간다 */ }
   }
 
