@@ -1233,6 +1233,12 @@
 
       <button class="send-btn" onclick="sendFirmNotify()" id="fnSendBtn" style="background:#3F4A57;">📣 이 기업에 알림 보내기</button>
       <div class="result-box" id="fnResult"></div>
+
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #E3E6EA;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:9px;">보낸 알림 내역
+          <span style="font-weight:400;color:#718096;font-size:11px;">— 기업 페이지에도 같은 내용이 보입니다</span></div>
+        <div id="fnHistory"><div class="empty-history">기업을 선택하면 보낸 내역이 나옵니다.</div></div>
+      </div>
     </div>
 
     <div class="card">
@@ -8035,8 +8041,38 @@
     return { company, users: users.filter(u => picked.has(u.deviceId || u.oneSignalId)) };
   }
 
+  // 이 기업에 보낸 알림 내역
+  async function loadFirmHistory() {
+    const el = document.getElementById('fnHistory'); if (!el) return;
+    const id = document.getElementById('fnFirm')?.value;
+    if (!id) { el.innerHTML = '<div class="empty-history">기업을 선택하면 보낸 내역이 나옵니다.</div>'; return; }
+    el.innerHTML = '<div class="empty-history">불러오는 중...</div>';
+    try {
+      const db = await wkDb();
+      const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(query(collection(db, 'firmNotifications'), where('companyId', '==', id)));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 10);
+      if (!list.length) { el.innerHTML = '<div class="empty-history">아직 보낸 알림이 없습니다.</div>'; return; }
+      el.innerHTML = list.map(n => `<div style="border:1.5px solid #E3E6EA;border-radius:10px;
+        padding:11px 13px;margin-bottom:7px;background:white;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+          <span style="font-size:13px;font-weight:700;flex:1;min-width:0;">${escapeHtmlSafe(n.title || '')}</span>
+          <span style="font-size:11.5px;color:#94a3b8;white-space:nowrap;">
+            ${n.at ? escapeHtmlSafe(new Date(n.at).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})) : ''}</span>
+        </div>
+        <div style="font-size:12.5px;color:#4a5568;line-height:1.6;white-space:pre-wrap;">${escapeHtmlSafe(n.body || '')}</div>
+        <div style="font-size:11.5px;color:#94a3b8;margin-top:6px;">
+          받는 사람 ${escapeHtmlSafe((n.to || []).join(', ') || '-')} · 전달 ${n.sent ?? '-'}명</div>
+      </div>`).join('');
+    } catch(e) {
+      el.innerHTML = '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message) + '</div>';
+    }
+  }
+
   function updateFirmNotifyInfo() {
     const el = document.getElementById('fnWho'); if (!el) return;
+    loadFirmHistory();
     const { company, users } = _fnAll();
     if (!company) { el.innerHTML = ''; updateFirmSendBtn(); return; }
 
@@ -8149,6 +8185,7 @@
       } catch(e) { console.warn('알림 기록 실패 (발송은 정상):', e); }
       await writeLog('send', 'firmNotify', company.id,
         `기업 알림: ${company.name} ${users.length}명 대상 · ${sent}명 전달 — ${title}`);
+      loadFirmHistory();
     } catch(e) {
       out.innerHTML = '<div style="color:#b91c1c;font-weight:700;">오류: ' + escapeHtmlSafe(e.message) + '</div>';
     }
