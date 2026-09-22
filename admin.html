@@ -2174,7 +2174,7 @@
     let filters = null;
     let body = {
       app_id: APP_ID,
-      headings: { en: title, ko: title },
+      headings: { en: pushTitle(title), ko: pushTitle(title) },
       contents: { en: message, ko: message },
       // 도달률 개선 옵션 (안전 검증된 것만)
       priority: 10,                    // 최고 우선순위
@@ -2697,7 +2697,7 @@
           if (targetIds.length > 0) {
             const notifBody = {
               app_id: APP_ID,
-              headings: { en: title, ko: title },
+              headings: { en: pushTitle(title), ko: pushTitle(title) },
               contents: { en: '새 공지사항이 등록됐어요. 확인해주세요!', ko: '새 공지사항이 등록됐어요. 확인해주세요!' },
               url: "https://dks3275-rgb.github.io/notice.html",
               include_aliases: { onesignal_id: targetIds },
@@ -3792,7 +3792,7 @@
         const pushBody = {
           app_id: APP_ID,
           contents: { ko: text.substring(0, 100) + (text.length > 100 ? '...' : ''), en: 'New reply' },
-          headings: { ko: headings, en: 'Reply' },
+          headings: { ko: pushTitle(headings), en: pushTitle('Reply') },
           url: 'https://dks3275-rgb.github.io/consulting.html'
         };
         if (item.oneSignalId) {
@@ -5783,7 +5783,7 @@
       const body = {
         app_id: '6bed6730-b167-48a8-a98d-83cdcb1cbc10',
         contents: { ko: item.message, en: item.message },
-        headings: { ko: item.title, en: item.title },
+        headings: { ko: pushTitle(item.title), en: pushTitle(item.title) },
         // 도달률 개선 옵션
         priority: 10,
         ttl: 259200,
@@ -5967,7 +5967,7 @@
         const notifBody = {
           app_id: APP_ID,
           contents: { ko: notifyMsg, en: notifyMsg },
-          headings: { ko: '📅 새 일정이 등록됐어요!', en: 'New Event' },
+          headings: { ko: pushTitle('📅 새 일정이 등록됐어요!'), en: pushTitle('New Event') },
           url: "https://dks3275-rgb.github.io/calendar.html"
         };
         if (notify === 'all') {
@@ -6142,7 +6142,7 @@
         const body = {
           app_id: APP_ID,
           contents: { ko: msg, en: msg },
-          headings: { ko: '📝 시험 일정이 등록됐어요!', en: 'Exam Schedule' },
+          headings: { ko: pushTitle('📝 시험 일정이 등록됐어요!'), en: pushTitle('Exam Schedule') },
           url: "https://dks3275-rgb.github.io/exam-schedule.html"
         };
         if (notify === 'all') {
@@ -8064,7 +8064,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           app_id: NotifyAdmin.APP_ID,
-          headings: { ko: title, en: title },
+          headings: { ko: pushTitle(title), en: pushTitle(title) },
           contents: { ko: body, en: body },
           include_aliases: { onesignal_id: [...new Set(users.map(u => u.oneSignalId))] },
           target_channel: 'push',
@@ -8259,6 +8259,12 @@
   //   목록에 이름·기기·등록시각을 같이 저장해, 누가 받고 있는지 보이게 한다.
   // ══════════════════════════════════════════
   const ONESIGNAL_APP_ID = '6bed6730-b167-48a8-a98d-83cdcb1cbc10';
+  // 알림 제목 앞에 기관명을 붙인다 (js/notify-admin.js 와 같은 규칙)
+  function pushTitle(t) {
+    return (window.NotifyAdmin && NotifyAdmin.withOrg)
+      ? NotifyAdmin.withOrg(t)
+      : ('AU안산대학교 일학습병행\n' + String(t || '').trim());
+  }
 
   function _deviceLabel() {
     const ua = navigator.userAgent || '';

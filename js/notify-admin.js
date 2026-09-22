@@ -27,6 +27,15 @@
   'use strict';
 
   var APP_ID = '6bed6730-b167-48a8-a98d-83cdcb1cbc10';
+  // 알림 제목 앞에 붙는 기관명.
+  // 웹 푸시는 제목·본문·주소만 보여주므로, 어디서 온 알림인지 알리려면
+  // 제목에 직접 붙이는 수밖에 없다. 여기만 고치면 전부 바뀐다.
+  var ORG = 'AU안산대학교 일학습병행';
+  function withOrg(t) {
+    t = String(t || '').trim();
+    if (!t) return ORG;
+    return t.indexOf(ORG) === 0 ? t : ORG + '\n' + t;
+  }
   var WORKER_URL = 'https://damp-leaf-0c5c.dks3275.workers.dev';
   var FS = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -50,7 +59,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           app_id: APP_ID,
-          headings: { en: opts.title, ko: opts.title },
+          headings: { en: withOrg(opts.title), ko: withOrg(opts.title) },
           contents: { en: opts.message, ko: opts.message },
           include_aliases: { onesignal_id: targets },
           target_channel: 'push',
@@ -125,5 +134,5 @@
     } catch (e) { /* 기록 실패는 발송을 막지 않는다 */ }
   }
 
-  window.NotifyAdmin = { send: send, APP_ID: APP_ID, WORKER_URL: WORKER_URL };
+  window.NotifyAdmin = { send: send, APP_ID: APP_ID, WORKER_URL: WORKER_URL, ORG: ORG, withOrg: withOrg };
 })();
