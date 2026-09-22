@@ -215,6 +215,16 @@
 <div class="container">
   <!-- 과정 목록 -->
   <div id="courseView">
+    <div class="card" id="noticeCard" style="display:none;">
+      <div class="card-title">📣 센터 알림
+        <span class="st-badge" id="ntBadge" style="margin-left:auto;display:none;"></span>
+      </div>
+      <div id="ntList"></div>
+      <button type="button" class="op-btn ghost" id="ntMore" style="width:100%;margin-top:4px;display:none;">
+        지난 알림 더 보기
+      </button>
+    </div>
+
     <div class="card">
       <div class="card-title">📘 훈련과정 <span class="hint" id="courseCount"></span></div>
       <div class="info-box" data-guide="course_list">
@@ -576,6 +586,7 @@ onAuthStateChanged(auth, async (user) => {
     $('hdrCompany').textContent = a.companyName || '학습기업 학습일지 관리';
     $('hdrEmail').textContent = (a.name ? a.name + ' · ' : '') + (user.email || '');
     loadGuides();
+    loadFirmNotices();
     loadCourses();
   } catch(e) {
     await signOut(auth);
@@ -603,6 +614,78 @@ async function loadGuides() {
 // 태그는 전부 글자로 처리하고, 줄바꿈과 **강조**만 살린다.
 function guideHtml(s) {
   return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+}
+
+// ══════════════════════════════════════════
+//  📣 센터 알림 내역
+//   푸시는 글자가 잘려서 무슨 말인지 모를 때가 있다.
+//   여기서 제목·내용 전문을 다시 볼 수 있게 남긴다.
+// ══════════════════════════════════════════
+let ntDocs = [], ntShowAll = false;
+const NT_SEEN = 'firmNoticeSeenAt';
+
+async function loadFirmNotices() {
+  const card = $('noticeCard'); if (!card || !myAccount) return;
+  try {
+    const snap = await getDocs(query(collection(db, 'firmNotifications'),
+      where('companyId', '==', myAccount.companyId)));
+    ntDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+  } catch(e) {
+    card.style.display = 'none';
+    return;   // 규칙이 아직 안 올라갔거나 권한이 없으면 조용히 숨긴다
+  }
+  renderFirmNotices();
+}
+
+function renderFirmNotices() {
+  const card = $('noticeCard');
+  if (!ntDocs.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const seen = localStorage.getItem(NT_SEEN) || '';
+  const unread = ntDocs.filter(n => (n.at || '') > seen).length;
+  const badge = $('ntBadge');
+  if (unread) {
+    badge.textContent = `새 알림 ${unread}건`;
+    badge.className = 'st-badge st-sub';
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  const list = ntShowAll ? ntDocs : ntDocs.slice(0, 3);
+  $('ntList').innerHTML = list.map(n => {
+    const isNew = (n.at || '') > seen;
+    const when = n.at ? new Date(n.at).toLocaleString('ko-KR',
+      { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div style="border:1.5px solid ${isNew ? 'var(--navy)' : 'var(--line)'};border-radius:11px;
+      padding:13px 15px;margin-bottom:8px;background:${isNew ? '#f8fbff' : 'white'};">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        ${isNew ? '<span style="font-size:11px;font-weight:700;color:var(--navy);">● 새 알림</span>' : ''}
+        <span style="flex:1;"></span>
+        <span style="font-size:11.5px;color:var(--gray);">${esc(when)}</span>
+      </div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:5px;">${esc(n.title || '')}</div>
+      <div style="font-size:13px;color:var(--sub);line-height:1.7;white-space:pre-wrap;">${esc(n.body || '')}</div>
+    </div>`;
+  }).join('');
+
+  const more = $('ntMore');
+  if (ntDocs.length > 3) {
+    more.style.display = 'block';
+    more.textContent = ntShowAll ? '접기' : `지난 알림 더 보기 (${ntDocs.length - 3}건)`;
+    more.onclick = () => { ntShowAll = !ntShowAll; renderFirmNotices(); };
+  } else {
+    more.style.display = 'none';
+  }
+
+  // 화면에 띄웠으면 읽은 것으로 본다 (다음에 열면 '새 알림' 표시가 사라진다)
+  if (unread) {
+    setTimeout(() => {
+      try { localStorage.setItem(NT_SEEN, ntDocs[0].at || new Date().toISOString()); } catch(e) {}
+    }, 2500);
+  }
 }
 
 // ══════════════════════════════════════════

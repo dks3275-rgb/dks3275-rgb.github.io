@@ -8134,6 +8134,19 @@
         ? `<div style="color:#059669;font-weight:700;">✅ ${sent}명에게 전달했습니다.</div>`
         : `<div style="color:#b91c1c;font-weight:700;">❌ 전달 실패<br>
            <span style="font-weight:400;font-size:12.5px;">${escapeHtmlSafe(data.errors ? JSON.stringify(data.errors) : 'HTTP ' + res.status)}</span></div>`;
+      // 기업 페이지에서 전문을 다시 볼 수 있게 기록을 남긴다 (푸시는 글자가 잘린다)
+      try {
+        const db = await wkDb();
+        const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        await addDoc(collection(db, 'firmNotifications'), {
+          companyId: company.id,
+          companyName: company.name || '',
+          title, body,
+          to: users.map(u => u.name || ''),
+          sent,
+          at: new Date().toISOString()
+        });
+      } catch(e) { console.warn('알림 기록 실패 (발송은 정상):', e); }
       await writeLog('send', 'firmNotify', company.id,
         `기업 알림: ${company.name} ${users.length}명 대상 · ${sent}명 전달 — ${title}`);
     } catch(e) {

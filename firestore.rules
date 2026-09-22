@@ -138,6 +138,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── 기업에 보낸 알림 기록 ──
+    // 푸시는 글자가 잘리므로 기업 페이지에서 전문을 다시 볼 수 있게 남긴다.
+    // 기업은 자기 앞으로 온 것만 읽고, 보내는 건 센터만 한다.
+    match /firmNotifications/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow write: if isAdmin();
+    }
+
     // ── 학습근로자 면담일지 (OJT · 학습근로자별 · 월 1회 이상) ──
     // 기업은 월 1회 이상, 공동훈련센터는 분기 1회 이상 작성한다.
     // writer 필드로 작성 주체를 구분한다 ('company' | 'center').
