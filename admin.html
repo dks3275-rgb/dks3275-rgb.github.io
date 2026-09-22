@@ -8167,10 +8167,33 @@
             </span>
           </div>`;
         })()}
+        <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+          <button class="mini-btn" onclick="deleteApplication('${a.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
+        </div>
       </div>`;
     });
     html += '</div>';
     listEl.innerHTML = html;
+  }
+
+  // 신청서 삭제 (관리자만).
+  // 문서 ID = 신청자 기기ID라서, 지우면 그 사람은 다시 새로 신청할 수 있게 된다.
+  async function deleteApplication(id) {
+    const a = _applications.find(x => x.id === id); if (!a) return;
+    if (!await customConfirm({ title: '신청서 삭제',
+      message: `<b>${escapeHtmlSafe(a.name || '')}</b> 님의 신청서를 삭제할까요?<br>
+        <span style="font-family:monospace;font-size:12px;">${escapeHtmlSafe(APPLY_TRACK_NAME[a.track] || '')} ${escapeHtmlSafe(applyDeptName(a.department))}</span><br><br>
+        <span style="font-size:12px;color:#92400e;">⚠️ 되돌릴 수 없습니다. 이름·연락처·주소 등 제출 내용이 모두 사라집니다.<br>
+        신청자는 앱에서 <b>다시 신청</b>할 수 있게 됩니다.</span>`,
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      const { db } = await _applyDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'applications', id));
+      _applications = _applications.filter(x => x.id !== id);
+      await writeLog('delete', 'application', id, `신청서 삭제: ${a.name || ''} (${APPLY_TRACK_NAME[a.track] || ''} ${applyDeptName(a.department)})`);
+      renderApplications();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
   function downloadApplicationsCSV() {
