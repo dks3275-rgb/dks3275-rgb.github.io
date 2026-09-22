@@ -335,7 +335,7 @@
     // 태그가 날아가 조용히 아무도 못 받는 일이 있었다.
     try {
       const r = await NotifyAdmin.send({
-        db: window._firebaseDb, kind: 'consulting',
+        kind: 'consulting',
         title: '💬 1:1 상담 신청이 왔어요!', message: pushMsg,
         url: 'https://dks3275-rgb.github.io/admin.html#consulting'
       });
@@ -374,7 +374,7 @@
     const pushMsg = `🏢 ${name} (${firm} · ${role})\n[${type}] ${content.substring(0, 60)}${content.length > 60 ? '...' : ''}`;
     try {
       const r = await NotifyAdmin.send({
-        db: window._firebaseDb, kind: 'consulting-company',
+        kind: 'consulting-company',
         title: '🏢 전담인력 문의가 왔어요!', message: pushMsg,
         url: 'https://dks3275-rgb.github.io/admin.html#consulting'
       });
@@ -563,7 +563,7 @@
       const pushMsg = `${c.name || '?'} (${c.dept || '-'})\n${text.substring(0, 80)}${text.length > 80 ? '...' : ''}`;
       try {
         await NotifyAdmin.send({
-          db: window._firebaseDb, kind: 'consulting-reply',
+          kind: 'consulting-reply',
           title: isCompany ? '🏢 새 문의 메시지' : '💬 새 상담 메시지',
           message: pushMsg,
           url: 'https://dks3275-rgb.github.io/admin.html#consulting'

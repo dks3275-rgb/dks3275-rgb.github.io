@@ -8599,7 +8599,7 @@
     try {
       const db = await wkDb();
       const r = await NotifyAdmin.send({
-        db, kind: 'test',
+        kind: 'test',
         title: '🧪 테스트 알림',
         message: '이 알림이 보이면 정상입니다 (' + new Date().toLocaleTimeString('ko-KR') + ')',
         url: 'https://dks3275-rgb.github.io/admin.html#push'

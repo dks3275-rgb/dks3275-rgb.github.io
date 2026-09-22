@@ -16,8 +16,7 @@
 
    쓰는 법
      await NotifyAdmin.send({
-       db,                       // Firestore 인스턴스
-       title: '📝 새 신청서 접수',
+       title: '📝 새 신청서 접수',   // db는 넘기지 않는다. 발송기가 알아서 연결한다.
        message: '홍길동 (P-TECH 1학년)',
        url: 'https://dks3275-rgb.github.io/admin.html#apply',
        kind: 'apply'             // 기록용 구분값
@@ -38,12 +37,37 @@
   }
   var WORKER_URL = 'https://damp-leaf-0c5c.dks3275.workers.dev';
   var FS = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  var FA = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  var CFG = {
+    apiKey: "AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc",
+    authDomain: "au-ilhaksub.firebaseapp.com",
+    projectId: "au-ilhaksub",
+    storageBucket: "au-ilhaksub.firebasestorage.app",
+    messagingSenderId: "407960160823",
+    appId: "1:407960160823:web:1e830d6b0d69e4a7b84db2"
+  };
+
+  // ⚠️ 호출하는 쪽에서 db를 받아 쓰면 안 된다.
+  //    페이지마다 Firebase SDK 버전이 다를 수 있는데(예: 상담 화면은 10.7.1),
+  //    다른 버전으로 만든 db를 10.12.0 함수에 넘기면 타입 검사에서 그대로 터진다.
+  //    실제로 그 때문에 상담 알림이 나가지도, 기록되지도 않았다.
+  //    그래서 여기서 우리 버전으로 직접 연결한다.
+  var _db = null;
+  async function getDb(m) {
+    if (_db) return _db;
+    var a = await import(FA);
+    var app = a.getApps().find(function (x) { return x.name === 'notifyAdmin'; })
+           || a.initializeApp(CFG, 'notifyAdmin');
+    _db = m.getFirestore(app);
+    return _db;
+  }
 
   async function send(opts) {
     var out = { ok: false, sent: 0, targets: 0, reason: '' };
     try {
       var m = await import(FS);
-      var ref = m.doc(opts.db, 'app_config', 'admin_targets');
+      var db = await getDb(m);
+      var ref = m.doc(db, 'app_config', 'admin_targets');
       var snap = await m.getDoc(ref);
       var targets = snap.exists() ? (snap.data().oneSignalIds || []) : [];
       out.targets = targets.length;
@@ -130,7 +154,8 @@
       dead: out.dead || []
     };
     try {
-      var ref = m.doc(opts.db, 'app_config', 'notify_log');
+      var db = await getDb(m);
+      var ref = m.doc(db, 'app_config', 'notify_log');
       var prev = [];
       try {
         var snap = await m.getDoc(ref);

@@ -574,10 +574,8 @@ async function submitApplication(db, existing, app, selectedTrack, selectedDept)
 async function notifyAdmins(data, isUpdate) {
   try {
     if (!window.NotifyAdmin) { console.warn('[apply] 발송기 미로드'); return; }
-    const db = getFirestore();
     const deptName = DEPARTMENTS[data.track]?.find(d => d.code === data.department)?.name || data.department;
     const r = await NotifyAdmin.send({
-      db,
       kind: 'apply',
       title: isUpdate ? '✏️ 신청서 수정' : '📝 새 신청서 접수',
       message: `${data.name} (${TRACK_NAME[data.track]} ${deptName})`,
