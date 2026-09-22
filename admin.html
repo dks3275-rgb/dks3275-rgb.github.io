@@ -894,6 +894,30 @@
 <div class="tab-content" id="tab-consulting">
   <div class="container">
 
+    <!-- ═══ 익명 의견함 ═══ -->
+    <div class="card">
+      <div class="card-title">
+        📨 익명 의견함
+        <span class="hint" id="fbCount"></span>
+        <button class="refresh-btn" onclick="loadFeedback()">🔄 새로고침</button>
+      </div>
+      <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#37404B;line-height:1.6;">
+        누가 보냈는지 알 수 없는 익명 의견입니다. 이름·연락처·기기 정보가 저장되지 않습니다.<br>
+        <small style="opacity:0.9;">읽은 것은 <b>확인</b>을 눌러 정리하세요. 답을 줄 수는 없습니다.</small>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <select class="form-input" id="fbFilter" onchange="renderFeedback()" style="flex:1;min-width:150px;">
+          <option value="new">🔵 안 읽은 것만</option>
+          <option value="all">전체</option>
+          <option value="suggestion">💡 건의/제안</option>
+          <option value="complaint">😐 불편/개선</option>
+          <option value="praise">👏 칭찬/격려</option>
+        </select>
+        <button class="send-btn" onclick="downloadFeedbackExcel()" style="background:#059669;flex:0 0 auto;">📊 엑셀</button>
+      </div>
+      <div id="feedbackList"><div class="empty-history">불러오는 중...</div></div>
+    </div>
+
     <!-- ═══ 면담일지 바로가기 ═══ -->
     <div class="card">
       <div class="card-title">📋 학습근로자 면담일지</div>
@@ -1803,7 +1827,7 @@
     if (tab === 'notice') loadNotices();
     if (tab === 'scheduled') loadScheduledItems();
     if (tab === 'survey') loadSurveyStatus();
-    if (tab === 'consulting') { loadConsulting(); setTimeout(refreshTabBadges, 1200); }
+    if (tab === 'consulting') { loadConsulting(); loadFeedback(); setTimeout(refreshTabBadges, 1200); }
     if (tab === 'company') { loadCompanies(); loadCourses(); loadCompanyAccounts(); if (!document.getElementById('ca-pw').value) genCompanyPw(); }
     if (tab === 'docs') { loadOpinionDocs(); loadGuideTexts(); setTimeout(refreshTabBadges, 1500); }
     if (tab === 'calendar') initCalendarTab();
@@ -7860,6 +7884,116 @@
 
   function escapeHtmlSafe(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ══════════════════════════════════════════
+  //  📨 익명 의견함
+  //   보낸 사람을 알 수 없는 게 핵심이라, 식별 정보는 저장도 표시도 하지 않는다.
+  //   status: 'new'(안 읽음) → 'read'(확인함)
+  // ══════════════════════════════════════════
+  const FB_CATS = {
+    suggestion: ['💡 건의/제안', '#eef2ff', '#3730a3'],
+    complaint:  ['😐 불편/개선', '#fff7ed', '#9a3412'],
+    praise:     ['👏 칭찬/격려', '#ecfdf5', '#065f46']
+  };
+  let _feedback = [];
+
+  async function loadFeedback() {
+    const el = document.getElementById('feedbackList'); if (!el) return;
+    el.innerHTML = '<div class="empty-history">불러오는 중...</div>';
+    try {
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(collection(db, 'feedback'));
+      _feedback = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      renderFeedback();
+    } catch(e) {
+      el.innerHTML = '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message) + '</div>';
+    }
+  }
+
+  function renderFeedback() {
+    const el = document.getElementById('feedbackList'); if (!el) return;
+    const f = document.getElementById('fbFilter')?.value || 'new';
+    let list = _feedback;
+    if (f === 'new') list = list.filter(x => x.status !== 'read');
+    else if (f !== 'all') list = list.filter(x => x.category === f);
+
+    const unread = _feedback.filter(x => x.status !== 'read').length;
+    const badge = document.getElementById('fbCount');
+    if (badge) badge.textContent = unread ? `안 읽음 ${unread}건` : `전체 ${_feedback.length}건`;
+
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-history">${f === 'new' ? '안 읽은 의견이 없습니다.' : '해당하는 의견이 없습니다.'}</div>`;
+      return;
+    }
+    el.innerHTML = list.map(x => {
+      const [label, bg, fg] = FB_CATS[x.category] || ['의견', '#f1f5f9', '#475569'];
+      const isNew = x.status !== 'read';
+      const when = x.createdAt?.seconds
+        ? new Date(x.createdAt.seconds * 1000).toLocaleString('ko-KR') : '';
+      return `<div style="border:1.5px solid ${isNew ? '#3F4A57' : '#E3E6EA'};border-radius:11px;
+        padding:13px 15px;margin-bottom:8px;background:${isNew ? 'white' : '#FAFBFC'};">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:7px;">
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};">${label}</span>
+          ${isNew ? '<span style="font-size:11px;font-weight:700;color:#dc2626;">● 안 읽음</span>' : ''}
+          <span style="flex:1;"></span>
+          <span style="font-size:11.5px;color:#94a3b8;">${escapeHtmlSafe(when)}</span>
+        </div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:5px;">${escapeHtmlSafe(x.title || '(제목 없음)')}</div>
+        <div style="font-size:13px;color:#4a5568;line-height:1.7;white-space:pre-wrap;">${escapeHtmlSafe(x.content || '')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+          ${isNew ? `<button class="mini-btn" onclick="markFeedbackRead('${x.id}')" style="background:#059669;color:white;">✅ 확인</button>`
+                  : `<button class="mini-btn" onclick="markFeedbackUnread('${x.id}')" style="background:#EEF0F3;color:#37404B;">다시 안 읽음</button>`}
+          <button class="mini-btn" onclick="deleteFeedback('${x.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function _fbSetStatus(id, status) {
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db, 'feedback', id), { status });
+      const x = _feedback.find(v => v.id === id); if (x) x.status = status;
+      renderFeedback();
+    } catch(e) { alert('처리 실패: ' + e.message); }
+  }
+  function markFeedbackRead(id)   { _fbSetStatus(id, 'read'); }
+  function markFeedbackUnread(id) { _fbSetStatus(id, 'new'); }
+
+  async function deleteFeedback(id) {
+    if (!await customConfirm({ title: '의견 삭제',
+      message: '이 의견을 지울까요?<br><br><span style="font-size:12px;color:#92400e;">되돌릴 수 없습니다.</span>',
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'feedback', id));
+      _feedback = _feedback.filter(v => v.id !== id);
+      await writeLog('delete', 'feedback', id, '익명 의견 삭제');
+      renderFeedback();
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
+
+  function downloadFeedbackExcel() {
+    if (typeof XLSX === 'undefined') { alert('엑셀 모듈이 아직 로드되지 않았어요.'); return; }
+    if (!_feedback.length) { alert('내려받을 의견이 없습니다.'); return; }
+    const data = _feedback.map((x, i) => ({
+      '연번': i + 1,
+      '분류': (FB_CATS[x.category] || ['의견'])[0].replace(/^\S+\s/, ''),
+      '제목': x.title || '',
+      '내용': x.content || '',
+      '상태': x.status === 'read' ? '확인' : '안 읽음',
+      '받은 날짜': x.createdAt?.seconds ? new Date(x.createdAt.seconds * 1000).toLocaleString('ko-KR') : ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{wch:6},{wch:12},{wch:28},{wch:60},{wch:10},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '익명의견함');
+    XLSX.writeFile(wb, `익명_의견함_${localToday()}.xlsx`);
   }
 
   // ══════════════════════════════════════════
