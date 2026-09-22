@@ -116,20 +116,29 @@
     return dead.filter(Boolean);
   }
 
-  // 마지막 발송 결과를 남긴다 — 관리자 화면이 이걸 읽어 경고를 띄운다
+  // 발송 결과를 남긴다 — 관리자 화면이 이걸 읽어 경고와 내역을 보여준다.
+  // 마지막 한 건만 남기면 "왜 안 왔는지"를 추적할 수 없어 최근 30건을 함께 쌓는다.
   async function log(m, opts, out) {
+    var rec = {
+      kind: opts.kind || '',
+      title: opts.title || '',
+      at: new Date().toISOString(),
+      ok: out.ok,
+      sent: out.sent,
+      targets: out.targets,
+      reason: out.reason || '',
+      dead: out.dead || []
+    };
     try {
-      await m.setDoc(m.doc(opts.db, 'app_config', 'notify_log'), {
-        last: {
-          kind: opts.kind || '',
-          title: opts.title || '',
-          at: new Date().toISOString(),
-          ok: out.ok,
-          sent: out.sent,
-          targets: out.targets,
-          reason: out.reason || '',
-          dead: out.dead || []
-        }
+      var ref = m.doc(opts.db, 'app_config', 'notify_log');
+      var prev = [];
+      try {
+        var snap = await m.getDoc(ref);
+        if (snap.exists()) prev = snap.data().recent || [];
+      } catch (e) {}
+      await m.setDoc(ref, {
+        last: rec,
+        recent: [rec].concat(prev).slice(0, 30)
       }, { merge: true });
     } catch (e) { /* 기록 실패는 발송을 막지 않는다 */ }
   }

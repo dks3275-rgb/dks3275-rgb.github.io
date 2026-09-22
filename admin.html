@@ -735,6 +735,16 @@
       <div style="font-size:13px;font-weight:700;margin-bottom:9px;">알림 받는 기기</div>
       <div id="adminTargetList"><div class="empty-history">불러오는 중...</div></div>
     </div>
+
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #E3E6EA;">
+      <div onclick="toggleNotifyLog()" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+        <span style="font-size:13px;font-weight:700;">최근 발송 내역</span>
+        <span id="nlCount" style="font-size:11.5px;color:#718096;"></span>
+        <span style="flex:1;"></span>
+        <span id="nlArrow" style="font-size:12px;color:#94a3b8;">▾</span>
+      </div>
+      <div id="notifyLogList" style="display:none;margin-top:10px;"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -8476,6 +8486,7 @@
       }
       renderAdminTargets();
       await checkNotifyFailure();
+      await loadNotifyLog();
     } catch(e) {
       statusEl.innerHTML = '❌ 확인 실패: ' + escapeHtmlSafe(e.message);
       if (listEl) listEl.innerHTML = '';
@@ -8600,8 +8611,67 @@
         : `<div style="color:#b91c1c;font-weight:700;">❌ 전달 실패<br>
            <span style="font-weight:400;font-size:12.5px;">${escapeHtmlSafe(r.reason)}</span></div>`;
       await loadAdminNotifySetup();
+      const lb = document.getElementById('notifyLogList');
+      if (lb && lb.style.display === 'none') toggleNotifyLog();
     } catch(e) {
       out.innerHTML = '<div style="color:#b91c1c;font-weight:700;">오류: ' + escapeHtmlSafe(e.message) + '</div>';
+    }
+  }
+
+  function toggleNotifyLog() {
+    const box = document.getElementById('notifyLogList');
+    const arr = document.getElementById('nlArrow');
+    const open = box.style.display === 'none';
+    box.style.display = open ? 'block' : 'none';
+    if (arr) arr.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  // 어떤 기능에서 온 알림인지 사람 말로 바꾼다
+  const NL_KIND = {
+    apply: '📝 신청서',
+    consulting: '💬 1:1 상담',
+    'consulting-company': '🏢 전담인력 문의',
+    'consulting-reply': '💬 상담 메시지',
+    feedback: '📨 익명 의견함',
+    test: '🧪 테스트'
+  };
+
+  // 최근 발송 내역 — "왜 안 왔는지"를 여기서 확인한다
+  async function loadNotifyLog() {
+    const el = document.getElementById('notifyLogList'); if (!el) return;
+    try {
+      const db = await wkDb();
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(db, 'app_config', 'notify_log'));
+      const recent = (snap.exists() ? snap.data().recent : null) || [];
+      const cnt = document.getElementById('nlCount');
+      const fails = recent.filter(r => !r.ok).length;
+      if (cnt) cnt.textContent = recent.length
+        ? `${recent.length}건${fails ? ` · 실패 ${fails}건` : ''}` : '없음';
+      if (!recent.length) {
+        el.innerHTML = `<div class="empty-history">아직 발송 기록이 없습니다.<br>
+          <small>신청·상담·의견함에서 알림이 나갈 때마다 여기에 쌓입니다.</small></div>`;
+        return;
+      }
+      el.innerHTML = recent.map(r => {
+        const when = r.at ? new Date(r.at).toLocaleString('ko-KR',
+          { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+        return `<div style="border:1.5px solid ${r.ok ? '#E3E6EA' : '#fca5a5'};border-radius:10px;
+          padding:10px 12px;margin-bottom:6px;background:${r.ok ? 'white' : '#fff7f7'};">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;
+              background:${r.ok ? '#dcfce7' : '#fee2e2'};color:${r.ok ? '#166534' : '#b91c1c'};">
+              ${r.ok ? `전달 ${r.sent}/${r.targets}` : '실패'}</span>
+            <span style="font-size:12px;color:#64748b;">${escapeHtmlSafe(NL_KIND[r.kind] || r.kind || '')}</span>
+            <span style="flex:1;"></span>
+            <span style="font-size:11.5px;color:#94a3b8;">${escapeHtmlSafe(when)}</span>
+          </div>
+          <div style="font-size:12.5px;color:#4a5568;margin-top:4px;">${escapeHtmlSafe(r.title || '')}</div>
+          ${!r.ok && r.reason ? `<div style="font-size:11.5px;color:#b91c1c;margin-top:3px;">${escapeHtmlSafe(r.reason)}</div>` : ''}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      el.innerHTML = '<div class="empty-history">불러오지 못했습니다: ' + escapeHtmlSafe(e.message) + '</div>';
     }
   }
 

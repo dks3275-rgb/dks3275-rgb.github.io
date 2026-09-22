@@ -208,7 +208,7 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow write: if isAdmin()
         || (id == 'notify_log'
-            && request.resource.data.keys().hasOnly(['last']));
+            && request.resource.data.keys().hasOnly(['last', 'recent']));
     }
 
     // ── 예약 발송 ──
