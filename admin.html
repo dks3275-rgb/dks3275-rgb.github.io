@@ -1213,7 +1213,7 @@
         <select class="form-input" id="fnFirm" onchange="updateFirmNotifyInfo()">
           <option value="">기업을 선택하세요</option>
         </select>
-        <div id="fnWho" style="font-size:12.5px;color:#64748b;margin-top:6px;"></div>
+        <div id="fnWho" style="margin-top:8px;"></div>
       </div>
 
       <div class="form-group">
@@ -8017,21 +8017,76 @@
     }
   }
 
-  function _fnTargets() {
+  // 이 기업에 연결된 담당자 전부 (선택 여부와 무관)
+  function _fnAll() {
     const id = document.getElementById('fnFirm')?.value;
     const c = allCompanies.find(x => x.id === id);
     if (!c) return { company: null, users: [] };
     return { company: c, users: _fnUsers.filter(u => fnNorm(u.firm) === fnNorm(c.name)) };
   }
 
+  // 실제로 보낼 사람 = 체크된 담당자만
+  function _fnTargets() {
+    const { company, users } = _fnAll();
+    if (!company) return { company: null, users: [] };
+    const picked = new Set(
+      Array.from(document.querySelectorAll('#fnWho input[type=checkbox][data-uid]:checked'))
+        .map(cb => cb.dataset.uid));
+    return { company, users: users.filter(u => picked.has(u.deviceId || u.oneSignalId)) };
+  }
+
   function updateFirmNotifyInfo() {
     const el = document.getElementById('fnWho'); if (!el) return;
+    const { company, users } = _fnAll();
+    if (!company) { el.innerHTML = ''; updateFirmSendBtn(); return; }
+
+    if (!users.length) {
+      el.innerHTML = `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;
+        padding:11px 13px;font-size:12.5px;color:#991b1b;line-height:1.6;">
+        ⚠️ <b>받을 사람이 없습니다.</b><br>
+        이 기업 담당자가 앱에 <b>전담인력</b>으로 가입하고 알림을 켜야 합니다.<br>
+        가입할 때 기업명을 <b>${escapeHtmlSafe(company.name || '')}</b> 와 같게 적어야 연결됩니다.</div>`;
+      updateFirmSendBtn(); return;
+    }
+
+    // 담당자가 여럿이면 골라서 보낼 수 있게 (기본은 전원 선택)
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+        <span style="font-size:12.5px;font-weight:700;color:#37404B;">받는 사람 ${users.length}명</span>
+        <span style="flex:1;"></span>
+        <button class="mini-btn" onclick="fnToggleAll(true)" style="background:#EEF0F3;color:#37404B;">전체 선택</button>
+        <button class="mini-btn" onclick="fnToggleAll(false)" style="background:#EEF0F3;color:#37404B;">전체 해제</button>
+      </div>
+      ${users.map(u => {
+        const uid = u.deviceId || u.oneSignalId;
+        return `<label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border:1.5px solid #E3E6EA;
+          border-radius:9px;margin-bottom:6px;background:white;cursor:pointer;">
+          <input type="checkbox" data-uid="${escapeHtmlSafe(uid)}" checked onchange="updateFirmSendBtn()"
+                 style="width:17px;height:17px;flex-shrink:0;accent-color:#3F4A57;cursor:pointer;">
+          <span style="flex:1;min-width:0;">
+            <span style="font-size:13.5px;font-weight:700;">${escapeHtmlSafe(u.name || '(이름 없음)')}</span>
+            ${u.role ? `<span style="font-size:11.5px;color:#64748b;"> · ${escapeHtmlSafe(u.role)}</span>` : ''}
+            ${u.phone ? `<br><span style="font-size:11.5px;color:#94a3b8;">${escapeHtmlSafe(u.phone)}</span>` : ''}
+          </span>
+        </label>`;
+      }).join('')}`;
+    updateFirmSendBtn();
+  }
+
+  function fnToggleAll(on) {
+    document.querySelectorAll('#fnWho input[type=checkbox][data-uid]')
+      .forEach(cb => { cb.checked = !!on; });
+    updateFirmSendBtn();
+  }
+
+  // 고른 인원수를 버튼에 그대로 보여준다 — 실수로 아무도 안 고른 채 보내는 걸 막는다
+  function updateFirmSendBtn() {
+    const btn = document.getElementById('fnSendBtn'); if (!btn) return;
     const { company, users } = _fnTargets();
-    if (!company) { el.innerHTML = ''; return; }
-    el.innerHTML = users.length
-      ? `✅ <b>${users.length}명</b>에게 갑니다 — ${users.map(u => escapeHtmlSafe(u.name || '이름없음')).join(', ')}`
-      : `⚠️ <b style="color:#b91c1c;">받을 사람이 없습니다.</b> 이 기업 담당자가 앱에 <b>전담인력</b>으로 가입하고
-         알림을 켜야 합니다. (가입 시 기업명을 <b>${escapeHtmlSafe(company.name || '')}</b> 와 같게 적어야 매칭됩니다)`;
+    if (!company) { btn.textContent = '📣 이 기업에 알림 보내기'; btn.disabled = true; btn.style.background = '#94a3b8'; return; }
+    if (!users.length) { btn.textContent = '받는 사람을 선택해주세요'; btn.disabled = true; btn.style.background = '#94a3b8'; return; }
+    btn.textContent = `📣 ${users.length}명에게 알림 보내기`;
+    btn.disabled = false; btn.style.background = '#3F4A57';
   }
 
   function applyFirmPreset(i) {
@@ -8050,10 +8105,11 @@
     const title = document.getElementById('fnTitle').value.trim();
     const body = document.getElementById('fnBody').value.trim();
     if (!company) { alert('보낼 기업을 선택해주세요.'); return; }
-    if (!users.length) { alert('이 기업에 알림을 받을 담당자가 없습니다.\n담당자가 앱에 전담인력으로 가입해야 합니다.'); return; }
+    if (!users.length) { alert('받는 사람을 한 명 이상 선택해주세요.'); return; }
     if (!title || !body) { alert('제목과 내용을 모두 입력해주세요.'); return; }
     if (!await customConfirm({ title: '기업에 알림 보내기',
-      message: `<b>${escapeHtmlSafe(company.name || '')}</b> 담당자 ${users.length}명에게 보냅니다.<br><br>
+      message: `<b>${escapeHtmlSafe(company.name || '')}</b><br>
+        <span style="font-size:12.5px;color:#4a5568;">${users.map(u => escapeHtmlSafe(u.name || '이름없음')).join(', ')} · ${users.length}명</span><br><br>
         <div style="background:#F4F5F7;border-radius:8px;padding:10px 12px;font-size:12.5px;text-align:left;">
         <b>${escapeHtmlSafe(title)}</b><br>${escapeHtmlSafe(body)}</div>`,
       confirmText: '📣 보내기' })) return;
