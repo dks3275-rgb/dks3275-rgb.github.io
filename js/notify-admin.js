@@ -55,7 +55,9 @@
           include_aliases: { onesignal_id: targets },
           target_channel: 'push',
           priority: 10,
-          url: opts.url,
+          // ⚠️ url 과 web_url 을 함께 보내면 OneSignal이 통째로 거부한다.
+          //    ("Remove url field when setting app_url or web_url")
+          //    웹앱이므로 web_url 하나만 보낸다.
           web_url: opts.url
         })
       });
