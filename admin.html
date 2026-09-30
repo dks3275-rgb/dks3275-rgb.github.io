@@ -1498,11 +1498,11 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
           <label class="form-label">작성 월</label>
-          <select class="form-input" id="op-period" onchange="renderDocsTab()"></select>
+          <select class="form-input doc-period" id="op-period" onchange="syncDocFilter(this)"></select>
         </div>
         <div class="form-group">
           <label class="form-label">기업</label>
-          <select class="form-input" id="op-company" onchange="renderDocsTab()">
+          <select class="form-input doc-company" id="op-company" onchange="syncDocFilter(this)">
             <option value="">전체 기업</option>
           </select>
         </div>
@@ -1540,7 +1540,22 @@
       </div>
       <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
         기업이 <b>학습근로자 한 명당 월 최소 1회</b> 면담하고 기록합니다. 한 달에 여러 번이면 여러 장이 쌓입니다.<br>
-        <small style="opacity:0.9;">공동훈련센터는 분기별 최소 1회 · 센터가 쓸 때는 [근로관련] 항목 제외 · 위 <b>작성 월·기업</b> 선택 적용</small>
+        <small style="opacity:0.9;">공동훈련센터는 분기별 최소 1회 · 센터가 쓸 때는 [근로관련] 항목 제외 · 아래 <b>작성 월·기업</b> 선택 적용</small>
+      </div>
+            <!-- 서류 카드마다 같은 월·기업 선택을 둔다.
+           예전에는 맨 위 의견서 카드에만 있어서, 아래로 스크롤해 내려오면
+           지금 어느 달을 보고 있는지 알 수 없었다 (위로 올라갔다 와야 했다). -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">작성 월</label>
+          <select class="form-input doc-period" onchange="syncDocFilter(this)"></select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">기업</label>
+          <select class="form-input doc-company" onchange="syncDocFilter(this)">
+            <option value="">전체 기업</option>
+          </select>
+        </div>
       </div>
       <button class="send-btn" onclick="downloadCounselExcel()" style="background:#059669;">📊 면담일지 엑셀로 내려받기</button>
       <div id="cnDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
@@ -1555,7 +1570,22 @@
 이 확인서가 <b>그 달 서류 전체의 최종 확인</b> 역할을 합니다. 출력물에 그 달 작성된 서류 현황이 자동으로 찍히고,<br>
         기업이 자필 서명한 사진을 올리면 <b>한 장으로 월 증빙이 완성</b>됩니다.<br>
         <small style="opacity:0.9;">항목은 <b>앱에서 실제로 한 일</b>만 확인합니다 — 고용24 조회·비용 신청처럼 검증할 수 없는 것은 넣지 않습니다.<br>
-        위 <b>작성 월·기업</b> 선택 적용 · '아니오' 항목이 있으면 붉게 표시됩니다.</small>
+        아래 <b>작성 월·기업</b> 선택 적용 · '아니오' 항목이 있으면 붉게 표시됩니다.</small>
+      </div>
+            <!-- 서류 카드마다 같은 월·기업 선택을 둔다.
+           예전에는 맨 위 의견서 카드에만 있어서, 아래로 스크롤해 내려오면
+           지금 어느 달을 보고 있는지 알 수 없었다 (위로 올라갔다 와야 했다). -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">작성 월</label>
+          <select class="form-input doc-period" onchange="syncDocFilter(this)"></select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">기업</label>
+          <select class="form-input doc-company" onchange="syncDocFilter(this)">
+            <option value="">전체 기업</option>
+          </select>
+        </div>
       </div>
       <button class="send-btn" onclick="downloadChecklistExcel()" style="background:#059669;">📊 체크리스트 엑셀로 내려받기</button>
       <div id="ckDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
@@ -1568,7 +1598,22 @@
       </div>
       <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
         평가지를 올리면 해당 기업 화면에 <b>내려받기</b>가 생깁니다. 기업이 작성 완료본을 올려 제출하면 여기서 확인합니다.<br>
-        <small style="opacity:0.9;">위 <b>작성 월·기업</b> 선택이 함께 적용됩니다 · 파일 1개 20MB 이하</small>
+        <small style="opacity:0.9;">아래 <b>작성 월·기업</b> 선택이 함께 적용됩니다 · 파일 1개 20MB 이하</small>
+      </div>
+            <!-- 서류 카드마다 같은 월·기업 선택을 둔다.
+           예전에는 맨 위 의견서 카드에만 있어서, 아래로 스크롤해 내려오면
+           지금 어느 달을 보고 있는지 알 수 없었다 (위로 올라갔다 와야 했다). -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">작성 월</label>
+          <select class="form-input doc-period" onchange="syncDocFilter(this)"></select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">기업</label>
+          <select class="form-input doc-company" onchange="syncDocFilter(this)">
+            <option value="">전체 기업</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">평가지를 올릴 훈련과정</label>
@@ -4259,17 +4304,18 @@
 
   // 그 서류가 속한 달로 화면을 옮긴다 (기업 필터는 풀어둔다 — 안 그러면 또 안 보일 수 있다)
   function pendingGoto(period) {
-    const ps = document.getElementById('op-period');
-    const cs = document.getElementById('op-company');
-    if (!ps) return;
-    if (!Array.from(ps.options).some(o => o.value === period)) {
-      // 선택지에 없는 지난 달이면 임시로 추가한다
-      const o = document.createElement('option');
-      o.value = period; o.textContent = opYmLabel(period) + ' (지난 기록)';
-      ps.appendChild(o);
-    }
-    ps.value = period;
-    if (cs) cs.value = '';
+    const pss = document.querySelectorAll('.doc-period');
+    if (!pss.length) return;
+    pss.forEach(ps => {
+      if (!Array.from(ps.options).some(o => o.value === period)) {
+        // 선택지에 없는 지난 달이면 임시로 추가한다
+        const o = document.createElement('option');
+        o.value = period; o.textContent = opYmLabel(period) + ' (지난 기록)';
+        ps.appendChild(o);
+      }
+      ps.value = period;
+    });
+    document.querySelectorAll('.doc-company').forEach(cs => { cs.value = ''; });
     renderDocsTab();
     document.getElementById('opDocList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -4367,7 +4413,8 @@
   function filterDocsByCompany(companyId) {
     const sel = document.getElementById('op-company');
     if (!sel) return;
-    sel.value = sel.value === companyId ? '' : companyId;   // 다시 누르면 전체로
+    const next = sel.value === companyId ? '' : companyId;   // 다시 누르면 전체로
+    document.querySelectorAll('.doc-company').forEach(s => { s.value = next; });
     renderDocsTab();
     document.getElementById('opDocList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -4377,19 +4424,27 @@
   //  (제출 현황 표는 지난 달 기준이라 앞쪽 달을 넣지 않는다 — 넣으면 전부 미제출로 붉게 떠서 혼란)
   const MONTHS_AHEAD = 3, MONTHS_BACK = 15;
   function buildOpPeriodSelect() {
-    const sel = document.getElementById('op-period');
-    if (!sel || sel.options.length) return;
+    const sels = document.querySelectorAll('.doc-period');
+    if (!sels.length || sels[0].options.length) return;
     const now = new Date();
     const cur = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
     const d = new Date(now.getFullYear(), now.getMonth() + MONTHS_AHEAD, 1);
     let html = '';
     for (let i = 0; i < MONTHS_AHEAD + MONTHS_BACK; i++) {
       const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      html += `<option value="${ym}"${ym === cur ? ' selected' : ''}>${opYmLabel(ym)}${ym > cur ? ' (예정)' : ''}</option>`;
+      html += `<option value="${ym}">${opYmLabel(ym)}${ym > cur ? ' (예정)' : ''}</option>`;
       d.setMonth(d.getMonth() - 1);
     }
-    sel.innerHTML = html;
-    sel.value = cur;   // 기본은 이번 달
+    sels.forEach(s => { s.innerHTML = html; s.value = cur; });   // 기본은 이번 달
+  }
+
+  // ══════ 서류 탭의 월·기업 선택 맞추기 ══════
+  // 카드마다 같은 선택 상자를 두되, 값은 항상 하나로 유지한다.
+  // (서로 다른 달을 가리키면 어느 쪽이 맞는지 알 수 없어 더 헷갈린다)
+  function syncDocFilter(el) {
+    const cls = el.classList.contains('doc-period') ? '.doc-period' : '.doc-company';
+    document.querySelectorAll(cls).forEach(s => { if (s !== el) s.value = el.value; });
+    renderDocsTab();
   }
 
   async function loadOpinionDocs() {
@@ -4414,13 +4469,13 @@
       if (!allCourses.length)   await loadCourses();
       if (!allWorkers.length)   await loadWorkers();
       // 기업 선택지
-      const csel = document.getElementById('op-company');
-      if (csel) {
-        const cur = csel.value;
-        csel.innerHTML = '<option value="">전체 기업</option>' +
+      const csels = document.querySelectorAll('.doc-company');
+      if (csels.length) {
+        const cur = csels[0].value;
+        const html = '<option value="">전체 기업</option>' +
           allCompanies.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'))
             .map(c => `<option value="${c.id}">${escapeHtmlSafe(c.name || '')}</option>`).join('');
-        csel.value = cur;
+        csels.forEach(s => { s.innerHTML = html; s.value = cur; });
       }
       renderOpinionDocs();
       renderCounselDocs();
