@@ -1450,6 +1450,25 @@
 <!-- 서류 탭 (기업현장교사 의견서) -->
 <div class="tab-content" id="tab-docs">
   <div class="container">
+
+    <!-- ═══ 센터 확인 대기 (달·기업 선택과 무관하게 전부) ═══
+         옆 메뉴의 '서류' 숫자는 모든 달을 세는데, 아래 목록들은 '작성 월'로 걸러진다.
+         그래서 기업이 지난 달로 제출하면 숫자만 오르고 목록에는 안 보였다.
+         (학습근로자가 명단에서 빠졌을 때도 마찬가지로 사라졌다.)
+         이 카드는 문서 자체를 훑기 때문에 숫자와 목록이 항상 일치한다. -->
+    <div class="card" id="pendingCard" style="display:none;">
+      <div class="card-title">
+        ⏳ 센터 확인 대기
+        <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
+      </div>
+      <div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#7C2D12;line-height:1.65;">
+        기업이 제출했지만 <b>센터가 아직 확인하지 않은 서류</b>입니다.
+        아래 목록들과 달리 <b>모든 달·모든 기업</b>을 한 번에 보여줍니다.<br>
+        <small style="opacity:0.9;">항목을 누르면 해당 월로 이동합니다 · 옆 메뉴의 <b>서류</b> 숫자와 항상 같습니다</small>
+      </div>
+      <div id="pendingList"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">
         📊 기업별 제출 현황
@@ -4132,7 +4151,7 @@
       await writeLog('update', 'teacherOpinion', id, `의견 초안 등록: ${next.companyName} ${next.workerName} ${period} (${next.rows.length}기간)`);
       out.innerHTML = `<div style="color:#059669;font-weight:700;">✅ 초안을 저장했습니다.<br>
         <span style="font-weight:400;font-size:12.5px;color:#4a5568;">${escapeHtmlSafe(next.companyName)} 기업 화면에서 확인·서명할 수 있습니다.</span></div>`;
-      renderOpinionDocs(); renderDocsMatrix();
+      renderOpinionDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) {
       out.innerHTML = `<div style="color:#b91c1c;font-weight:700;">저장 실패: ${escapeHtmlSafe(e.message || '')}</div>`;
     }
@@ -4164,8 +4183,95 @@
   function opYmLabel(ym) { if (!ym) return '-'; const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
   // 월·기업 선택을 바꾸면 의견서와 체크리스트를 함께 다시 그린다
   function renderDocsTab() {
+    renderPendingDocs();
     renderOpinionDocs(); renderCounselDocs(); renderChecklistDocs(); renderAssessDocs(); renderDocsMatrix();
     loadOpinionDraft();   // ⚠️ 월이 바뀌면 초안 편집기도 그 달 내용으로 다시 채운다
+  }
+
+  // ══════ ⏳ 센터 확인 대기 — 모든 달·모든 기업 ══════
+  //
+  // ⚠️ 왜 만들었나 (같은 신고가 또 들어오지 않도록 적어둔다)
+  //    옆 메뉴의 '서류' 숫자는 컬렉션 전체를 세는데,
+  //    아래 목록들(의견서·면담일지·체크리스트·평가지)은 전부 '작성 월'로 걸러진다.
+  //    그래서 기업이 지난 달로 제출하면 숫자만 오르고 목록에는 안 보였다.
+  //    학습근로자가 명단에서 빠졌을 때(삭제·중도탈락)도 똑같이 사라졌다 —
+  //    아래 목록은 '명단에 있는 학습근로자'를 먼저 깔고 거기에 서류를 붙이는 구조라
+  //    주인이 없는 서류는 화면에 나올 자리가 아예 없었기 때문이다.
+  //
+  //    이 카드는 반대로 '문서'를 먼저 훑는다. 그래서 숫자와 목록이 항상 일치한다.
+  const PENDING_KINDS = [
+    { key: 'op', label: '📝 의견서',     st: 'signed',    view: 'viewOpinion',   ok: 'confirmOpinionDoc', list: () => allOpinions },
+    { key: 'cn', label: '🗣️ 면담일지',   st: 'signed',    view: 'viewCounsel',   ok: 'confirmCounsel',    list: () => allCounsels },
+    { key: 'ck', label: '✅ 확인서',     st: 'submitted', view: 'viewChecklist', ok: 'confirmChecklist',  list: () => allChecklists },
+    { key: 'as', label: '📄 내부평가지', st: 'submitted', view: '',              ok: 'confirmAssess',     list: () => allAssessments }
+  ];
+
+  function pendingItems() {
+    const out = [];
+    PENDING_KINDS.forEach(k => {
+      (k.list() || []).forEach(d => {
+        if (d.status !== k.st) return;
+        out.push({
+          kind: k, id: d.id, period: d.period || '',
+          who: d.workerName || d.courseType || '-',
+          company: d.companyName || '-',
+          when: d.signedAt || d.submittedAt || d.updatedAt || ''
+        });
+      });
+    });
+    // 오래 기다린 것부터
+    return out.sort((a, b) => (a.when || '').localeCompare(b.when || ''));
+  }
+
+  function renderPendingDocs() {
+    const card = document.getElementById('pendingCard');
+    const el = document.getElementById('pendingList');
+    if (!card || !el) return;
+    const items = pendingItems();
+    if (!items.length) { card.style.display = 'none'; el.innerHTML = ''; return; }
+    card.style.display = '';
+
+    const curPeriod = document.getElementById('op-period')?.value || '';
+    const E = escapeHtmlSafe;
+    el.innerHTML = items.map(it => {
+      const off = it.period && it.period !== curPeriod;   // 지금 보고 있는 달이 아님
+      return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+            border:1.5px solid ${off ? '#FED7AA' : '#E3E6EA'};border-radius:11px;
+            padding:11px 13px;margin-bottom:8px;background:${off ? '#FFFBF5' : 'white'};">
+        <div style="flex:1;min-width:170px;">
+          <div style="font-size:13.5px;font-weight:700;">${it.kind.label}
+            <span style="font-weight:400;color:#334155;"> · ${E(it.who)}</span></div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">
+            ${E(it.company)} · ${E(opYmLabel(it.period))}
+            ${off ? '<b style="color:#c2410c;"> · 다른 달</b>' : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${off ? `<button class="mini-btn" onclick="pendingGoto('${E(it.period)}')"
+                    style="background:#fed7aa;color:#7c2d12;">📅 이 달 보기</button>` : ''}
+          ${it.kind.view ? `<button class="mini-btn" onclick="${it.kind.view}('${E(it.id)}')"
+                    style="background:#3F4A57;color:white;">📄 보기</button>` : ''}
+          <button class="mini-btn" onclick="${it.kind.ok}('${E(it.id)}')"
+                  style="background:#059669;color:white;">✅ 확인 처리</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // 그 서류가 속한 달로 화면을 옮긴다 (기업 필터는 풀어둔다 — 안 그러면 또 안 보일 수 있다)
+  function pendingGoto(period) {
+    const ps = document.getElementById('op-period');
+    const cs = document.getElementById('op-company');
+    if (!ps) return;
+    if (!Array.from(ps.options).some(o => o.value === period)) {
+      // 선택지에 없는 지난 달이면 임시로 추가한다
+      const o = document.createElement('option');
+      o.value = period; o.textContent = opYmLabel(period) + ' (지난 기록)';
+      ps.appendChild(o);
+    }
+    ps.value = period;
+    if (cs) cs.value = '';
+    renderDocsTab();
+    document.getElementById('opDocList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // ══════ 기업 × 월 제출 현황 한눈에 보기 ══════
@@ -4320,7 +4426,7 @@
       renderCounselDocs();
       renderChecklistDocs();
       renderAssessDocs();
-      renderDocsMatrix();
+      renderDocsMatrix(); renderPendingDocs();
     } catch(e) {
       if (el) el.innerHTML = '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message || '') + '</div>';
     }
@@ -4462,7 +4568,7 @@
       await updateDoc(doc(db, 'teacherOpinions', id), { status: 'confirmed', confirmedAt: when });
       Object.assign(o, { status: 'confirmed', confirmedAt: when });
       await writeLog('update', 'teacherOpinion', id, `의견서 확인: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
-      renderOpinionDocs(); renderDocsMatrix();
+      renderOpinionDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('처리 실패: ' + e.message); }
   }
 
@@ -4481,7 +4587,7 @@
       await updateDoc(doc(db, 'teacherOpinions', id), patch);
       Object.assign(o, patch);
       await writeLog('update', 'teacherOpinion', id, `의견서 잠금 해제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}`);
-      renderOpinionDocs(); renderDocsMatrix();
+      renderOpinionDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('처리 실패: ' + e.message); }
   }
 
@@ -4576,7 +4682,7 @@
       out.innerHTML = `<div style="color:#059669;font-weight:700;">✅ 평가지 ${added.length}개를 등록했습니다.<br>
         <span style="font-weight:400;font-size:12.5px;color:#4a5568;">${escapeHtmlSafe(next.companyName)} 기업 화면에 내려받기가 생겼습니다.</span></div>`;
       renderAssessDocs();
-      renderDocsMatrix();
+      renderDocsMatrix(); renderPendingDocs();
     } catch(e) {
       prog.innerHTML = '';
       out.innerHTML = `<div style="color:#b91c1c;font-weight:700;">등록 실패: ${escapeHtmlSafe(e.message || '')}</div>`;
@@ -4676,7 +4782,7 @@
       await updateDoc(doc(db, 'assessments', id), patch);
       Object.assign(a, patch);
       await writeLog('update', 'assessment', id, `${logText}: ${a.companyName || ''} ${a.courseType || ''} ${a.period || ''}`);
-      renderAssessDocs(); renderDocsMatrix();
+      renderAssessDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('처리 실패: ' + e.message); }
   }
   async function confirmAssess(id) {
@@ -4719,7 +4825,7 @@
       if (kind === 'done' && !list.length && a.status === 'submitted') patch.status = 'sheetReady';
       await updateDoc(doc(db, 'assessments', id), patch);
       Object.assign(a, patch);
-      renderAssessDocs(); renderDocsMatrix();
+      renderAssessDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
@@ -4745,7 +4851,7 @@
       await deleteDoc(doc(db, 'assessments', id));
       allAssessments = allAssessments.filter(x => x.id !== id);
       await writeLog('delete', 'assessment', id, `내부평가지 삭제: ${a.companyName || ''} ${a.courseType || ''} ${a.period || ''}`);
-      renderAssessDocs(); renderDocsMatrix();
+      renderAssessDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
@@ -4859,7 +4965,17 @@
 
     const rows = opExpectedRows(period, companyId);   // 대상 학습근로자 (의견서와 동일 기준)
     const mine = allCounsels.filter(c => c.period === period);
-    if (!rows.length) { el.innerHTML = '<div class="empty-history">해당 조건에 학습근로자가 없습니다.</div>'; return; }
+
+    // ⚠️ 이 목록은 '명단에 있는 학습근로자'를 깔고 거기에 일지를 붙이는 구조라,
+    //    명단에서 빠진 사람(삭제·중도탈락)의 일지는 나올 자리가 없어 사라졌다.
+    //    주인 없는 일지는 아래에 따로 모아 보여준다.
+    const shownIds = new Set(rows.map(r => r.worker.id));
+    const orphans = mine.filter(c => !shownIds.has(c.workerId)
+      && (!companyId || c.companyId === companyId));
+
+    if (!rows.length && !orphans.length) {
+      el.innerHTML = '<div class="empty-history">해당 조건에 학습근로자가 없습니다.</div>'; return;
+    }
 
     const none = rows.filter(r => !mine.some(c => c.workerId === r.worker.id)).length;
     el.innerHTML = `<div style="font-size:12.5px;color:#64748b;margin-bottom:10px;">
@@ -4902,7 +5018,39 @@
             </div>`;
           }).join('')}
         </div>`;
-      }).join('');
+      }).join('') + orphanHtml();
+
+    // 명단에 없는 학습근로자의 일지 (삭제·중도탈락 등) — 안 보이면 확인도 삭제도 못 한다
+    function orphanHtml() {
+      if (!orphans.length) return '';
+      return `<div style="margin-top:14px;border:1.5px solid #FED7AA;border-radius:11px;
+            padding:12px 14px;background:#FFFBF5;">
+        <div style="font-size:13px;font-weight:700;color:#7C2D12;margin-bottom:4px;">
+          ⚠️ 명단에 없는 학습근로자의 일지 ${orphans.length}건</div>
+        <div style="font-size:12px;color:#7C2D12;opacity:0.85;margin-bottom:10px;">
+          명단에서 빠졌거나(삭제·중도탈락) 소속이 바뀐 경우입니다. 기록은 그대로 남아 있습니다.</div>
+        ${orphans.map(c => {
+          const st = CN_ST_A[c.status] ? c.status : 'draft';
+          const [label, bg, fg] = CN_ST_A[st];
+          return `<div style="margin-top:8px;padding:10px 12px;background:white;border-radius:9px;">
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12.5px;font-weight:700;">${escapeHtmlSafe(c.workerName || '-')}
+                  <span style="font-weight:400;color:#64748b;"> · ${escapeHtmlSafe(c.companyName || '-')}</span></div>
+                <div style="font-size:11.5px;color:#64748b;margin-top:1px;">
+                  ${escapeHtmlSafe(c.meetDate || '-')} · ${escapeHtmlSafe(c.authorRole || '')} ${escapeHtmlSafe(c.authorName || '')}</div>
+              </div>
+              <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};white-space:nowrap;">${label}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+              <button class="mini-btn" onclick="viewCounsel('${c.id}')" style="background:#3F4A57;color:white;">📄 보기 · 인쇄</button>
+              ${st === 'signed' ? `<button class="mini-btn" onclick="confirmCounsel('${c.id}')" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+              <button class="mini-btn" onclick="deleteCounsel('${c.id}')" style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
   }
 
   function viewCounsel(id) {
@@ -4975,7 +5123,7 @@
       await updateDoc(doc(db, 'ojtCounseling', id), patch);
       Object.assign(c, patch);
       await writeLog('update', 'ojtCounseling', id, `${logText}: ${c.companyName || ''} ${c.workerName || ''} ${c.period || ''}`);
-      renderCounselDocs();
+      renderCounselDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('처리 실패: ' + e.message); }
   }
   async function confirmCounsel(id) {
@@ -5238,7 +5386,7 @@
       await updateDoc(doc(db, 'checklists', id), patch);
       Object.assign(c, patch);
       await writeLog('update', 'checklist', id, `${logText}: ${c.companyName || ''} ${c.courseType || ''} ${c.period || ''}`);
-      renderChecklistDocs(); renderDocsMatrix();
+      renderChecklistDocs(); renderDocsMatrix(); renderPendingDocs();
       return true;
     } catch(e) { alert('처리 실패: ' + e.message); return false; }
   }
@@ -5275,7 +5423,7 @@
       await deleteDoc(doc(db, 'checklists', id));
       allChecklists = allChecklists.filter(x => x.id !== id);
       await writeLog('delete', 'checklist', id, `체크리스트 삭제: ${c.companyName || ''} ${c.courseType || ''} ${c.period || ''}`);
-      renderChecklistDocs(); renderDocsMatrix();
+      renderChecklistDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 
@@ -5349,7 +5497,7 @@
       allOpinions = allOpinions.filter(x => x.id !== id);
       await writeLog('delete', 'teacherOpinion', id,
         `의견서 삭제: ${o.companyName || ''} ${o.workerName || ''} ${o.period || ''}${signed ? ' (서명본)' : ''}`);
-      renderOpinionDocs(); renderDocsMatrix();
+      renderOpinionDocs(); renderDocsMatrix(); renderPendingDocs();
     } catch(e) { alert('삭제 실패: ' + e.message); }
   }
 

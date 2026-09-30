@@ -523,7 +523,7 @@
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, query, where }
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const FB_CFG = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
@@ -1447,6 +1447,9 @@ async function loadCounsels() {
           </div>
           <span class="st-badge ${cls}">${label}</span>
           <button class="op-btn ghost" data-cnopen="${esc(d.id)}" style="padding:6px 11px;">열기</button>
+          ${st === 'confirmed' ? '' :
+            `<button class="op-btn ghost" data-cndel="${esc(d.id)}" title="삭제"
+                     style="padding:6px 10px;color:#b91c1c;border-color:#fecaca;">🗑️</button>`}
         </div>`;
       }).join('')}
     </div>`;
@@ -1454,6 +1457,25 @@ async function loadCounsels() {
 
   el.querySelectorAll('[data-cnnew]').forEach(b => { b.onclick = () => openCounsel(null, b.dataset.cnnew); });
   el.querySelectorAll('[data-cnopen]').forEach(b => { b.onclick = () => openCounsel(b.dataset.cnopen); });
+  el.querySelectorAll('[data-cndel]').forEach(b => { b.onclick = () => deleteCounselDoc(b.dataset.cndel); });
+}
+
+// 잘못 만든 면담일지를 기업이 직접 지운다.
+// 센터가 '확인 완료'한 것은 지울 수 없다(버튼도 안 나온다) — 규칙에서도 한 번 더 막는다.
+async function deleteCounselDoc(id) {
+  const d = cnDocs.find(x => x.id === id); if (!d) return;
+  if (!confirm(`${d.workerName || ''} · ${d.meetDate || ''} 면담일지를 삭제합니다.\n\n`
+    + `지우면 되돌릴 수 없습니다.\n계속할까요?`)) return;
+  try {
+    await deleteDoc(doc(db, 'ojtCounseling', id));
+    cnDocs = cnDocs.filter(x => x.id !== id);
+    if (curCounsel?.id === id) curCounsel = null;
+    toast('🗑️ 삭제했습니다');
+    await loadCounsels();
+  } catch(e) {
+    console.error('[delete counsel]', e);
+    alert(saveFailMsg(e, '삭제'));
+  }
 }
 
 function openCounsel(docId, workerId) {
@@ -1781,9 +1803,32 @@ function renderCkActions(locked) {
   }
   bar.innerHTML =
     `<button class="act-save" id="ckSave">임시저장</button>` +
-    `<button class="act-sub" id="ckSubmit">✍️ 서명하고 제출</button>`;
+    `<button class="act-sub" id="ckSubmit">✍️ 서명하고 제출</button>` +
+    // 이미 저장된 작성 중 문서가 있을 때만 삭제를 보여준다 (빈 화면에 삭제 버튼은 혼란스럽다)
+    (curChecklist ? `<button class="act-save" id="ckDel"
+        style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>` : '');
   $('ckSave').onclick = () => saveChecklist(false);
   $('ckSubmit').onclick = () => saveChecklist(true);
+  if ($('ckDel')) $('ckDel').onclick = deleteChecklistDoc;
+}
+
+// 작성 중인 확인서를 기업이 직접 지운다.
+// 제출(서명)한 뒤에는 잠기므로 이 버튼 자체가 나오지 않는다 —
+// 그때는 센터에 '잠금 해제'를 요청해야 한다.
+async function deleteChecklistDoc() {
+  if (!curChecklist) return;
+  const period = $('periodSel').value;
+  if (!confirm(`${ymLabel(period)} 확인서를 삭제합니다.\n\n`
+    + `작성한 내용이 모두 없어지고 되돌릴 수 없습니다.\n계속할까요?`)) return;
+  try {
+    await deleteDoc(doc(db, 'checklists', curChecklist.id));
+    curChecklist = null;
+    toast('🗑️ 삭제했습니다');
+    await loadChecklist();
+  } catch(e) {
+    console.error('[delete checklist]', e);
+    alert(saveFailMsg(e, '삭제'));
+  }
 }
 
 async function saveChecklist(submit) {

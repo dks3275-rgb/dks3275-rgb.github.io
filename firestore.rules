@@ -146,7 +146,13 @@ service cloud.firestore {
             && resource.data.companyId == myCompanyId()
             && request.resource.data.companyId == resource.data.companyId
             && resource.data.get('locked', false) != true);
-      allow delete: if isAdmin();
+      // 기업 삭제: 아직 제출(서명)하지 않은 '작성 중'일 때만.
+      //   제출한 뒤에는 잠기므로 센터가 잠금을 풀어줘야 한다.
+      allow delete: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && resource.data.get('locked', false) != true
+            && resource.data.get('status', '') != 'confirmed');
     }
 
     // ── 기업에 보낸 알림 기록 ──
@@ -174,7 +180,15 @@ service cloud.firestore {
             && resource.data.get('writer', '') == 'company'
             && request.resource.data.companyId == resource.data.companyId
             && resource.data.get('status', '') != 'confirmed');
-      allow delete: if isAdmin();
+      // 기업 삭제: 잘못 만든 일지를 스스로 지울 수 있다.
+      //   한 달에 여러 장 쌓이는 서류라 오작성이 잦은데,
+      //   그때마다 센터에 연락해야 하면 서로 번거롭다.
+      //   단, 센터가 확인을 마친 것은 증빙이므로 지울 수 없다.
+      allow delete: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && resource.data.get('writer', '') == 'company'
+            && resource.data.get('status', '') != 'confirmed');
     }
 
     // ── 내부평가지 (훈련과정별·월별 · 파일 왕복) ──
