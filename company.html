@@ -2099,9 +2099,12 @@ async function loadAssessment() {
 }
 
 // ══════ 평가일 안내 ══════
-// 평가지에는 '평가일'을 손으로 적어 넣어야 하는데, 그 날짜는 센터가 정한다.
-// 기업은 모르는 경우가 많아 비워두거나 제각각 적어 와서 다시 받는 일이 있었다.
-// 그래서 내려받는 바로 그 자리에 "이 날짜로 적어주세요"라고 글자로 띄워준다.
+// 평가지에 들어가는 '평가일'은 센터가 정하는데 기업은 모르는 경우가 많다.
+// 그래서 내려받는 자리에 날짜를 같이 띄워준다.
+//
+// ⚠️ 날짜만 보여주고 "이렇게 적으세요" 같은 말은 넣지 않는다.
+//    기업 화면은 담당자 말고 다른 사람이 볼 수도 있는데,
+//    서류를 특정 날짜로 맞춰 쓰라고 시키는 것처럼 읽힐 수 있다.
 function evalNotice(a) {
   const date = (a?.evalDate || '').trim();
   const note = (a?.evalNote || '').trim();
@@ -2109,12 +2112,9 @@ function evalNotice(a) {
 
   return `<div style="border:1.5px solid #FDBA74;background:#FFF7ED;border-radius:11px;
        padding:12px 14px;margin-bottom:12px;">
-    ${date ? `<div style="font-size:12px;font-weight:700;color:#9A3412;">
-        📅 평가지에 적을 <b>평가일</b></div>
+    ${date ? `<div style="font-size:12px;font-weight:700;color:#9A3412;">📅 평가일</div>
       <div style="font-size:17px;font-weight:800;color:#7C2D12;margin-top:3px;letter-spacing:-0.3px;">
-        ${esc(evalDateLabel(date))}</div>
-      <div style="font-size:12px;color:#9A3412;margin-top:4px;line-height:1.6;">
-        평가지의 <b>평가일</b> 칸에 이 날짜로 적어주세요.</div>` : ''}
+        ${esc(evalDateLabel(date))}</div>` : ''}
     ${note ? `<div style="font-size:12.5px;color:#7C2D12;margin-top:${date ? '8' : '0'}px;
         padding-top:${date ? '8' : '0'}px;${date ? 'border-top:1px solid #FDBA74;' : ''}line-height:1.6;">
         ${esc(note)}</div>` : ''}
