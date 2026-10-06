@@ -1003,6 +1003,18 @@ const ST_INFO = {
 };
 
 function ymNow() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+
+// 화면을 열었을 때 기본으로 잡히는 달 = 지난달.
+//   학습일지는 '훈련을 마친 달'을 되돌아보며 쓰는 서류라,
+//   10월에 들어와서 쓰는 건 보통 9월치다.
+//   이번 달로 열어두면 매번 한 칸씩 되돌리게 되고,
+//   그대로 지나치면 엉뚱한 달에 저장돼 센터 화면에서 안 보이는 일이 생겼다.
+function ymDefault() {
+  const d = new Date();
+  d.setDate(1);                 // 31일에 setMonth(-1) 하면 달이 튀므로 1일로 맞추고 뺀다
+  d.setMonth(d.getMonth() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
 function ymLabel(ym) { const [y, m] = ym.split('-'); return `${y}년 ${Number(m)}월`; }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
@@ -1021,7 +1033,7 @@ function monthOptions() {
 (function buildPeriods() {
   const sel = $('periodSel'); if (!sel) return;
   sel.innerHTML = monthOptions().map(o => `<option value="${o.ym}">${o.label}</option>`).join('');
-  sel.value = ymNow();
+  sel.value = ymDefault();   // 기본은 지난달 (훈련을 마친 달)
   sel.onchange = () => { loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment(); };
 })();
 

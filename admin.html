@@ -4543,7 +4543,11 @@
       html += `<option value="${ym}">${opYmLabel(ym)}${ym > cur ? ' (예정)' : ''}</option>`;
       d.setMonth(d.getMonth() - 1);
     }
-    sels.forEach(s => { s.innerHTML = html; s.value = cur; });   // 기본은 이번 달
+    // 기본은 지난달 — 서류는 훈련을 마친 달 것을 다루기 때문이다.
+    // 기업 화면(company.html)도 같은 기준으로 열리므로 양쪽이 같은 달을 가리킨다.
+    const p = new Date(); p.setDate(1); p.setMonth(p.getMonth() - 1);
+    const prev = p.getFullYear() + '-' + String(p.getMonth() + 1).padStart(2, '0');
+    sels.forEach(s => { s.innerHTML = html; s.value = prev; });
   }
 
   // ══════ 서류 탭의 월·기업 선택 맞추기 ══════
