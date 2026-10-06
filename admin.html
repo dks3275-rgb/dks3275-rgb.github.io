@@ -1420,7 +1420,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">로그인 아이디 (이메일 형식)</label>
-        <input type="email" class="form-input" id="ca-email" placeholder="erex@au-ilhak.kr">
+        <input type="email" class="form-input" id="ca-email" placeholder="daeil-1@audual.kr">
         <div style="font-size:11.5px;color:#718096;margin-top:4px;">
           <b>실제 메일 주소</b>를 쓰면 비밀번호를 잊었을 때 재설정 메일로 복구할 수 있습니다.
         </div>
@@ -1437,7 +1437,7 @@
             <input type="text" class="form-input" id="ca-idLocal" placeholder="daeil-1"
                    style="flex:1;min-width:110px;font-family:monospace;">
             <span style="font-weight:700;color:#64748b;">@</span>
-            <input type="text" class="form-input" id="ca-idDomain" value="au-ilhak.kr"
+            <input type="text" class="form-input" id="ca-idDomain" value="audual.kr"
                    style="flex:1;min-width:110px;font-family:monospace;">
             <button class="refresh-btn" type="button" onclick="makeLoginId()" style="flex-shrink:0;">만들기</button>
           </div>
@@ -3267,7 +3267,7 @@
       .replace(/[^a-z0-9._-]/g, '').replace(/^[._-]+|[._-]+$/g, '');
     if (!local)   { showCaResult('아이디로 쓸 영문·숫자를 적어주세요 (예: daeil-1)', 'error'); return; }
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
-      showCaResult('@ 뒤 주소 형식이 올바르지 않습니다 (예: au-ilhak.kr)', 'error'); return;
+      showCaResult('@ 뒤 주소 형식이 올바르지 않습니다 (예: audual.kr)', 'error'); return;
     }
     if (localEl) localEl.value = local;
     try { localStorage.setItem(CA_DOMAIN_KEY, domain); } catch(e) {}
