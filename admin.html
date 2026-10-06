@@ -3421,8 +3421,9 @@
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
               ${a.loginOnly
-                ? `<button onclick="explainLoginOnly()" class="member-edit-btn" style="opacity:0.75;">🔑 비번 분실 시</button>`
-                : `<button onclick="resendCompanyPw('${a.uid}')" class="member-edit-btn">🔑 비번 재설정</button>`}
+                ? `<button onclick="explainPwReissue('${a.uid}')" class="member-edit-btn" style="opacity:0.75;">🔑 비번 분실 시</button>`
+                : `<button onclick="resendCompanyPw('${a.uid}')" class="member-edit-btn">🔑 비번 재설정</button>
+                   <button onclick="explainPwReissue('${a.uid}')" class="member-edit-btn" style="opacity:0.75;">메일이 안 올 때</button>`}
               <button onclick="toggleCompanyAccount('${a.uid}')" class="member-edit-btn">${off ? '🔓 접근 복구' : '🔒 접근 해제'}</button>
               <button onclick="deleteCompanyAccount('${a.uid}')" class="delete-btn">삭제</button>
             </div>
@@ -3430,15 +3431,52 @@
         }).join('');
     } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
-  // 센터 발급 아이디는 메일함이 없어 재설정 메일을 받을 수 없다.
-  // 버튼을 그냥 숨기면 "왜 없지?" 하고 헤매게 되므로, 할 일을 알려준다.
-  function explainLoginOnly() {
-    customConfirm({ title: '비밀번호를 잊었다면',
-      message: `이 계정은 <b>센터가 만든 로그인 아이디</b>라 메일함이 없습니다.<br>
-        재설정 메일을 보낼 수 없습니다.<br><br>
-        <b>1.</b> 발급할 때 관리 시트에 적어둔 비밀번호를 먼저 찾아보세요.<br>
-        <b>2.</b> 못 찾으면 Firebase 콘솔 → Authentication 에서 그 아이디를 지우고,<br>
-        여기서 같은 아이디로 다시 발급하면 됩니다. (작성한 서류는 그대로 남습니다)`,
+  // ══════ 비밀번호 분실 — 재발급 절차 ══════
+  //
+  // ⚠️ 앱에서는 남의 비밀번호를 바꿀 수 없다. Firebase 보안상 브라우저 코드에는
+  //    그 권한이 없고, 콘솔에도 비밀번호를 직접 입력하는 기능은 없다.
+  //    (서버 함수를 따로 올리면 가능하지만 지금은 두지 않기로 했다.)
+  //    그래서 '지우고 같은 아이디로 다시 발급'이 유일한 길이다.
+  //
+  // 순서를 지켜야 한다. 권한 문서(companyAccounts)와 로그인 계정(Authentication)이
+  // 따로 있어서, 한쪽만 지우면 재발급이 막히거나 목록에 유령 계정이 남는다.
+  function explainPwReissue(uid) {
+    const a = allCompanyAccounts.find(x => x.uid === uid);
+    const E = escapeHtmlSafe;
+    const mail = a ? E(a.email || '') : '';
+    customConfirm({
+      title: '비밀번호 재발급 방법',
+      message: `
+        ${a && a.loginOnly
+          ? `<div style="background:#FFF7ED;border-left:3px solid #f59e0b;padding:9px 12px;margin-bottom:12px;
+               font-size:12.5px;color:#7C2D12;line-height:1.6;">
+               이 계정은 <b>센터가 만든 로그인 아이디</b>라 메일함이 없습니다.
+               재설정 메일을 보낼 수 없습니다.</div>`
+          : `<div style="background:#F4F5F7;border-left:3px solid #94a3b8;padding:9px 12px;margin-bottom:12px;
+               font-size:12.5px;color:#37404B;line-height:1.6;">
+               실제 메일 주소라면 <b>🔑 비번 재설정</b> 버튼으로 재설정 메일을 먼저 보내보세요.
+               메일이 오지 않을 때만 아래 순서로 하시면 됩니다.</div>`}
+
+        <div style="text-align:left;font-size:13px;line-height:1.75;">
+          <b>1.</b> 발급할 때 <b>관리 시트에 적어둔 비밀번호</b>를 먼저 찾아보세요.
+          비밀번호는 어디에도 저장되지 않아 그 기록이 유일합니다.<br><br>
+
+          <b>2.</b> 못 찾으면 — 아래 목록에서 이 계정의 <b>삭제</b>를 누릅니다.
+          <span style="color:#64748b;">(접근 권한 문서가 지워집니다)</span><br><br>
+
+          <b>3.</b> <b>Firebase 콘솔 → Authentication → 사용자</b> 에서
+          ${mail ? `<span style="font-family:monospace;background:#F4F5F7;padding:1px 5px;border-radius:4px;">${mail}</span>` : '그 아이디'}
+          를 검색해 <b>사용자 삭제</b>.
+          <span style="color:#991b1b;">이걸 건너뛰면 같은 아이디로 다시 발급되지 않습니다.</span><br><br>
+
+          <b>4.</b> 위 발급 화면에서 <b>같은 기업·같은 아이디</b>로 다시 발급합니다.<br><br>
+
+          <div style="background:#F0FDF4;border-left:3px solid #059669;padding:9px 12px;
+               font-size:12.5px;color:#166534;line-height:1.6;">
+            ✅ <b>작성한 서류는 그대로 남습니다.</b> 서류는 계정이 아니라 기업에 묶여 있어서,
+            새 계정으로 로그인해도 지금까지 쓴 의견서·면담일지·확인서·평가지가 모두 보입니다.
+          </div>
+        </div>`,
       confirmText: '알겠습니다', cancelText: '닫기' });
   }
 
