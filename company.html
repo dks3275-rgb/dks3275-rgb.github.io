@@ -219,7 +219,12 @@
   </div>
   <div class="hdr-right">
     <a class="hdr-btn" href="index.html" style="text-decoration:none;">← 앱으로</a>
-    <button class="hdr-btn" id="pwBtn">비밀번호 변경</button>
+    <!-- ⚠️ '비밀번호 변경' 버튼은 일부러 빼두었다.
+         센터가 계정 점검·진행 상황 확인·전화 안내를 하려고 같은 계정으로 들어가는데,
+         기업이 비밀번호를 바꾸면 그 순간 센터가 못 들어간다.
+         그래서 비밀번호는 센터가 발급한 것을 그대로 쓴다.
+         (아래 pwModal 과 관련 코드는 남겨두었다. 다시 열려면 이 버튼만 되살리면 된다.)
+         <button class="hdr-btn" id="pwBtn">비밀번호 변경</button> -->
     <button class="hdr-btn" id="outBtn">로그아웃</button>
   </div>
 </div>
@@ -2306,7 +2311,8 @@ async function submitAssessment() {
 }
 
 // ══════════ 비밀번호 변경 ══════════
-$('pwBtn').onclick = () => {
+// 지금은 화면에 버튼이 없다(위 머리말 주석 참고). 코드는 남겨둔다.
+if ($('pwBtn')) $('pwBtn').onclick = () => {
   $('pwNew').value = ''; $('pwNew2').value = '';
   $('pwErr').style.display = 'none';
   $('pwModal').classList.add('show');
