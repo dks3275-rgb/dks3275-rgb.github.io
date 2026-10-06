@@ -1401,7 +1401,9 @@
       <div style="background:#ecfdf5;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#065f46;line-height:1.65;">
         <b>기업 1곳당 계정 1개</b>를 만들어 기업에 전달합니다.<br>
         로그인하면 그 기업의 <b>훈련과정 목록</b>이 나오고, 과정을 골라 들어가 학습관리를 합니다.<br>
-        <small style="opacity:0.9;">아이디·비밀번호를 여기서 만들어 알려주시면 됩니다. 기업이 여러 과정을 맡아도 계정 하나로 다 처리됩니다.</small>
+        <small style="opacity:0.9;">아이디·비밀번호를 여기서 만들어 알려주시면 됩니다. 한 기업이 여러 과정을 맡아도 계정 하나로 다 처리됩니다.<br>
+        <b>계정은 기업 하나에 하나</b>입니다. 한 사람이 여러 기업을 맡으면 기업마다 따로 발급하세요 —
+        메일이 모자라면 아래 <b>🆔 센터가 아이디 만들기</b>를 쓰시면 됩니다.</small>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
@@ -1420,8 +1422,29 @@
         <label class="form-label">로그인 아이디 (이메일 형식)</label>
         <input type="email" class="form-input" id="ca-email" placeholder="erex@au-ilhak.kr">
         <div style="font-size:11.5px;color:#718096;margin-top:4px;">
-          가능하면 <b>기업 담당자의 실제 메일 주소</b>를 쓰세요. 비밀번호를 잊었을 때 재설정 메일로 복구할 수 있습니다.
-          임의 주소로 만들면 복구가 안 되어 계정을 새로 발급해야 합니다.
+          <b>실제 메일 주소</b>를 쓰면 비밀번호를 잊었을 때 재설정 메일로 복구할 수 있습니다.
+        </div>
+
+        <!-- ═══ 센터 발급 아이디 만들기 ═══
+             한 사람이 여러 기업을 맡으면 메일 주소가 모자란다.
+             (지메일의 hong+대일@ 같은 방식은 네이버·다음에서 안 되는 일이 잦아 믿고 쓸 수 없다.)
+             로그인 아이디는 '이메일 형식'이기만 하면 되고 실제 메일함일 필요는 없어서,
+             센터가 필요한 만큼 직접 만들어 쓰는 쪽이 확실하다. -->
+        <div style="border:1.5px solid #E3E6EA;border-radius:10px;padding:11px 12px;margin-top:10px;background:#FAFBFC;">
+          <div style="font-size:12.5px;font-weight:700;color:#37404B;margin-bottom:7px;">
+            🆔 메일이 없거나 모자랄 때 — 센터가 아이디 만들기</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input type="text" class="form-input" id="ca-idLocal" placeholder="daeil-1"
+                   style="flex:1;min-width:110px;font-family:monospace;">
+            <span style="font-weight:700;color:#64748b;">@</span>
+            <input type="text" class="form-input" id="ca-idDomain" value="au-ilhak.kr"
+                   style="flex:1;min-width:110px;font-family:monospace;">
+            <button class="refresh-btn" type="button" onclick="makeLoginId()" style="flex-shrink:0;">만들기</button>
+          </div>
+          <div style="font-size:11.5px;color:#92400e;margin-top:7px;line-height:1.6;">
+            메일이 아니라 <b>로그인용 이름</b>입니다. 몇 개든 만들 수 있지만 메일이 안 가므로
+            <b>비밀번호를 관리 시트에 꼭 기록</b>해두세요. 잊으면 계정을 지우고 다시 발급해야 합니다.
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -3226,6 +3249,46 @@
     return pw;
   }
 
+  // ══════ 센터 발급 로그인 아이디 ══════
+  // 로그인 아이디는 '이메일 형식'이기만 하면 되고 실제 메일함일 필요가 없다.
+  // 한 사람이 여러 기업을 맡아 메일이 모자랄 때 센터가 직접 만들어 쓴다.
+  const CA_DOMAIN_KEY = 'adminCompanyIdDomain';
+
+  function caDomain() {
+    const el = document.getElementById('ca-idDomain');
+    return (el?.value || '').trim().toLowerCase().replace(/^@/, '');
+  }
+
+  function makeLoginId() {
+    const localEl = document.getElementById('ca-idLocal');
+    const domain = caDomain();
+    // 소문자·숫자·하이픈만 남긴다 (대문자나 한글이 섞이면 로그인할 때 틀리기 쉽다)
+    const local = (localEl?.value || '').trim().toLowerCase()
+      .replace(/[^a-z0-9._-]/g, '').replace(/^[._-]+|[._-]+$/g, '');
+    if (!local)   { showCaResult('아이디로 쓸 영문·숫자를 적어주세요 (예: daeil-1)', 'error'); return; }
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
+      showCaResult('@ 뒤 주소 형식이 올바르지 않습니다 (예: au-ilhak.kr)', 'error'); return;
+    }
+    if (localEl) localEl.value = local;
+    try { localStorage.setItem(CA_DOMAIN_KEY, domain); } catch(e) {}
+    const email = local + '@' + domain;
+    if (allCompanyAccounts.some(a => (a.email || '') === email)) {
+      showCaResult(`⚠️ <b>${escapeHtmlSafe(email)}</b> 는 이미 쓰고 있는 아이디입니다. 뒤에 번호를 붙여보세요.`, 'error');
+      return;
+    }
+    document.getElementById('ca-email').value = email;
+    showCaResult(`🆔 로그인 아이디를 <b>${escapeHtmlSafe(email)}</b> 로 채웠습니다. 아래에서 발급하세요.`, 'success');
+  }
+
+  // 저장해둔 도메인 복원 — 매번 다시 치지 않게
+  function restoreCaDomain() {
+    try {
+      const d = localStorage.getItem(CA_DOMAIN_KEY);
+      const el = document.getElementById('ca-idDomain');
+      if (d && el) el.value = d;
+    } catch(e) {}
+  }
+
   async function issueCompanyAccount() {
     const companyId = document.getElementById('ca-company').value;
     const name = document.getElementById('ca-name').value.trim();
@@ -3243,8 +3306,15 @@
       message: `<b>${co ? co.name : ''}</b> 에는 이미 계정이 있습니다.<br>${exist.email}<br><br>그래도 하나 더 만들까요?`,
       confirmText: '계속', danger: true })) return;
     const nCourses = allCourses.filter(c => c.companyId === companyId).length;
+    const willBeLoginOnly = !!caDomain() && email.endsWith('@' + caDomain());
     if (!await customConfirm({ title: '기업 계정 발급',
-      message: `<b>${co ? co.name : ''}</b><br>아이디: ${email}<br>비밀번호: <b style="font-family:monospace;">${pw}</b><br>관리 대상: 훈련과정 ${nCourses}개<br><br>발급 후에는 비밀번호를 다시 볼 수 없습니다. 복사해두셨나요?`,
+      message: `<b>${co ? co.name : ''}</b><br>아이디: ${email}<br>비밀번호: <b style="font-family:monospace;">${pw}</b><br>관리 대상: 훈련과정 ${nCourses}개<br><br>`
+        + (willBeLoginOnly
+            ? `<span style="color:#92400e;"><b>센터가 만든 로그인 아이디</b>입니다. 메일함이 없어
+               비밀번호를 잊어도 재설정 메일을 보낼 수 없습니다.<br>
+               <b>반드시 관리 시트에 기록</b>해두세요.</span><br><br>`
+            : '')
+        + `발급 후에는 비밀번호를 다시 볼 수 없습니다. 복사해두셨나요?`,
       confirmText: '🔑 발급' })) return;
 
     const btn = document.getElementById('caIssueBtn');
@@ -3266,10 +3336,13 @@
       // 권한 등록 (이게 있어야 로그인해도 실제 접근이 열린다)
       // courseIds는 비워둔다 = 그 기업 전체. 과정 선택은 로그인 후 화면에서 한다.
       const db = getFirestore(getApps().length ? getApps()[0] : initializeApp(FB_CFG));
+      // loginOnly = 센터가 만든 로그인 전용 아이디 (실제 메일함이 아님)
+      //   → 재설정 메일이 가지 않으므로 목록에서 버튼을 숨기고 다른 안내를 보여준다
+      const loginOnly = !!caDomain() && email.endsWith('@' + caDomain());
       await setDoc(doc(db, 'companyAccounts', uid), {
         email, name, companyId,
         companyName: co ? (co.name || '') : '',
-        courseIds: [], active: true, createdAt: serverTimestamp()
+        courseIds: [], active: true, loginOnly, createdAt: serverTimestamp()
       });
 
       await writeLog('create', 'companyAccount', uid, `기업 계정 발급: ${co ? co.name : ''} (${email})`);
@@ -3295,12 +3368,16 @@
       showCaResult('❌ 발급 실패: ' + msg, 'error');
     } finally {
       if (secondary) { try { const { deleteApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'); await deleteApp(secondary); } catch(_) {} }
-      btn.disabled = false; btn.textContent = '🔑 계정 발급 + 설정 메일 보내기';
+      // ⚠️ 예전에는 여기서 '🔑 계정 발급 + 설정 메일 보내기' 로 되돌려 놨었다.
+      //    메일은 실제로 보내지 않는데 버튼만 그렇게 바뀌어서,
+      //    기업이 오지 않는 메일을 기다리게 만들 수 있었다. 화면의 글자와 같게 맞춘다.
+      btn.disabled = false; btn.textContent = '🔑 계정 발급';
     }
   }
 
   async function loadCompanyAccounts() {
     const el = document.getElementById('companyAccountList');
+    restoreCaDomain();
     try {
       const db = await wkDb();
       const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -3320,11 +3397,14 @@
           return `<div class="cal-event-item" style="border-left-color:${off ? '#cbd5e0' : '#059669'};${off ? 'opacity:0.6;' : ''}">
             <div class="cal-event-info">
               <div class="cal-event-title">${a.companyName || '기업 미상'}${off ? ' <span style="font-size:11px;color:#991b1b;">· 접근 해제됨</span>' : ''}</div>
-              <div class="cal-event-meta">${a.email || ''}${a.name ? ' · ' + a.name : ''}</div>
+              <div class="cal-event-meta">${a.email || ''}${a.name ? ' · ' + a.name : ''}
+                ${a.loginOnly ? ' <span style="font-size:11px;color:#92400e;">· 센터 발급 아이디</span>' : ''}</div>
               <div class="cal-event-desc" style="color:#059669;">🔓 훈련과정 ${nCourses}개 관리</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-              <button onclick="resendCompanyPw('${a.uid}')" class="member-edit-btn">🔑 비번 재설정</button>
+              ${a.loginOnly
+                ? `<button onclick="explainLoginOnly()" class="member-edit-btn" style="opacity:0.75;">🔑 비번 분실 시</button>`
+                : `<button onclick="resendCompanyPw('${a.uid}')" class="member-edit-btn">🔑 비번 재설정</button>`}
               <button onclick="toggleCompanyAccount('${a.uid}')" class="member-edit-btn">${off ? '🔓 접근 복구' : '🔒 접근 해제'}</button>
               <button onclick="deleteCompanyAccount('${a.uid}')" class="delete-btn">삭제</button>
             </div>
@@ -3332,6 +3412,18 @@
         }).join('');
     } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
+  // 센터 발급 아이디는 메일함이 없어 재설정 메일을 받을 수 없다.
+  // 버튼을 그냥 숨기면 "왜 없지?" 하고 헤매게 되므로, 할 일을 알려준다.
+  function explainLoginOnly() {
+    customConfirm({ title: '비밀번호를 잊었다면',
+      message: `이 계정은 <b>센터가 만든 로그인 아이디</b>라 메일함이 없습니다.<br>
+        재설정 메일을 보낼 수 없습니다.<br><br>
+        <b>1.</b> 발급할 때 관리 시트에 적어둔 비밀번호를 먼저 찾아보세요.<br>
+        <b>2.</b> 못 찾으면 Firebase 콘솔 → Authentication 에서 그 아이디를 지우고,<br>
+        여기서 같은 아이디로 다시 발급하면 됩니다. (작성한 서류는 그대로 남습니다)`,
+      confirmText: '알겠습니다', cancelText: '닫기' });
+  }
+
   // 비밀번호를 잊었을 때 — 그 주소로 재설정 메일을 보낸다.
   // ⚠️ 실제 메일함이 있는 주소여야 한다. 임의 주소로 발급했다면 메일을 받을 수 없으므로
   //    Firebase 콘솔 → Authentication 에서 계정을 지우고 새로 발급해야 한다.
