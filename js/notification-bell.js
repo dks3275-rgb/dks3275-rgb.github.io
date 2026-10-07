@@ -76,6 +76,13 @@ function matchesUser(target, subTarget, userInfo, recipientUserIds, kind) {
     // 자료실: 'all' = 재학생+전담인력 전용 (졸업생·예비신입생은 제외)
     targetOk = target === userCategory
       || (target === 'all' && (userCategory === 'student' || userCategory === 'company'));
+  } else if (kind === 'notification') {
+    // ⚠️ 푸시 기록은 대상이 명시된 것만 보여준다.
+    //    공지는 대상을 안 적으면 '전체'로 보는 게 맞지만,
+    //    푸시는 반드시 누군가를 골라서 보낸 것이다.
+    //    대상이 비어 있다고 전원에게 보여주면, 재학생에게 보낸 알림이
+    //    졸업생·예비신입생 종에까지 뜨게 된다.
+    targetOk = !!target && (target === 'all' || target === userCategory);
   } else {
     targetOk = !target || target === 'all' || target === userCategory;
   }
