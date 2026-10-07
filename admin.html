@@ -1907,6 +1907,8 @@
         <button class="refresh-btn" onclick="loadMembers()">🔄 새로고침</button>
       </div>
       <input type="search" class="member-search" id="memberSearchInput" placeholder="🔍 이름으로 검색..." oninput="renderMembers()" />
+      <!-- 중도탈락·휴지통은 드롭다운 안에 묻혀 있어 찾기 어려웠다. 버튼으로 꺼내 둔다. -->
+      <div id="memberQuickTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
       <div class="consulting-toolbar">
         <div class="count-badge" id="memberCountBadge">불러오는 중...</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2318,7 +2320,9 @@
       const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const snap = await getDocs(collection(db, 'users'));
-      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+      // ⚠️ 중도탈락자는 발송 대상에서 뺀다.
+      //    예전에는 !deleted 만 걸러서, 중도탈락 처리한 학생에게도 알림이 계속 갔다.
+      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && !u.dropout && u.oneSignalId);
       let targets;
       // Phase 2-1: 개인 모드 — 선택한 deviceId의 사용자만
       if (individualMode) {
@@ -6258,7 +6262,9 @@
       const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const snap = await getDocs(collection(db, 'users'));
-      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && u.oneSignalId);
+      // ⚠️ 중도탈락자는 발송 대상에서 뺀다.
+      //    예전에는 !deleted 만 걸러서, 중도탈락 처리한 학생에게도 알림이 계속 갔다.
+      const allUsers = snap.docs.map(d => d.data()).filter(u => !u.deleted && !u.dropout && u.oneSignalId);
       let targets;
       if (target === '전체') targets = allUsers.map(u => u.oneSignalId);
       else if (target === '재학생 전체') targets = allUsers.filter(u => u.category === 'student').map(u => u.oneSignalId);
@@ -7925,6 +7931,7 @@
   }
 
   function renderMembers() {
+    renderMemberQuickTabs();
     const filter = document.getElementById('memberCategoryFilter')?.value || 'all';
     const isTrashView = filter === 'trash';
     const filtered = getFilteredSortedMembers();
@@ -7953,6 +7960,7 @@
 
     if (filtered.length === 0) {
       const msg = isTrashView ? '🗑️ 휴지통이 비어있어요'
+                : filter === 'dropout' ? '중도탈락으로 표시된 가입자가 없어요'
                 : filter === 'unsubscribed' ? '🎉 모든 활성 가입자가 알림을 받고 있어요!'
                 : '검색 결과가 없거나, 해당 카테고리 가입자가 없어요';
       document.getElementById('memberList').innerHTML = `<div class="c-loading">${msg}</div>`;
@@ -7995,6 +8003,51 @@
             </div>
           </div>`;
         }).join('') + paginationHtml;
+      return;
+    }
+
+    // ── 중도탈락 전용 화면 ──
+    // 활성 목록에서는 빠지고 여기로 모인다. 되돌릴 수 있게 '복귀' 버튼을 둔다.
+    if (filter === 'dropout') {
+      document.getElementById('memberList').innerHTML =
+        `<div style="background:#FFF7ED;border-left:4px solid #f59e0b;padding:12px 14px;border-radius:8px;
+             margin-bottom:14px;font-size:12.5px;line-height:1.7;color:#7C2D12;">
+           ⚠️ <b>중도탈락으로 표시된 가입자입니다.</b><br>
+           알림이 가지 않고, 가입자 수에서도 빠집니다. 기록은 그대로 남습니다.<br>
+           <span style="opacity:.85;">서류(의견서·면담일지·확인서·평가지) 대상에서 빼려면
+           <b>기업 탭 → 학습근로자</b>에서도 중도탈락으로 표시해주세요. 두 명단은 따로 관리됩니다.</span>
+         </div>` +
+        (pageItems.length === 0
+          ? '<div class="c-loading">중도탈락으로 표시된 가입자가 없습니다</div>'
+          : pageItems.map(m => {
+          const catLabel = m.category === 'student' ? '🎓 재학생' : m.category === 'graduate' ? '🎉 졸업생'
+            : m.category === 'company' ? '🏢 전담인력' : m.category === 'teacher' ? '🧑‍🏫 교·강사' : '🌱 예비 신입생';
+          const at = m.dropoutAt ? new Date(m.dropoutAt).toLocaleDateString('ko-KR') : '-';
+          const sub = m.category === 'student' ? (m.grade || '-')
+            : m.category === 'company' ? `${m.firm || '-'} · ${m.role || '-'}` : (m.dept || m.interest || '-');
+          return `<div class="consulting-card" style="border-left-color:#f59e0b;opacity:.9;">
+            <div class="c-top">
+              <div class="c-person">
+                <div class="c-avatar" style="background:#b45309">${escapeHtmlSafe((m.name||'?').charAt(0))}</div>
+                <div>
+                  <div class="c-name">${escapeHtmlSafe(m.name || '-')}
+                    <span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;
+                      background:#FEF3C7;color:#92400e;">${catLabel}</span></div>
+                  <div class="c-dept">${escapeHtmlSafe(sub)}</div>
+                </div>
+              </div>
+              ${m.phone ? `<a href="tel:${escapeHtmlSafe(m.phone)}" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#475569;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">📞 ${escapeHtmlSafe(m.phone)}</a>` : ''}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+              <div class="c-time" style="font-size:10.5px;">⚠️ 중도탈락 처리: ${at}</div>
+              <div style="display:flex;gap:6px;">
+                <button class="member-edit-btn" style="background:#dcfce7;border-color:#86efac;color:#166534;"
+                  onclick="setMemberDropout('${m.deviceId}', false)">↩️ 복귀</button>
+                <button class="member-delete-btn" onclick="deleteMember('${m.deviceId}')">🗑️ 삭제</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('')) + paginationHtml;
       return;
     }
 
@@ -8101,6 +8154,8 @@
           <div class="c-time" style="font-size:10.5px;">${timeLabel}</div>
           <div style="display:flex;gap:6px;">
             <button class="member-edit-btn" onclick="openMemberEditById('${m.deviceId}')">✏️ 수정</button>
+            <button class="member-edit-btn" style="background:#fff7ed;border-color:#fdba74;color:#9a3412;"
+              onclick="setMemberDropout('${m.deviceId}', true)">⚠️ 중도탈락</button>
             <button class="member-delete-btn" onclick="deleteMember('${m.deviceId}')">🗑️ 삭제</button>
           </div>
         </div>
@@ -8108,6 +8163,92 @@
     }).join('');
 
     document.getElementById('memberList').innerHTML = html + paginationHtml;
+  }
+
+  // ══════ 가입자 중도탈락 처리 ══════
+  //
+  // ⚠️ 명단이 두 개라는 걸 기억할 것.
+  //    users(앱 가입자)  — 알림을 받는 쪽. 여기서 표시하면 알림이 끊긴다.
+  //    workers(학습근로자) — 서류를 만드는 쪽. 기업 탭에서 따로 표시해야 한다.
+  //    둘을 이어주는 키가 없어(기기ID vs 별도 문서) 자동으로 맞출 수 없다.
+  //    그래서 이름이 같은 학습근로자가 있으면 알려주기만 한다.
+  async function setMemberDropout(deviceId, on) {
+    const m = allMembers.find(x => x.deviceId === deviceId);
+    if (!m) return;
+    const E = escapeHtmlSafe;
+
+    // 같은 이름의 학습근로자가 있는지 미리 본다 (안내용)
+    let hint = '';
+    if (on) {
+      try {
+        if (!allWorkers.length) await loadWorkers();
+        const same = allWorkers.filter(w => !w.deleted && (w.name || '') === (m.name || ''));
+        const todo = same.filter(w => !w.dropout);
+        if (todo.length) {
+          hint = `<br><div style="margin-top:10px;background:#FFF7ED;border-left:3px solid #f59e0b;
+            padding:9px 11px;font-size:12px;color:#7C2D12;line-height:1.6;text-align:left;">
+            학습근로자 명단에도 <b>${E(m.name || '')}</b> 님이 있습니다 (${todo.length}건).<br>
+            서류 대상에서도 빼려면 <b>기업 탭 → 학습근로자</b>에서 중도탈락을 눌러주세요.</div>`;
+        }
+      } catch(e) {}
+    }
+
+    if (!await customConfirm({
+      title: on ? '중도탈락으로 표시' : '중도탈락 해제',
+      message: on
+        ? `<b>${E(m.name || '')}</b> 님을 중도탈락으로 표시할까요?<br><br>
+           ✅ 앞으로 <b>알림이 가지 않습니다</b><br>
+           ✅ 가입자 목록에서 빠지고 <b>중도탈락</b> 탭으로 옮겨집니다<br>
+           ✅ 기록은 지워지지 않습니다 — 언제든 되돌릴 수 있습니다${hint}`
+        : `<b>${E(m.name || '')}</b> 님을 다시 <b>가입자 목록으로 되돌릴까요?</b><br>
+           알림도 다시 받게 됩니다.`,
+      confirmText: on ? '⚠️ 중도탈락' : '↩️ 복귀', danger: on })) return;
+
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const patch = on
+        ? { dropout: true, dropoutAt: Date.now() }
+        : { dropout: false, dropoutAt: null };
+      await updateDoc(doc(db, 'users', deviceId), patch);
+      Object.assign(m, patch);
+      await writeLog('update', 'member', deviceId,
+        `${on ? '중도탈락 표시' : '중도탈락 해제'}: ${m.name || ''}`);
+      renderMembers();
+      if (on) {
+        // 처리하면 바로 그 탭으로 옮겨 보여준다
+        const sel = document.getElementById('memberCategoryFilter');
+        if (sel) { sel.value = 'dropout'; renderMembers(); }
+      }
+    } catch(e) { alert('처리 실패: ' + (e.message || '')); }
+  }
+
+  // 가입자 탭 위의 빠른 이동 버튼 (전체 · 중도탈락 · 휴지통)
+  function renderMemberQuickTabs() {
+    const box = document.getElementById('memberQuickTabs');
+    const sel = document.getElementById('memberCategoryFilter');
+    if (!box || !sel) return;
+    const cur = sel.value;
+    const nDrop = allMembers.filter(m => m.dropout && !m.deleted).length;
+    const nTrash = allMembers.filter(m => m.deleted).length;
+    const nLive = allMembers.filter(m => !m.deleted && !m.dropout).length;
+    const tabs = [
+      ['all', `👥 가입자 ${nLive}`, '#EEF0F3', '#37404B'],
+      ['dropout', `⚠️ 중도탈락 ${nDrop}`, '#FEF3C7', '#92400e'],
+      ['trash', `🗑️ 휴지통 ${nTrash}`, '#F1F5F9', '#64748b']
+    ];
+    box.innerHTML = tabs.map(([v, label, bg, fg]) => {
+      const on = cur === v;
+      return `<button onclick="goMemberTab('${v}')" style="border:1.5px solid ${on ? fg : '#E3E6EA'};
+        background:${on ? bg : 'white'};color:${on ? fg : '#64748b'};font-weight:700;font-size:12.5px;
+        padding:7px 13px;border-radius:9px;cursor:pointer;font-family:inherit;">${label}</button>`;
+    }).join('');
+  }
+  function goMemberTab(v) {
+    const sel = document.getElementById('memberCategoryFilter');
+    if (!sel) return;
+    sel.value = v;
+    renderMembers();
   }
 
   // ── 가입자 CSV 다운로드 ──
