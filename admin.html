@@ -3717,21 +3717,66 @@
           <div style="margin-bottom:14px;">
             <div style="font-size:12px;font-weight:700;color:#3F4A57;margin-bottom:6px;">${d} · ${list.length}명</div>
             ${list.map(w => `
-              <div class="cal-event-item" style="border-left-color:#3F4A57;">
+              <div class="cal-event-item" style="border-left-color:${w.dropout ? '#cbd5e0' : '#3F4A57'};${w.dropout ? 'opacity:0.65;' : ''}">
                 <div class="cal-event-info">
-                  <div class="cal-event-title">${w.name}</div>
+                  <div class="cal-event-title">${w.name}${w.dropout ? ' <span style="font-size:11px;color:#991b1b;font-weight:700;">· 중도탈락</span>' : ''}</div>
                   <div class="cal-event-meta">${w.firm || '학습기업 미입력'}${w.firm && !w.companyId ? ' <span style="color:#d97706;font-size:11px;">(미연결)</span>' : ''}${w.round ? ' · ' + w.round : ''}${w.phone ? ' · ' + w.phone : ''}</div>
                   ${(() => { const c = allCourses.find(x => x.id === w.courseId);
-                      return c ? `<div class="cal-event-desc" style="color:#7c3aed;">📘 ${c.type || ''}${c.site ? ' · ' + c.site : ''}</div>` : ''; })()}
+                      return c ? `<div class="cal-event-desc" style="color:#7c3aed;">📘 ${c.type || ''}${c.site ? ' · ' + c.site : ''}</div>`
+                        : (w.dropout ? '' : `<div class="cal-event-desc" style="color:#b91c1c;">⚠️ 훈련과정 미연결 — 기업 화면에 서류가 뜨지 않습니다</div>`); })()}
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
                   <button onclick="editWorker('${w.id}')" class="member-edit-btn">✏️ 수정</button>
+                  <button onclick="toggleWorkerDropout('${w.id}')" class="member-edit-btn"
+                    style="${w.dropout ? '' : 'background:#fff7ed;border-color:#fdba74;color:#9a3412;'}">${w.dropout ? '↩️ 복귀' : '⚠️ 중도탈락'}</button>
                   <button onclick="deleteWorker('${w.id}')" class="delete-btn">삭제</button>
                 </div>
               </div>`).join('')}
           </div>`).join('');
     } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
+  // ══════ 학습근로자 중도탈락 표시 ══════
+  //
+  // ⚠️ 왜 따로 필요한가 (같은 혼선이 또 생기지 않도록 적어둔다)
+  //    면담일지 화면(counseling.html)의 '중도탈락 등록'은 users(앱 가입자) 문서에만
+  //    dropout 을 찍는다. 서류 4종은 전부 workers(학습근로자 명단)를 보고
+  //    !w.dropout 으로 거르기 때문에, 그쪽에서 등록해도 서류 대상에는 그대로 남아
+  //    매달 '미기록'으로 붉게 떴다. 두 명단은 서로 이어주는 키가 없어
+  //    (users는 기기ID, workers는 별도 문서) 자동으로 맞출 수 없다.
+  //    그래서 여기서 직접 표시한다.
+  //
+  // 표시하면 서류 대상·제출 현황·확인서 집계에서 빠진다. 기록은 그대로 남는다.
+  async function toggleWorkerDropout(id) {
+    const w = allWorkers.find(x => x.id === id);
+    if (!w) return;
+    const on = !w.dropout;
+    const E = escapeHtmlSafe;
+    if (!await customConfirm({
+      title: on ? '중도탈락으로 표시' : '중도탈락 해제',
+      message: on
+        ? `<b>${E(w.name || '')}</b> 님을 중도탈락으로 표시할까요?<br><br>
+           ✅ 이번 달부터 <b>서류 대상에서 빠집니다</b> (의견서·면담일지·확인서·평가지)<br>
+           ✅ 이미 작성된 서류는 <b>그대로 남습니다</b><br><br>
+           <span style="font-size:12px;color:#92400e;">면담일지 화면의 중도탈락 등록과는 별개입니다.
+           그쪽은 앱 알림을 끊고, 이쪽은 서류 대상에서 뺍니다. 둘 다 해두시는 게 좋습니다.</span>`
+        : `<b>${E(w.name || '')}</b> 님을 다시 <b>서류 대상에 넣을까요?</b>`,
+      confirmText: on ? '⚠️ 중도탈락' : '↩️ 복귀', danger: on })) return;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const patch = on
+        ? { dropout: true, dropoutAt: new Date().toISOString() }
+        : { dropout: false, dropoutAt: '' };
+      await updateDoc(doc(db, 'workers', id), patch);
+      Object.assign(w, patch);
+      await writeLog('update', 'worker', id,
+        `${on ? '중도탈락 표시' : '중도탈락 해제'}: ${w.name || ''} (${w.firm || ''})`);
+      loadWorkers();
+      // 서류 탭이 열려 있으면 집계도 같이 갱신
+      try { if (typeof renderDocsTab === 'function' && allOpinions.length) renderDocsTab(); } catch(_) {}
+    } catch(e) { alert('처리 실패: ' + (e.message || '')); }
+  }
+
   function editWorker(id) {
     const w = allWorkers.find(x => x.id === id);
     if (!w) return;
