@@ -2895,9 +2895,16 @@
       const db = await wkDb();
       const { collection, addDoc, doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       if (editId) {
+        const before = allCompanies.find(c => c.id === editId);
+        const oldName = before ? (before.name || '') : '';
         await updateDoc(doc(db, 'companies', editId), { ...d, updatedAt: serverTimestamp() });
         await writeLog('update', 'company', editId, `학습기업 수정: ${d.name}`);
-        showCoResult('✅ 수정했어요', 'success');
+        // 이름이 바뀌었으면 사본을 쓰는 곳들도 같이 맞춘다 (아래 설명 참고)
+        let synced = 0;
+        if (oldName && oldName !== d.name) synced = await syncCompanyName(editId, d.name);
+        showCoResult(synced
+          ? `✅ 수정했어요<br><span style="font-size:12.5px;color:#4a5568;">훈련과정·학습근로자·기업계정에 적힌 이름 ${synced}건도 같이 바꿨습니다.</span>`
+          : '✅ 수정했어요', 'success');
         cancelCompanyEdit();
       } else {
         // 고용보험관리번호가 있으면 그걸 고유 키로 중복 판정 (기업명 표기는 파일마다 달라 신뢰 불가)
@@ -2916,6 +2923,49 @@
       loadCompanies();
     } catch(e) { showCoResult('❌ 오류: ' + e.message, 'error'); }
   }
+  // ══════ 기업명 바꾸면 사본도 같이 바꾸기 ══════
+  //
+  // ⚠️ 왜 필요한가 (같은 질문이 또 나오지 않도록 적어둔다)
+  //    기업명은 세 곳에 글자로 복사되어 들어간다.
+  //      courses.companyName · workers.firm · companyAccounts.companyName
+  //    목록을 그릴 때마다 기업 문서를 찾아가지 않으려고 복사해 둔 것인데,
+  //    그래서 기업명을 바꾸면 사본은 옛 이름 그대로 남는다.
+  //    "기업명을 바꿨는데 훈련과정 관리에는 안 바뀐다"가 바로 이것이다.
+  //
+  // ⚠️ 이미 작성된 서류(의견서·면담일지·확인서·평가지)는 건드리지 않는다.
+  //    그건 그 시점의 기록이고, 서명·지문이 걸려 있어 바꾸면 증빙이 흐트러진다.
+  async function syncCompanyName(companyId, newName) {
+    let n = 0;
+    try {
+      const db = await wkDb();
+      const { collection, getDocs, query, where, doc, updateDoc } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const jobs = [
+        ['courses', 'companyName'],
+        ['workers', 'firm'],
+        ['companyAccounts', 'companyName']
+      ];
+      for (const [col, field] of jobs) {
+        const snap = await getDocs(query(collection(db, col), where('companyId', '==', companyId)));
+        for (const d of snap.docs) {
+          if ((d.data() || {})[field] === newName) continue;
+          await updateDoc(doc(db, col, d.id), { [field]: newName });
+          n++;
+        }
+      }
+      // 화면에 들고 있던 목록도 새 이름으로 맞춘다
+      allCourses.forEach(c => { if (c.companyId === companyId) c.companyName = newName; });
+      allWorkers.forEach(w => { if (w.companyId === companyId) w.firm = newName; });
+      allCompanyAccounts.forEach(a => { if (a.companyId === companyId) a.companyName = newName; });
+      if (n) await writeLog('update', 'company', companyId, `기업명 사본 동기화: ${newName} (${n}건)`);
+    } catch (e) {
+      console.warn('[기업명 동기화 실패]', e);
+      alert('기업명은 바꿨지만 훈련과정·명단에 적힌 이름을 바꾸지 못했습니다.\n'
+          + '잠시 후 기업을 다시 저장하면 재시도합니다.\n\n' + (e.message || ''));
+    }
+    return n;
+  }
+
   // 엑셀 붙여넣기: 기업명 · 관련학과 · 담당자 · 연락처 · 분야
   async function bulkAddCompanies() {
     const raw = document.getElementById('co-bulk').value.trim();
