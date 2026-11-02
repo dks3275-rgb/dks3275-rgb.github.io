@@ -327,6 +327,9 @@
         <div class="fld">
           <label>면담 일시</label>
           <input type="date" id="cnDate">
+          <!-- 면담일지 날짜는 그 달 내부평가일과 같아야 한다.
+               센터가 평가일을 등록해 두면 여기에 띄워 바로 맞출 수 있게 한다. -->
+          <div id="cnEvalHint" style="display:none;margin-top:6px;"></div>
         </div>
         <div class="fld">
           <label>작성자 성명</label>
@@ -1512,17 +1515,20 @@ function openCounsel(docId, workerId) {
     `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}" style="font-size:10.5px;">${label}</div>`).join('')}</div>`;
   if (st === 'confirmed') bar += `<div class="lock-bar conf" style="margin-bottom:0;">✅ <b>센터 확인 완료</b>.</div>`;
   else if (st === 'signed') bar += `<div class="lock-bar" style="margin-bottom:0;">✅ <b>서명이 끝났습니다.</b> 센터 확인을 기다리는 중입니다.<br>
-    <span style="font-size:12px;">필요하시면 아래에서 인쇄해 보관하실 수 있습니다.</span></div>`;
+    <span style="font-size:12px;">인쇄해 보관하실 수 있고, 고칠 내용이 있으면 아래 <b>✏️ 수정하기</b>를 누르세요.</span></div>`;
   else bar += `<div class="info-box" data-guide="counsel_form" style="margin-bottom:0;">
     면담에서 나온 이야기를 항목별로 적어주세요.<br>
     해당 없는 항목은 비워두셔도 됩니다. <b>임시저장</b>으로 나중에 이어 쓸 수 있습니다.</div>`;
   bar += '</div>';
   $('cnLockBar').innerHTML = bar;
 
-  $('cnDate').value = d?.meetDate || localDate();
+  // 평가일이 등록돼 있고 아직 안 쓴 일지면 평가일을 기본값으로 넣어준다
+  $('cnDate').value = d?.meetDate || curAssess?.evalDate || localDate();
   $('cnName').value = d?.authorName || myAccount.name || '';
   $('cnRole').value = d?.authorRole || '기업현장교사';
   ['cnDate','cnName','cnRole'].forEach(id => { $(id).disabled = locked; });
+  $('cnDate').oninput = renderCnEvalHint;
+  renderCnEvalHint();
 
   $('cnFields').innerHTML = CN_FIELDS.map(([k, label, sub, ph]) => `
     <div class="fld">
@@ -1545,8 +1551,76 @@ function renderCnActions(st) {
     $('cnSave').onclick = () => saveCounsel(false);
     $('cnSignBtn').onclick = () => saveCounsel(true);
   } else {
-    bar.innerHTML = `<button class="act-print" id="cnPrint">🖨️ 인쇄 · PDF 저장</button>`;
+    bar.innerHTML = `<button class="act-print" id="cnPrint">🖨️ 인쇄 · PDF 저장</button>`
+      // 센터가 확인하기 전까지는 기업이 스스로 다시 열 수 있다.
+      // (확인을 마친 뒤에는 센터에 요청해야 한다 — 보안규칙에서도 막힌다)
+      + (st === 'signed' ? `<button class="act-save" id="cnReopen">✏️ 수정하기</button>` : '');
     $('cnPrint').onclick = printCounsel;
+    if ($('cnReopen')) $('cnReopen').onclick = reopenCounsel;
+  }
+}
+
+// ══════ 면담 일시 ↔ 평가일 맞춤 안내 ══════
+// 면담일지 날짜는 그 달 내부평가일과 같아야 한다. 기업은 평가일을 모르는 경우가 많아
+// 다른 날짜로 적어 와서 다시 받는 일이 있었다. 날짜 칸 바로 아래에 띄워 바로 맞추게 한다.
+// 막지는 않는다 — 사정이 있어 다른 날일 수도 있으니 알려만 주고 판단은 맡긴다.
+function renderCnEvalHint() {
+  const box = $('cnEvalHint'); if (!box) return;
+  const ev = (curAssess?.evalDate || '').trim();
+  if (!ev) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+  const cur = $('cnDate').value || '';
+  const same = cur === ev;
+  box.style.display = 'block';
+  box.innerHTML = same
+    ? `<div style="font-size:12px;color:#166534;background:#F0FDF4;border:1px solid #86EFAC;
+         border-radius:8px;padding:7px 10px;line-height:1.5;">
+         ✅ 이 달 <b>내부평가일</b>과 같습니다 — ${esc(evalDateLabel(ev))}</div>`
+    : `<div style="font-size:12px;color:#7C2D12;background:#FFF7ED;border:1px solid #FDBA74;
+         border-radius:8px;padding:8px 10px;line-height:1.6;">
+         📅 이 달 <b>내부평가일</b>은 <b>${esc(evalDateLabel(ev))}</b> 입니다.<br>
+         면담일지 날짜는 평가일과 같아야 합니다.
+         <button type="button" id="cnUseEval" class="op-btn ghost"
+           style="margin-top:6px;padding:5px 10px;font-size:11.5px;">평가일로 맞추기</button></div>`;
+  const btn = $('cnUseEval');
+  if (btn) btn.onclick = () => {
+    if ($('cnDate').disabled) return;
+    $('cnDate').value = ev;
+    renderCnEvalHint();
+  };
+}
+
+// 서명한 면담일지를 다시 고칠 수 있게 연다.
+//
+// ⚠️ 날짜만 살짝 고치게 해달라는 요청이 있었지만 그렇게 할 수 없다.
+//    서명할 때 면담 일시를 포함한 내용 전체로 문서지문(docHash)을 만들어 함께 봉인한다.
+//    날짜가 바뀌면 그 서명은 더 이상 이 문서의 서명이 아니게 되므로,
+//    고치려면 서명을 거두고 다시 받아야 한다. 그래야 증빙이 성립한다.
+async function reopenCounsel() {
+  if (!curCounsel) return;
+  if (!confirm(`${curCounsel.workerName || ''} · ${curCounsel.meetDate || ''} 면담일지를 다시 고칩니다.\n\n`
+    + `지금까지의 서명이 취소됩니다.\n`
+    + `내용을 고친 뒤 다시 서명해주세요.\n\n계속할까요?`)) return;
+  const btns = $('cnActions').querySelectorAll('button');
+  btns.forEach(b => b.disabled = true);
+  try {
+    const patch = {
+      status: 'draft', signature: '', signMeta: null, docHash: '', signedAt: null,
+      reopenedAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    };
+    await setDoc(doc(db, 'ojtCounseling', curCounsel.id), patch, { merge: true });
+    Object.assign(curCounsel, patch);
+    const at = cnDocs.findIndex(x => x.id === curCounsel.id);
+    if (at >= 0) Object.assign(cnDocs[at], patch);
+    cnScanData = '';
+    const id = curCounsel.id;
+    await loadCounsels();        // 목록의 상태 표시도 '작성 중'으로 되돌린다
+    toast('✏️ 수정할 수 있습니다 — 고친 뒤 다시 서명해주세요');
+    openCounsel(id);
+  } catch(e) {
+    btns.forEach(b => b.disabled = false);
+    console.error('[reopen counsel]', e);
+    alert(saveFailMsg(e, '수정 열기'));
   }
 }
 
@@ -1578,7 +1652,16 @@ async function saveCounsel(sign) {
     if (!c.training && !c.work && !c.etc) { toast('면담 내용을 한 항목 이상 적어주세요'); return; }
     const sig = cnSign.grab();
     if (!sig) { toast('서명을 입력해주세요'); $('cnPad').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
-    if (!confirm(`${c.workerName} 면담일지에 서명합니다.\n\n서명하면 내용이 잠기고,\n출력해서 자필 서명하는 단계로 넘어갑니다.\n\n계속할까요?`)) return;
+    // 평가일과 다르면 서명 직전에 한 번 더 묻는다 (막지는 않는다)
+    const ev = (curAssess?.evalDate || '').trim();
+    if (ev && c.meetDate !== ev) {
+      if (!confirm(`면담 일시가 이 달 내부평가일과 다릅니다.\n\n`
+        + `· 적으신 날짜 : ${c.meetDate}\n`
+        + `· 내부평가일   : ${ev}\n\n`
+        + `면담일지 날짜는 평가일과 같아야 합니다.\n`
+        + `그래도 이대로 서명할까요?`)) { $('cnDate').scrollIntoView({ behavior:'smooth', block:'center' }); return; }
+    }
+    if (!confirm(`${c.workerName} 면담일지에 서명합니다.\n\n서명하면 내용이 잠기고,\n센터 확인을 기다리게 됩니다.\n\n계속할까요?`)) return;
     c.signature = sig;
     c.status = 'signed';
     // 순번을 문서에 박아 둔다 — 이미 확정된 건수 + 1
