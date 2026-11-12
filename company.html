@@ -63,6 +63,32 @@
   .worker-meta { font-size:12px; color:var(--sub); }
   .badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:5px; background:#e3f2fd; color:#1565c0; }
 
+  /* 훈련운영 달력 */
+  .tgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:4px;}
+  .tdow{text-align:center; font-size:11.5px; color:var(--gray); font-weight:700; padding:4px 0;}
+  .tcell{aspect-ratio:1/1; border:1.5px solid var(--line); border-radius:9px; background:white;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    font-size:13px; font-weight:600; color:var(--text);}
+  .tcell.empty{border:none; background:transparent;}
+  .tcell.sun{color:#C2410C;}
+  .tcell.ojt{background:#F3EEFF; border-color:#C9B6F5; cursor:pointer;}
+  .tcell.done{background:#E9FBF1; border-color:#86EFAC; cursor:pointer;}
+  .tcell.off{background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;}
+  .tcell.sel{outline:2.5px solid var(--navy); outline-offset:-2px;}
+  .tcell .tt{font-size:9px; font-weight:700; line-height:1;}
+  .tcell.ojt .tt{color:#6D28D9;} .tcell.done .tt{color:#15803D;} .tcell.off .tt{color:#64748B;}
+  .tsw{width:11px; height:11px; border-radius:3px; display:inline-block;
+    vertical-align:-1px; margin-right:3px; border:1.5px solid;}
+
+  .entry-btn{display:flex; align-items:center; gap:13px; width:100%; text-align:left;
+    background:white; border:1.5px solid var(--line); border-radius:13px; padding:15px 16px;
+    font-family:inherit; cursor:pointer;}
+  .entry-btn .ico{font-size:25px; line-height:1; flex-shrink:0;}
+  .entry-btn .ttl{font-size:15.5px; font-weight:800; color:var(--text);}
+  .entry-btn .sub{font-size:12.5px; color:var(--gray); margin-top:2px; line-height:1.5;}
+  .entry-btn .arw{margin-left:auto; font-size:21px; color:#C3CBD4;}
+  .entry-btn:active{background:#F8FAFC;}
+
   .back-btn { background:white; border:1.5px solid var(--line); color:var(--sub); font-size:13px;
               padding:9px 14px; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:600;
               margin-bottom:12px; }
@@ -265,6 +291,32 @@
       <div class="card-title">👷 학습근로자 <span class="hint" id="workerCount"></span></div>
       <div id="workerList"><div class="empty">불러오는 중...</div></div>
     </div>
+
+    <!-- 두 갈래 입구 — 훈련운영관리(일별 기록) / 학습관리(서류) -->
+    <div class="card">
+      <div class="card-title">무엇을 하시겠어요?</div>
+      <button class="entry-btn" id="goTraining">
+        <div class="ico">🗓️</div>
+        <div><div class="ttl">훈련운영관리</div>
+          <div class="sub">일별 훈련 기록 · 현장교사 의견 · 월 마감</div></div>
+        <div class="arw">›</div>
+      </button>
+      <button class="entry-btn" id="goDocs" style="margin-top:9px;">
+        <div class="ico">📋</div>
+        <div><div class="ttl">학습관리</div>
+          <div class="sub">의견서 · 면담일지 · 월별 확인서 · 내부평가지</div></div>
+        <div class="arw">›</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════ 학습관리 (서류 4종) ══════ -->
+  <div id="docsView" style="display:none;">
+    <button class="back-btn" id="docsBack">← 과정 상세</button>
+    <div class="card">
+      <div class="card-title">📋 학습관리</div>
+      <div id="docsMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
+    </div>
     <div class="card">
       <div class="card-title">📝 기업현장교사 의견서
         <select class="sel-mini" id="periodSel"></select>
@@ -457,6 +509,49 @@
   </div>
 
   <!-- ══════ 의견서 작성 ══════ -->
+  <!-- ══════ 훈련운영관리 — 일별 훈련 기록 ══════
+       센터가 비콘으로 훈련일·시간·학습활동서를 채워두면,
+       기업은 날짜를 눌러 현장교사 의견만 적는다. -->
+  <div id="trainingView" style="display:none;">
+    <button class="back-btn" id="trBack">← 과정 상세</button>
+
+    <div class="card">
+      <div class="card-title">🗓️ 훈련운영관리
+        <select class="sel-mini" id="trPeriodSel"></select>
+      </div>
+      <div id="trMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 이 달 능력단위</div>
+      <div id="trUnitBox"><div class="empty">불러오는 중...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👷 학습근로자
+        <select class="sel-mini" id="trWorkerSel"></select>
+      </div>
+      <div class="info-box">
+        보라색 날이 <b>훈련한 날</b>입니다. 센터가 비콘 출결로 넣어드렸습니다.<br>
+        날짜를 누르면 내용이 이미 적혀 있고, <b>현장교사 의견만</b> 쓰시면 됩니다.
+      </div>
+      <div id="trCal"></div>
+    </div>
+
+    <div id="trDayBox"></div>
+    <div id="trCloseBox"></div>
+
+    <div class="card">
+      <div class="card-title">📖 작성 안내</div>
+      <div class="hint" style="font-size:12.5px;line-height:1.75;">
+        · <b>훈련내용</b>은 학습근로자가 쓴 학습활동서를 가져온 것입니다. 사실과 다르면 고쳐주세요.<br>
+        · 비어 있는 날은 학생이 아직 쓰지 않은 것이니 직접 적어주세요.<br>
+        · <b>회색 날(학교)</b>은 Off-JT 수업일이라 기업에서 쓰지 않습니다.<br>
+        · 월말에 <b>현장교사·HRD담당자 두 분이 서명</b>하면 그 달이 마감됩니다.
+      </div>
+    </div>
+  </div>
+
   <div id="opinionView" style="display:none;">
     <button class="back-btn" id="opBack">← 과정 상세</button>
 
@@ -758,6 +853,8 @@ function renderFirmNotices() {
 const VIEW_IDS = {
   course:    'courseView',
   detail:    'detailView',
+  docs:      'docsView',        // 학습관리 — 서류 4종
+  training:  'trainingView',    // 훈련운영관리 — 일별 훈련 기록
   opinion:   'opinionView',
   counsel:   'counselView',
   checklist: 'checklistView'
@@ -772,13 +869,15 @@ function showOnly(name) {
 // 필요한 자료가 없으면(새로고침 등) 한 단계 위로 떨어뜨린다.
 function renderView(name) {
   if (name === 'detail' && !curCourse) name = 'course';
-  if (name === 'opinion'   && !curOpinion)  name = 'detail';
-  if (name === 'counsel'   && !curWorker)   name = 'detail';
-  if (name === 'checklist' && !curCourse)   name = 'detail';
+  if (name === 'docs'      && !curCourse)   name = 'detail';
+  if (name === 'training'  && !curCourse)   name = 'detail';
+  if (name === 'opinion'   && !curOpinion)  name = 'docs';
+  if (name === 'counsel'   && !curWorker)   name = 'docs';
+  if (name === 'checklist' && !curCourse)   name = 'docs';
   showOnly(name);
-  if (name === 'detail') {   // 돌아왔을 때 목록을 최신으로
-    loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment();
-  }
+  // 돌아왔을 때 목록을 최신으로
+  if (name === 'docs')     { loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment(); }
+  if (name === 'training') { loadTraining(); }
 }
 if (window.BackNav) BackNav.init(renderView, 'course');
 // 같은 화면을 다시 그릴 때(저장 후 새로고침 등)는 기록을 쌓지 않는다.
@@ -842,6 +941,19 @@ function openCourse(courseId) {
   loadWorkers(c);
 }
 $('backBtn').onclick = navBack;
+$('docsBack').onclick = navBack;
+$('trBack').onclick   = navBack;
+$('goDocs').onclick     = () => { navTo('docs'); openDocs(); };
+$('goTraining').onclick = () => { navTo('training'); loadTraining(); };
+
+// 학습관리 화면 머리말 — 과정 상세와 같은 내용을 다시 보여준다
+function openDocs() {
+  const c = curCourse; if (!c) return;
+  $('docsMeta').innerHTML =
+    `<b>${esc(c.type || '')}</b>${c.site ? ' · ' + esc(c.site) : ''}<br>` +
+    `<b>과정번호</b> ${esc(c.courseNo || '-')}`;
+  loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment();
+}
 
 async function loadWorkers(course) {
   const el = $('workerList');
@@ -2391,6 +2503,296 @@ async function submitAssessment() {
     console.error('[submit]', e); alert(saveFailMsg(e, '제출'));
     if (btn) { btn.disabled = false; btn.textContent = '📨 제출하기'; }
   }
+}
+
+// ══════════════════════════════════════════════════════════
+//  🗓️ 훈련운영관리 — 일별 훈련 기록
+//
+//  ⚠️ 설계에서 정한 것 — 바꾸기 전에 다시 생각할 것
+//    · 능력단위는 그 달에 하나. 날짜마다 고르지 않는다 (센터가 정해준다)
+//    · 훈련일은 센터가 비콘으로 넣는다. 기업이 날짜를 만들지 않는다
+//    · Off-JT(학교 수업)는 회색으로 보여주기만 하고 기업이 쓰지 않는다
+//    · 센터가 확인(confirmed)하면 규칙에서도 기업 쓰기가 막힌다
+// ══════════════════════════════════════════════════════════
+let trMonthDoc = null;    // trainingMonths 문서
+let trLogList  = [];      // 이 과정·이 달 trainingLogs
+let trWorker   = '';      // 보고 있는 학습근로자
+let trDay      = '';      // 펼친 날짜
+
+const trMonthId = () => `${curCourse.id}__${$('trPeriodSel').value}`;
+const trPeriod  = () => $('trPeriodSel').value;
+const trMine    = () => trLogList.filter(l => l.workerId === trWorker)
+                                 .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+const trOjt     = () => trMine().filter(l => l.kind === 'OJT');
+const trClosed  = () => !!trMonthDoc && (trMonthDoc.status === 'closed' || trMonthDoc.status === 'confirmed');
+const trConfirmed = () => trMonthDoc && trMonthDoc.status === 'confirmed';
+
+(function buildTrPeriods(){
+  const sel = $('trPeriodSel'); if (!sel) return;
+  sel.innerHTML = monthOptions().map(o => `<option value="${o.ym}">${o.label}</option>`).join('');
+  sel.value = ymDefault();
+  sel.onchange = () => { trDay = ''; loadTraining(); };
+})();
+
+async function loadTraining(){
+  if (!curCourse) return;
+  const period = trPeriod();
+  $('trMeta').innerHTML =
+    `<b>${esc(curCourse.type || '')}</b>${curCourse.site ? ' · ' + esc(curCourse.site) : ''}<br>` +
+    `<b>과정번호</b> ${esc(curCourse.courseNo || '-')}`;
+  $('trUnitBox').innerHTML = '<div class="empty">불러오는 중...</div>';
+  $('trCal').innerHTML = '';
+  $('trDayBox').innerHTML = '';
+  $('trCloseBox').innerHTML = '';
+  try {
+    const [lSnap, mSnap] = await Promise.all([
+      getDocs(query(collection(db, 'trainingLogs'),
+        where('companyId', '==', myAccount.companyId), where('period', '==', period))),
+      getDoc(doc(db, 'trainingMonths', trMonthId()))
+    ]);
+    trLogList = lSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(l => l.courseId === curCourse.id);
+    trMonthDoc = mSnap.exists() ? { id: mSnap.id, ...mSnap.data() } : null;
+  } catch(e) {
+    $('trUnitBox').innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    return;
+  }
+  // 학습근로자 선택지 — 기록이 있는 사람 우선, 없으면 과정 명단
+  const ids = [...new Set(trLogList.map(l => l.workerId))];
+  const list = ids.length
+    ? ids.map(id => ({ id, name: (trLogList.find(l=>l.workerId===id)||{}).workerName || '-' }))
+    : curWorkers.map(w => ({ id: w.id, name: w.name }));
+  const sel = $('trWorkerSel');
+  sel.innerHTML = list.map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('');
+  if (!list.some(w => w.id === trWorker)) trWorker = list.length ? list[0].id : '';
+  sel.value = trWorker;
+  sel.onchange = () => { trWorker = sel.value; trDay = ''; renderTrAll(); };
+  renderTrAll();
+}
+
+function renderTrAll(){ renderTrUnit(); renderTrCal(); renderTrDay(); renderTrClose(); }
+
+function renderTrUnit(){
+  const u = trMonthDoc && trMonthDoc.unitName;
+  const h = trOjt().reduce((s,l)=>s+Number(l.hours||0),0);
+  const plan = (trMonthDoc && trMonthDoc.unitPlan) || 0;
+  const pct = plan ? Math.min(100, Math.round(h/plan*100)) : 0;
+  $('trUnitBox').innerHTML = u
+    ? `<div style="border:1.5px solid #C9B6F5;background:#FBF9FF;border-radius:11px;padding:12px 14px;">
+         <div style="font-size:14.5px;font-weight:700;">${esc(trMonthDoc.unitName)}</div>
+         <div style="font-size:12px;color:var(--gray);margin-top:2px;">
+           ${esc(trMonthDoc.unitCode || '')}${plan ? ` · 계획 ${plan}시간 중 <b>${h}시간</b> 실시` : ` · ${h}시간 실시`}</div>
+         ${plan ? `<div style="height:7px;background:#EEF0F3;border-radius:4px;overflow:hidden;margin-top:7px;">
+           <div style="height:100%;width:${pct}%;background:#7C3AED;"></div></div>` : ''}
+       </div>`
+    : `<div class="empty">센터가 아직 이 달 능력단위를 정하지 않았습니다.<br><small>센터에 문의해주세요.</small></div>`;
+}
+
+function renderTrCal(){
+  const period = trPeriod();
+  const [y,m] = period.split('-').map(Number);
+  const first = new Date(y, m-1, 1).getDay(), count = new Date(y, m, 0).getDate();
+  const byDate = {};
+  trMine().forEach(l => { byDate[l.date] = l; });
+
+  let cells = '';
+  for (let i=0;i<first;i++) cells += `<div class="tcell empty"></div>`;
+  for (let d=1; d<=count; d++){
+    const ds = `${period}-${String(d).padStart(2,'0')}`;
+    const r = byDate[ds];
+    let cls = 'tcell', tag = '';
+    if (r && r.kind === 'OJT'){ cls += r.teacher ? ' done' : ' ojt'; tag = `<span class="tt">${r.teacher ? '✓' : 'OJT'}</span>`; }
+    else if (r){ cls += ' off'; tag = `<span class="tt">학교</span>`; }
+    if ((first+d-1)%7 === 0) cls += ' sun';
+    if (trDay === ds) cls += ' sel';
+    const click = (r && r.kind==='OJT') ? ` data-trd="${ds}"` : '';
+    cells += `<div class="${cls}"${click}>${d}${tag}</div>`;
+  }
+  const n = trOjt().length, w = trOjt().filter(l=>l.teacher).length;
+  $('trCal').innerHTML = `
+    <div class="tgrid">${['일','월','화','수','목','금','토'].map(x=>`<div class="tdow">${x}</div>`).join('')}${cells}</div>
+    <div style="display:flex;gap:11px;flex-wrap:wrap;font-size:11.5px;color:var(--gray);margin-top:10px;">
+      <span><i class="tsw" style="background:#F3EEFF;border-color:#C9B6F5;"></i>OJT 훈련일</span>
+      <span><i class="tsw" style="background:#E9FBF1;border-color:#86EFAC;"></i>의견 작성 완료</span>
+      <span><i class="tsw" style="background:#F1F5F9;border-color:#CBD5E1;"></i>학교 수업</span>
+    </div>
+    <div style="font-size:12.5px;color:var(--gray);margin-top:8px;">
+      OJT <b>${n}일</b> · 현장교사 의견 <b>${w}/${n}</b> 작성</div>`;
+  $('trCal').querySelectorAll('[data-trd]').forEach(el => el.onclick = () => {
+    trDay = (trDay === el.dataset.trd) ? '' : el.dataset.trd;
+    renderTrAll();
+    if (trDay) setTimeout(()=>$('trDayBox').scrollIntoView({behavior:'smooth',block:'center'}),30);
+  });
+}
+
+function renderTrDay(){
+  const box = $('trDayBox');
+  if (!trDay){ box.innerHTML = ''; return; }
+  const r = trMine().find(l => l.date === trDay);
+  if (!r){ box.innerHTML = ''; return; }
+  const [,mm,dd] = trDay.split('-');
+  const locked = trClosed();
+  box.innerHTML = `<div class="card">
+    <div class="card-title">✏️ ${Number(mm)}월 ${Number(dd)}일 훈련 기록
+      <span class="st-badge ${r.teacher?'st-conf':'st-draft'}" style="margin-left:auto;">${r.teacher?'작성 완료':'의견 미작성'}</span>
+    </div>
+    <div style="font-size:12.5px;color:var(--gray);background:#F8FAFC;border-radius:9px;padding:9px 11px;margin-bottom:12px;">
+      능력단위 <b>${esc((trMonthDoc&&trMonthDoc.unitName)||'-')}</b> · 훈련시간 <b>${r.hours||0}시간</b>${r.beacon?` · 비콘 <b>${esc(r.beacon)}</b>`:''}
+    </div>
+    ${locked ? `<div class="lock-bar" style="margin:0;">🔒 ${trConfirmed()?'센터 확인이 끝나':'마감되어'} 고칠 수 없습니다.</div>` : `
+    <div class="fld">
+      <label>훈련 내용 ${r.source==='beacon'&&r.content?'<span class="badge" style="margin-left:4px;">학습활동서에서 가져옴</span>':''}</label>
+      ${!r.content?`<div class="info-box" style="margin-bottom:7px;background:#FFF7ED;color:#7C2D12;">학생이 학습활동서를 아직 쓰지 않았습니다. 직접 적어주세요.</div>`:''}
+      <textarea id="trContent" style="min-height:96px;" placeholder="그날 어떤 훈련을 했는지 적어주세요.">${esc(r.content||'')}</textarea>
+    </div>
+    <div class="fld">
+      <label>기업현장교사 의견</label>
+      <textarea id="trTeacher" style="min-height:96px;" placeholder="학습근로자의 수행 정도, 잘한 점, 보완할 점을 적어주세요.">${esc(r.teacher||'')}</textarea>
+    </div>
+    <div class="bar">
+      <button class="act-sub" id="trSave">💾 저장</button>
+      <button class="act-save" id="trCancel">닫기</button>
+    </div>`}
+  </div>`;
+  if ($('trSave')) $('trSave').onclick = saveTrDay;
+  if ($('trCancel')) $('trCancel').onclick = () => { trDay=''; renderTrAll(); };
+}
+
+async function saveTrDay(){
+  const r = trMine().find(l => l.date === trDay); if (!r) return;
+  const content = $('trContent').value.trim();
+  const teacher = $('trTeacher').value.trim();
+  if (!content){ toast('훈련 내용을 적어주세요'); return; }
+  const btns = $('trDayBox').querySelectorAll('button');
+  btns.forEach(b=>b.disabled=true);
+  try {
+    const patch = { content, teacher, updatedAt: new Date().toISOString(), updatedBy: 'company' };
+    await setDoc(doc(db, 'trainingLogs', r.id), patch, { merge: true });
+    Object.assign(r, patch);
+    toast('💾 저장했습니다');
+    trDay = '';
+    renderTrAll();
+  } catch(e){
+    btns.forEach(b=>b.disabled=false);
+    console.error('[training save]', e);
+    alert(saveFailMsg(e, '저장'));
+  }
+}
+
+function renderTrClose(){
+  const ojt = trOjt();
+  const left = ojt.filter(l=>!l.teacher).length;
+  const st = (trMonthDoc && trMonthDoc.status) || 'open';
+  const h = ojt.reduce((s,l)=>s+Number(l.hours||0),0);
+  const signed = trMonthDoc && trMonthDoc.signTeacher;
+  $('trCloseBox').innerHTML = `<div class="card">
+    <div class="card-title">✅ ${esc(ymLabel(trPeriod()))} 마감
+      <span class="st-badge ${st==='confirmed'?'st-conf':st==='closed'?'st-sub':'st-none'}" style="margin-left:auto;">
+        ${st==='confirmed'?'센터 확인 완료':st==='closed'?'센터 확인 대기':'작성 중'}</span></div>
+    <div class="info-box">이 서명 한 번으로 그 달 <b>월별 확인서</b>를 대신합니다. 따로 작성하지 않으셔도 됩니다.</div>
+    <div style="font-size:13px;line-height:1.9;">
+      <b>능력단위</b> ${esc((trMonthDoc&&trMonthDoc.unitName)||'-')}<br>
+      <b>OJT 훈련</b> ${ojt.length}일 · ${h}시간<br>
+      <b>현장교사 의견</b> ${ojt.length-left}/${ojt.length}일 작성${left?` <span style="color:#B3542F;">· ${left}일 남음</span>`:''}
+    </div>
+    ${signed ? `<div class="ok-bar" style="margin-top:11px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#166534;">
+      ✓ 기업현장교사 <b>${esc(trMonthDoc.signTeacher)}</b> · HRD담당자 <b>${esc(trMonthDoc.signHrd||'')}</b> 서명 완료</div>` : ''}
+    <div class="bar" style="margin-top:12px;">
+      ${st==='open'
+        ? `<button class="act-sub" id="trClose" ${left||!ojt.length?'disabled':''}>✍️ 서명하고 마감</button>`
+        : st==='closed'
+          ? `<button class="act-save" id="trReopen">✏️ 마감 취소하고 고치기</button>`
+          : ''}
+      <button class="act-print" id="trPrint">🖨️ 인쇄 · PDF 저장</button>
+    </div>
+    ${st==='open' && left ? `<div class="hint" style="margin-top:8px;color:#B3542F;">현장교사 의견을 모두 쓰셔야 마감할 수 있습니다.</div>` : ''}
+    ${st==='confirmed' ? `<div class="hint" style="margin-top:8px;">센터 확인이 끝났습니다. 고치려면 센터에 잠금 해제를 요청해주세요.</div>` : ''}
+  </div>`;
+  if ($('trClose'))  $('trClose').onclick  = closeTrMonth;
+  if ($('trReopen')) $('trReopen').onclick = reopenTrMonth;
+  if ($('trPrint'))  $('trPrint').onclick  = printTraining;
+}
+
+async function closeTrMonth(){
+  const a = prompt('기업현장교사 성명을 적어주세요.', myAccount.name || '');
+  if (a === null) return;
+  if (!a.trim()){ toast('기업현장교사 성명을 적어주세요'); return; }
+  const b = prompt('HRD담당자 성명을 적어주세요.', myAccount.name || '');
+  if (b === null) return;
+  if (!b.trim()){ toast('HRD담당자 성명을 적어주세요'); return; }
+  if (!confirm(`${ymLabel(trPeriod())} 훈련 기록을 마감합니다.\n\n`
+    + `기업현장교사 ${a.trim()} · HRD담당자 ${b.trim()}\n\n`
+    + `마감하면 내용이 잠기고 센터가 확인합니다.\n계속할까요?`)) return;
+  try {
+    const ojt = trOjt();
+    const patch = {
+      courseId: curCourse.id, companyId: myAccount.companyId,
+      companyName: myAccount.companyName || '', courseType: curCourse.type || '',
+      courseNo: curCourse.courseNo || '', period: trPeriod(),
+      status: 'closed', signTeacher: a.trim(), signHrd: b.trim(),
+      signedAt: new Date().toISOString(),
+      signMeta: buildSignMeta(a.trim()),
+      docHash: await docFingerprint({ p: trPeriod(), c: curCourse.id,
+        u: (trMonthDoc&&trMonthDoc.unitId)||'', n: ojt.length,
+        h: ojt.reduce((s,l)=>s+Number(l.hours||0),0) }),
+      updatedAt: new Date().toISOString()
+    };
+    await setDoc(doc(db, 'trainingMonths', trMonthId()), patch, { merge: true });
+    trMonthDoc = Object.assign(trMonthDoc || {}, patch);
+    toast('✅ 마감했습니다');
+    trDay = ''; renderTrAll();
+  } catch(e){
+    console.error('[training close]', e);
+    alert(saveFailMsg(e, '마감'));
+  }
+}
+
+async function reopenTrMonth(){
+  if (!confirm('마감을 취소하고 다시 고칩니다.\n\n서명이 취소됩니다.\n계속할까요?')) return;
+  try {
+    const patch = { status:'open', signTeacher:'', signHrd:'', signedAt:null,
+                    signMeta:null, docHash:'', reopenedAt:new Date().toISOString() };
+    await setDoc(doc(db, 'trainingMonths', trMonthId()), patch, { merge: true });
+    Object.assign(trMonthDoc, patch);
+    toast('✏️ 다시 고칠 수 있습니다');
+    renderTrAll();
+  } catch(e){
+    console.error('[training reopen]', e);
+    alert(saveFailMsg(e, '마감 취소'));
+  }
+}
+
+// 일별 기록을 모아 훈련강사의견 양식으로 출력
+function printTraining(){
+  const ojt = trOjt();
+  if (!ojt.length){ toast('이 달 OJT 훈련 기록이 없습니다'); return; }
+  const nm = (trMine()[0] || {}).workerName || '';
+  const h = ojt.reduce((s,l)=>s+Number(l.hours||0),0);
+  const rows = ojt.map((d,i)=>`<tr>
+    <td style="text-align:center;">${i+1}</td><td>${esc(d.date)}</td>
+    <td style="text-align:center;">${d.hours||0}h</td>
+    <td>${esc(d.content||'')}<br><b>의견</b> ${esc(d.teacher||'-')}</td></tr>`).join('');
+  const body = `
+    <h1>기업현장교사 의견서</h1>
+    <div class="docno">${esc(trPeriod())} · ${esc(nm)}</div>
+    <table class="info">
+      <tr><th>기업</th><td>${esc(myAccount.companyName||'')}</td><th>작성 월</th><td>${esc(ymLabel(trPeriod()))}</td></tr>
+      <tr><th>훈련과정</th><td>${esc(curCourse.type||'')}</td><th>과정번호</th><td>${esc(curCourse.courseNo||'-')}</td></tr>
+      <tr><th>학습근로자</th><td>${esc(nm)}</td><th>능력단위</th><td>${esc((trMonthDoc&&trMonthDoc.unitName)||'-')}</td></tr>
+      <tr><th>훈련 실적</th><td colspan="3">${ojt.length}일 · ${h}시간 (비콘 출결 기준)</td></tr>
+    </table>
+    <h2>훈련 내용 및 현장교사 의견</h2>
+    <table class="grid">
+      <tr><th style="width:34px;">No</th><th style="width:96px;">훈련일</th><th style="width:48px;">시간</th><th>내용</th></tr>
+      ${rows}
+    </table>
+    ${trMonthDoc && trMonthDoc.signTeacher ? `<table class="info" style="margin-top:16px;">
+      <tr><th>기업현장교사</th><td>${esc(trMonthDoc.signTeacher)}</td>
+          <th>HRD담당자</th><td>${esc(trMonthDoc.signHrd||'')}</td></tr>
+      <tr><th>마감일</th><td colspan="3">${esc((trMonthDoc.signedAt||'').slice(0,10))}</td></tr>
+    </table>` : ''}
+    <p style="margin-top:10px;font-size:11.5px;color:#555;">※ 일별 훈련 기록을 모아 만든 문서입니다. 훈련일과 시간은 비콘 출결 자료를 따릅니다.</p>`;
+  openPrint(`기업현장교사 의견서 - ${nm} ${trPeriod()}`, body);
 }
 
 // ══════════ 비밀번호 변경 ══════════
