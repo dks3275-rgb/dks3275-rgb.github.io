@@ -9884,10 +9884,24 @@
       : st === 'closed' ? '<span style="color:#9a3412;font-weight:700;">⏳ 기업 마감 · 센터 확인 대기</span>'
       : '<span style="color:#64748b;">작성 중</span>';
 
+    const sign = trMonth && trMonth.signTeacher
+      ? `<div style="font-size:12.5px;color:#166534;background:#F0FDF4;border:1px solid #86EFAC;
+            border-radius:9px;padding:8px 11px;margin-bottom:10px;">
+           ✓ 기업현장교사 <b>${escapeHtmlSafe(trMonth.signTeacher)}</b> 서명 완료
+           ${trMonth.signature ? ` · <a href="#" onclick="viewTrSign();return false;" style="color:#166534;font-weight:700;">서명 보기</a>` : ''}
+         </div>` : '';
+
     el.innerHTML = `<div style="font-size:12.5px;color:#64748b;margin-bottom:10px;">
         ${opYmLabel(period)} · ${stLabel}
         ${trMonth?.unitName ? ' · 능력단위 <b>' + escapeHtmlSafe(trMonth.unitName) + '</b>' : ' · <b style="color:#b91c1c;">능력단위 미지정</b>'}
       </div>`
+      + sign
+      + `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          ${st === 'closed' ? `<button class="mini-btn" onclick="confirmTrMonth()" style="background:#059669;color:white;">✅ 확인 처리</button>` : ''}
+          ${st === 'confirmed' ? `<button class="mini-btn" onclick="unlockTrMonth()" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+          ${st === 'open' && trMonth && trMonth.signTeacher ? `<button class="mini-btn" onclick="unlockTrMonth()" style="background:#f59e0b;color:white;">🔓 잠금 해제</button>` : ''}
+          <button class="mini-btn" onclick="printTrOpinion()" style="background:#3F4A57;color:white;">🖨️ 훈련강사의견 출력</button>
+        </div>`
       + Object.entries(byWorker).map(([wid, list]) => {
         const ojt = list.filter(l => l.kind === 'OJT');
         const off = list.filter(l => l.kind === 'OFF');
@@ -9910,7 +9924,8 @@
             <tr><th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;width:66px;text-align:left;">날짜</th>
                 <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;width:50px;text-align:left;">구분</th>
                 <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;width:100px;text-align:left;">비콘</th>
-                <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;text-align:left;">훈련내용 · 현장교사 의견</th></tr>
+                <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;text-align:left;">훈련내용 · 현장교사 의견</th>
+                <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;width:44px;text-align:left;">수정</th></tr>
             ${list.map(l => `<tr>
               <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;">${escapeHtmlSafe((l.date || '').slice(5))}</td>
               <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;color:${l.kind === 'OJT' ? '#6D28D9' : '#64748B'};font-weight:700;">${l.kind === 'OJT' ? 'OJT' : '학교'}<br><span style="font-weight:400;color:#94a3b8;">${l.hours || 0}h</span></td>
@@ -9918,10 +9933,173 @@
               <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;">
                 ${l.content ? escapeHtmlSafe(l.content) : '<span style="color:#b91c1c;">학습활동서 미작성</span>'}
                 ${l.kind === 'OJT' ? `<br><span style="color:#64748b;">현장교사: ${l.teacher ? escapeHtmlSafe(l.teacher) : '<span style="color:#b91c1c;">미작성</span>'}</span>` : ''}
+                ${l.editedBy === 'center' ? '<br><span style="font-size:11px;color:#7c3aed;">✏️ 센터 수정</span>' : ''}
+              </td>
+              <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;">
+                <button class="mini-btn" onclick="editTrLog('${l.id}')" style="background:#EEF0F3;color:#37404B;">✏️</button>
               </td></tr>`).join('')}
           </table>
         </div>`;
       }).join('');
+  }
+
+  // ── 센터 확인 처리 / 잠금 해제 ──
+  // 기업이 마감(closed)하면 센터가 확인(confirmed)한다.
+  // confirmed 가 되면 보안규칙에서 기업 쓰기가 막힌다 (trainingLogs·trainingMonths 둘 다).
+  async function confirmTrMonth() {
+    const c = trCourse(), period = trPeriod();
+    if (!trMonth) { alert('기업이 아직 마감하지 않았습니다.'); return; }
+    const ojt = trLogs.filter(l => l.kind === 'OJT');
+    const left = ojt.filter(l => !l.teacher).length;
+    if (!await customConfirm({ title: '훈련 기록 확인 처리',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')} · ${escapeHtmlSafe(c.type || '')}</b><br>`
+        + `${opYmLabel(period)} 훈련 기록을 확인 완료로 처리할까요?<br><br>`
+        + `<span style="font-size:12.5px;color:#4a5568;">OJT ${ojt.length}일 · 현장교사 의견 ${ojt.length - left}/${ojt.length}건</span>`
+        + (left ? `<br><span style="font-size:12.5px;color:#b91c1c;">⚠️ 의견이 비어 있는 날이 ${left}일 있습니다.</span>` : '')
+        + `<br><br><span style="font-size:12px;color:#92400e;">확인하면 기업은 더 이상 고칠 수 없습니다. 센터는 계속 고칠 수 있습니다.</span>`,
+      confirmText: '✅ 확인 처리' })) return;
+    await trPatchMonth({ status: 'confirmed', confirmedAt: new Date().toISOString() }, '훈련 기록 확인');
+  }
+
+  async function unlockTrMonth() {
+    const c = trCourse(), period = trPeriod();
+    if (!trMonth) return;
+    if (!await customConfirm({ title: '잠금 해제',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')}</b> ${opYmLabel(period)} 훈련 기록을<br>`
+        + `기업이 다시 고치고 서명할 수 있게 열어줄까요?<br><br>`
+        + `<span style="font-size:12px;color:#92400e;">기업현장교사 서명이 취소됩니다. 일별 기록은 그대로 남습니다.</span>`,
+      confirmText: '🔓 잠금 해제' })) return;
+    await trPatchMonth({ status: 'open', signTeacher: '', signature: '', signedAt: null,
+                         signMeta: null, docHash: '', unlockedAt: new Date().toISOString() }, '훈련 기록 잠금 해제');
+  }
+
+  async function trPatchMonth(patch, logText) {
+    const c = trCourse(), period = trPeriod();
+    try {
+      const db = await wkDb();
+      const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await setDoc(doc(db, 'trainingMonths', trKeyMonth(c.id, period)),
+        Object.assign({ updatedAt: new Date().toISOString() }, patch), { merge: true });
+      await writeLog('update', 'trainingMonth', trKeyMonth(c.id, period),
+        `${logText}: ${c.companyName || ''} ${c.type || ''} ${period}`);
+      await renderTraining();
+    } catch(e) { alert('처리 실패: ' + (e.message || '')); }
+  }
+
+  // 기업이 올린 서명 그림 보기
+  function viewTrSign() {
+    if (!trMonth || !trMonth.signature) return;
+    const w = window.open('', '_blank', 'width=640,height=520');
+    if (!w) { alert('팝업이 차단되었습니다.'); return; }
+    const E = escapeHtmlSafe;
+    w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+      <title>서명 - ${E(trMonth.companyName || '')} ${E(trMonth.period || '')}</title>
+      <style>body{font-family:'Malgun Gothic',sans-serif;padding:24px;color:#111;}
+      img{max-width:100%;border-bottom:1.5px solid #999;}
+      .m{font-size:13px;color:#555;margin-top:10px;line-height:1.7;}</style></head><body>
+      <h3 style="margin:0 0 14px;">기업현장교사 서명</h3>
+      <img src="${trMonth.signature}" alt="서명">
+      <div class="m"><b>${E(trMonth.signTeacher || '')}</b><br>
+        ${E(trMonth.companyName || '')} · ${E(trMonth.courseType || '')} · ${E(opYmLabel(trMonth.period || ''))}<br>
+        ${trMonth.docHash ? '문서지문 ' + E(String(trMonth.docHash).slice(0, 16)) : ''}</div>
+      </body></html>`);
+    w.document.close();
+  }
+
+  // ── 센터가 일별 기록을 직접 고친다 ──
+  // 기업이 못 쓰거나 잘못 쓴 경우 센터가 대신 손본다. 확인 완료 뒤에도 센터는 고칠 수 있다.
+  // 고치면 editedBy='center' 로 남겨, 나중에 누가 손댔는지 알 수 있게 한다.
+  async function editTrLog(id) {
+    const l = trLogs.find(x => x.id === id); if (!l) return;
+    const E = escapeHtmlSafe;
+    const content = prompt(`${l.date} ${l.workerName} — 훈련 내용
+
+(학습근로자가 쓴 학습활동서입니다)`,
+      l.content || '');
+    if (content === null) return;
+    let teacher = l.teacher || '';
+    if (l.kind === 'OJT') {
+      const t = prompt(`${l.date} ${l.workerName} — 기업현장교사 의견`, teacher);
+      if (t === null) return;
+      teacher = t;
+    }
+    try {
+      const db = await wkDb();
+      const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const patch = { content: content.trim(), teacher: teacher.trim(),
+                      editedBy: 'center', updatedAt: new Date().toISOString() };
+      await setDoc(doc(db, 'trainingLogs', id), patch, { merge: true });
+      Object.assign(l, patch);
+      await writeLog('update', 'trainingLog', id,
+        `훈련 기록 수정: ${l.workerName || ''} ${l.date}`);
+      trRenderRecords();
+    } catch(e) { alert('저장 실패: ' + (e.message || '')); }
+  }
+
+  // ── 훈련강사의견 양식으로 출력 (학습근로자별) ──
+  // 기업 화면과 같은 양식. 마감일은 넣지 않는다.
+  function printTrOpinion() {
+    const c = trCourse(), period = trPeriod(); if (!c) return;
+    const ojtAll = trLogs.filter(l => l.kind === 'OJT');
+    if (!ojtAll.length) { alert('이 달 OJT 훈련 기록이 없습니다.'); return; }
+    const E = escapeHtmlSafe;
+    const byWorker = {};
+    ojtAll.forEach(l => { (byWorker[l.workerId] = byWorker[l.workerId] || []).push(l); });
+
+    const pages = Object.values(byWorker).map((list, idx) => {
+      list.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      const nm = list[0].workerName || '-';
+      const h = list.reduce((s, l) => s + Number(l.hours || 0), 0);
+      const rows = list.map((d, i) => `<tr>
+        <td class="c">${i + 1}</td><td>${E(d.date)}</td><td class="c">${d.hours || 0}h</td>
+        <td>${E(d.content || '-')}</td><td>${E(d.teacher || '-')}</td></tr>`).join('');
+      return `<div class="pg"${idx ? ' style="page-break-before:always;"' : ''}>
+        <h1>기업현장교사 의견서</h1>
+        <div class="docno">${E(nm)}</div>
+        <table class="info">
+          <tr><th>기업</th><td>${E(c.companyName || '')}</td><th>작성 월</th><td>${E(opYmLabel(period))}</td></tr>
+          <tr><th>훈련과정</th><td>${E(c.type || '')}</td><th>과정번호</th><td>${E(c.courseNo || '-')}</td></tr>
+          <tr><th>학습근로자</th><td>${E(nm)}</td><th>능력단위</th><td>${E((trMonth && trMonth.unitName) || '-')}</td></tr>
+          <tr><th>훈련 실적</th><td colspan="3">${list.length}일 · ${h}시간 (비콘 출결 기준)</td></tr>
+        </table>
+        <h2>훈련 내용 및 현장교사 의견</h2>
+        <table class="grid">
+          <tr><th style="width:30px;">No</th><th style="width:84px;">훈련일</th><th style="width:40px;">시간</th>
+              <th style="width:42%;">훈련 내용 <span style="font-weight:400;">(학습근로자 작성)</span></th>
+              <th>기업현장교사 의견</th></tr>
+          ${rows}
+        </table>
+        ${trMonth && trMonth.signTeacher ? `<table class="info" style="margin-top:16px;">
+          <tr><th>기업현장교사</th><td>${E(trMonth.signTeacher)}
+            ${trMonth.signature ? `<br><img src="${trMonth.signature}" style="max-width:190px;border-bottom:1px solid #999;margin-top:4px;">` : ''}</td></tr>
+        </table>` : ''}
+        <p class="note">※ 일별 훈련 기록을 모아 만든 문서입니다. 훈련일과 시간은 비콘 출결 자료를 따릅니다.</p>
+      </div>`;
+    }).join('');
+
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { alert('팝업이 차단되었습니다. 주소창의 팝업 허용을 켜주세요.'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+      <title>기업현장교사 의견서 - ${E(c.companyName || '')} ${E(period)}</title><style>
+      @page { size:A4; margin:16mm 14mm; }
+      body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;color:#111;font-size:12.5px;line-height:1.65;}
+      h1{font-size:20px;text-align:center;letter-spacing:5px;margin:0 0 6px;}
+      h2{font-size:14px;margin:18px 0 7px;padding-left:8px;border-left:4px solid #3F4A57;}
+      .docno{text-align:right;font-size:12px;color:#444;margin-bottom:8px;}
+      table{width:100%;border-collapse:collapse;}
+      .info th{width:92px;background:#f3f4f6;text-align:left;}
+      .info th,.info td{border:1px solid #9ca3af;padding:7px 10px;}
+      .grid th,.grid td{border:1px solid #6b7280;padding:7px 9px;vertical-align:top;}
+      .grid th{background:#f3f4f6;}
+      td.c{text-align:center;}
+      .note{margin-top:10px;font-size:11.5px;color:#555;}
+      .bar{text-align:center;margin-bottom:14px;}
+      .bar button{padding:10px 22px;font-size:14px;font-weight:700;border:none;border-radius:8px;background:#3F4A57;color:white;cursor:pointer;}
+      @media print{ .bar{display:none;} }
+      </style></head><body>
+      <div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>
+      ${pages}</body></html>`);
+    w.document.close();
   }
 
   // ── 이 달 기록 전부 지우기 ──
