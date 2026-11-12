@@ -63,6 +63,27 @@
   .worker-meta { font-size:12px; color:var(--sub); }
   .badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:5px; background:#e3f2fd; color:#1565c0; }
 
+  /* 훈련운영 — 누가 쓴 글인지 구역으로 가른다 */
+  .sect{border-radius:12px; padding:13px 14px; margin-bottom:12px;}
+  .sect.stu{background:#F4F7FB; border:1.5px solid #D6E2F0;}
+  .sect.tea{background:#F6F4FF; border:1.5px solid #D9CFF5;}
+  .sect-h{font-size:13px; font-weight:800; margin-bottom:9px;}
+  .sect.stu .sect-h{color:#1E4976;} .sect.tea .sect-h{color:#5B21B6;}
+  .sect-b{font-size:13.5px; line-height:1.7; white-space:pre-wrap;}
+  .sect textarea{width:100%; padding:10px 12px; border:1.5px solid var(--line);
+    border-radius:10px; background:white; resize:vertical; line-height:1.65; font-size:14px;}
+  .guide{background:white; border:1px solid #D9CFF5; border-radius:10px;
+    padding:10px 12px; font-size:12.5px; color:#4B3A7A; line-height:1.6; margin-bottom:9px;}
+  .guide b{color:#3B2A66;}
+  .g-row{margin-top:4px;}
+  .g-n{display:inline-block; width:16px; height:16px; border-radius:50%; background:#7C3AED;
+    color:white; font-size:10px; font-weight:700; text-align:center; line-height:16px; margin-right:5px;}
+  .g-ex{margin-top:8px; padding-top:8px; border-top:1px dashed #D9CFF5; color:#6B5A96; font-size:12px;}
+  .chips{display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px;}
+  .chip{background:white; border:1.5px solid #D9CFF5; color:#5B21B6; border-radius:8px;
+    padding:5px 10px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer;}
+  .chip:active{background:#F3EEFF;}
+
   /* 훈련운영 달력 */
   .tgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:4px;}
   .tdow{text-align:center; font-size:11.5px; color:var(--gray); font-weight:700; padding:4px 0;}
@@ -257,7 +278,8 @@
 
 <div class="container">
   <!-- 과정 목록 -->
-  <div id="courseView">
+  <!-- ══════ 홈 — 두 갈래 입구 ══════ -->
+  <div id="homeView">
     <div class="card" id="noticeCard" style="padding-bottom:14px;">
       <div class="nt-head" id="ntHead">
         <span style="font-size:15px;font-weight:700;">📣 센터 알림</span>
@@ -272,32 +294,10 @@
     </div>
 
     <div class="card">
-      <div class="card-title">📘 훈련과정 <span class="hint" id="courseCount"></span></div>
-      <div class="info-box" data-guide="course_list">
-        관리하실 훈련과정을 선택하세요. 과정별로 학습근로자와 서류를 따로 관리합니다.
-      </div>
-      <div id="courseList"><div class="empty">불러오는 중...</div></div>
-    </div>
-  </div>
-
-  <!-- 과정 상세 -->
-  <div id="detailView" style="display:none;">
-    <button class="back-btn" id="backBtn">← 과정 목록</button>
-    <div class="card">
-      <div class="card-title" id="detailTitle">과정</div>
-      <div id="detailMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">👷 학습근로자 <span class="hint" id="workerCount"></span></div>
-      <div id="workerList"><div class="empty">불러오는 중...</div></div>
-    </div>
-
-    <!-- 두 갈래 입구 — 훈련운영관리(일별 기록) / 학습관리(서류) -->
-    <div class="card">
       <div class="card-title">무엇을 하시겠어요?</div>
       <button class="entry-btn" id="goTraining">
         <div class="ico">🗓️</div>
-        <div><div class="ttl">훈련운영관리</div>
+        <div><div class="ttl">훈련운영</div>
           <div class="sub">일별 훈련 기록 · 현장교사 의견 · 월 마감</div></div>
         <div class="arw">›</div>
       </button>
@@ -310,12 +310,28 @@
     </div>
   </div>
 
+  <!-- 과정 목록 -->
+  <div id="courseView" style="display:none;">
+    <button class="back-btn" id="courseBack">← 처음으로</button>
+    <div class="card">
+      <div class="card-title" id="courseTitle">📘 훈련과정 <span class="hint" id="courseCount"></span></div>
+      <div class="info-box" id="courseIntro">
+        관리하실 훈련과정을 선택하세요.
+      </div>
+      <div id="courseList"><div class="empty">불러오는 중...</div></div>
+    </div>
+  </div>
+
   <!-- ══════ 학습관리 (서류 4종) ══════ -->
   <div id="docsView" style="display:none;">
-    <button class="back-btn" id="docsBack">← 과정 상세</button>
+    <button class="back-btn" id="docsBack">← 과정 목록</button>
     <div class="card">
       <div class="card-title">📋 학습관리</div>
       <div id="docsMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">👷 학습근로자 <span class="hint" id="workerCount"></span></div>
+      <div id="workerList"><div class="empty">불러오는 중...</div></div>
     </div>
     <div class="card">
       <div class="card-title">📝 기업현장교사 의견서
@@ -364,7 +380,7 @@
 
   <!-- ══════ 면담일지 작성 ══════ -->
   <div id="counselView" style="display:none;">
-    <button class="back-btn" id="cnBack">← 과정 상세</button>
+    <button class="back-btn" id="cnBack">← 학습관리</button>
 
     <div class="card">
       <div class="card-title" id="cnTitle">학습근로자 면담일지</div>
@@ -425,7 +441,7 @@
 
   <!-- ══════ 월별 체크리스트 ══════ -->
   <div id="checklistView" style="display:none;">
-    <button class="back-btn" id="ckBack">← 과정 상세</button>
+    <button class="back-btn" id="ckBack">← 학습관리</button>
 
     <div class="card">
       <div class="card-title" id="ckTitle">월별 체크리스트</div>
@@ -513,7 +529,7 @@
        센터가 비콘으로 훈련일·시간·학습활동서를 채워두면,
        기업은 날짜를 눌러 현장교사 의견만 적는다. -->
   <div id="trainingView" style="display:none;">
-    <button class="back-btn" id="trBack">← 과정 상세</button>
+    <button class="back-btn" id="trBack">← 과정 목록</button>
 
     <div class="card">
       <div class="card-title">🗓️ 훈련운영관리
@@ -553,7 +569,7 @@
   </div>
 
   <div id="opinionView" style="display:none;">
-    <button class="back-btn" id="opBack">← 과정 상세</button>
+    <button class="back-btn" id="opBack">← 학습관리</button>
 
     <div class="card">
       <div class="card-title" id="opTitle">기업현장교사 의견서</div>
@@ -850,15 +866,20 @@ function renderFirmNotices() {
 //   과정목록 → 과정상세 → (의견서 | 면담일지 | 확인서)
 //   각 단계를 브라우저 기록에 쌓아, 뒤로가기가 한 단계씩 되돌아가게 한다.
 // ══════════════════════════════════════════
+// 화면 흐름
+//   home → course → (training | docs) → (opinion | counsel | checklist)
+// 로그인하면 먼저 '훈련운영 / 학습관리' 를 고르고, 그다음 과정을 고른다.
 const VIEW_IDS = {
-  course:    'courseView',
-  detail:    'detailView',
+  home:      'homeView',        // 두 갈래 입구
+  course:    'courseView',      // 훈련과정 목록
   docs:      'docsView',        // 학습관리 — 서류 4종
-  training:  'trainingView',    // 훈련운영관리 — 일별 훈련 기록
+  training:  'trainingView',    // 훈련운영 — 일별 훈련 기록
   opinion:   'opinionView',
   counsel:   'counselView',
   checklist: 'checklistView'
 };
+// 어느 갈래로 들어왔는지 — 과정을 고른 뒤 어디로 보낼지 정한다
+let coMode = 'docs';
 function showOnly(name) {
   Object.values(VIEW_IDS).forEach(id => { const el = $(id); if (el) el.style.display = 'none'; });
   const el = $(VIEW_IDS[name] || 'courseView');
@@ -868,18 +889,17 @@ function showOnly(name) {
 // 뒤로가기로 돌아왔을 때 화면을 되살린다.
 // 필요한 자료가 없으면(새로고침 등) 한 단계 위로 떨어뜨린다.
 function renderView(name) {
-  if (name === 'detail' && !curCourse) name = 'course';
-  if (name === 'docs'      && !curCourse)   name = 'detail';
-  if (name === 'training'  && !curCourse)   name = 'detail';
+  // 새로고침 등으로 자료가 없으면 한 단계 위로 떨어뜨린다
+  if ((name === 'docs' || name === 'training') && !curCourse) name = 'course';
   if (name === 'opinion'   && !curOpinion)  name = 'docs';
   if (name === 'counsel'   && !curWorker)   name = 'docs';
   if (name === 'checklist' && !curCourse)   name = 'docs';
   showOnly(name);
   // 돌아왔을 때 목록을 최신으로
-  if (name === 'docs')     { loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment(); }
+  if (name === 'docs')     { openDocs(); }
   if (name === 'training') { loadTraining(); }
 }
-if (window.BackNav) BackNav.init(renderView, 'course');
+if (window.BackNav) BackNav.init(renderView, 'home');
 // 같은 화면을 다시 그릴 때(저장 후 새로고침 등)는 기록을 쌓지 않는다.
 // 안 그러면 뒤로가기를 두 번 눌러야 빠져나가게 된다.
 function navTo(name) {
@@ -888,7 +908,7 @@ function navTo(name) {
 }
 function navBack() {
   if (window.BackNav) BackNav.back();
-  else showOnly('detail');   // 도구를 못 불러왔을 때의 대비
+  else showOnly('home');   // 도구를 못 불러왔을 때의 대비
 }
 
 // ══════════ 훈련과정 목록 ══════════
@@ -930,28 +950,38 @@ function openCourse(courseId) {
   const c = myCourses.find(x => x.id === courseId);
   if (!c) return;
   curCourse = c;
-  navTo('detail');
-  $('detailTitle').textContent = `📘 ${c.type || ''}`;
-  $('detailMeta').innerHTML =
-    `<b>사업장</b> ${c.site || '-'}<br>` +
-    `<b>과정번호</b> ${c.courseNo || '-'}<br>` +
-    `<b>관할지사</b> ${c.branch || '-'}` +
-    (c.manager ? `<br><b>센터 담당</b> ${c.manager}` : '');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  loadWorkers(c);
+  // 홈에서 고른 갈래로 바로 들어간다
+  if (coMode === 'training') { navTo('training'); loadTraining(); }
+  else { navTo('docs'); openDocs(); }
 }
-$('backBtn').onclick = navBack;
-$('docsBack').onclick = navBack;
-$('trBack').onclick   = navBack;
-$('goDocs').onclick     = () => { navTo('docs'); openDocs(); };
-$('goTraining').onclick = () => { navTo('training'); loadTraining(); };
+$('courseBack').onclick = navBack;
+$('docsBack').onclick   = navBack;
+$('trBack').onclick     = navBack;
 
-// 학습관리 화면 머리말 — 과정 상세와 같은 내용을 다시 보여준다
+// 홈의 두 갈래 — 고른 뒤 과정 목록으로
+function goMode(mode) {
+  coMode = mode;
+  const t = $('courseTitle'), i = $('courseIntro');
+  if (t) t.innerHTML = (mode === 'training' ? '🗓️ 훈련운영' : '📋 학습관리')
+    + ' <span class="hint" id="courseCount"></span>';
+  if (i) i.textContent = mode === 'training'
+    ? '일별 훈련 기록을 작성할 훈련과정을 선택하세요.'
+    : '서류를 작성할 훈련과정을 선택하세요.';
+  navTo('course');
+  loadCourses();
+}
+$('goTraining').onclick = () => goMode('training');
+$('goDocs').onclick     = () => goMode('docs');
+
+// 학습관리 화면 머리말 + 서류 목록 새로고침
 function openDocs() {
   const c = curCourse; if (!c) return;
   $('docsMeta').innerHTML =
     `<b>${esc(c.type || '')}</b>${c.site ? ' · ' + esc(c.site) : ''}<br>` +
-    `<b>과정번호</b> ${esc(c.courseNo || '-')}`;
+    `<b>과정번호</b> ${esc(c.courseNo || '-')}` +
+    (c.branch ? `<br><b>관할지사</b> ${esc(c.branch)}` : '') +
+    (c.manager ? `<br><b>센터 담당</b> ${esc(c.manager)}` : '');
+  loadWorkers(c);
   loadOpinions(); loadCounsels(); loadChecklist(); loadAssessment();
 }
 
@@ -2639,21 +2669,58 @@ function renderTrDay(){
     <div style="font-size:12.5px;color:var(--gray);background:#F8FAFC;border-radius:9px;padding:9px 11px;margin-bottom:12px;">
       능력단위 <b>${esc((trMonthDoc&&trMonthDoc.unitName)||'-')}</b> · 훈련시간 <b>${r.hours||0}시간</b>${r.beacon?` · 비콘 <b>${esc(r.beacon)}</b>`:''}
     </div>
-    ${locked ? `<div class="lock-bar" style="margin:0;">🔒 ${trConfirmed()?'센터 확인이 끝나':'마감되어'} 고칠 수 없습니다.</div>` : `
-    <div class="fld">
-      <label>훈련 내용 ${r.source==='beacon'&&r.content?'<span class="badge" style="margin-left:4px;">학습활동서에서 가져옴</span>':''}</label>
-      ${!r.content?`<div class="info-box" style="margin-bottom:7px;background:#FFF7ED;color:#7C2D12;">학생이 학습활동서를 아직 쓰지 않았습니다. 직접 적어주세요.</div>`:''}
-      <textarea id="trContent" style="min-height:96px;" placeholder="그날 어떤 훈련을 했는지 적어주세요.">${esc(r.content||'')}</textarea>
+    ${locked ? `<div class="lock-bar" style="margin:0;">🔒 ${trConfirmed()?'센터 확인이 끝나':'마감되어'} 고칠 수 없습니다.</div>
+      <div class="sect stu" style="margin-top:12px;">
+        <div class="sect-h">👷 학습근로자가 쓴 내용</div>
+        <div class="sect-b">${r.content?esc(r.content):'<span style="color:var(--gray);">작성 없음</span>'}</div>
+      </div>
+      <div class="sect tea">
+        <div class="sect-h">🧑‍🏫 기업현장교사 의견</div>
+        <div class="sect-b">${r.teacher?esc(r.teacher):'<span style="color:var(--gray);">작성 없음</span>'}</div>
+      </div>` : `
+    <!-- 누가 쓴 글인지 한눈에 갈리도록 두 구역을 색으로 나눈다 -->
+    <div class="sect stu">
+      <div class="sect-h">👷 학습근로자가 쓴 내용
+        ${r.source==='beacon'&&r.content?'<span class="badge" style="margin-left:5px;">학습활동서</span>':''}</div>
+      ${!r.content?`<div style="font-size:12.5px;color:#7C2D12;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.55;">
+        학생이 학습활동서를 아직 쓰지 않았습니다. 직접 적어주세요.</div>`:''}
+      <textarea id="trContent" style="min-height:92px;" placeholder="그날 어떤 훈련을 했는지 적어주세요.">${esc(r.content||'')}</textarea>
     </div>
-    <div class="fld">
-      <label>기업현장교사 의견</label>
-      <textarea id="trTeacher" style="min-height:96px;" placeholder="학습근로자의 수행 정도, 잘한 점, 보완할 점을 적어주세요.">${esc(r.teacher||'')}</textarea>
+
+    <div class="sect tea">
+      <div class="sect-h">🧑‍🏫 기업현장교사 의견 <span style="font-weight:400;color:var(--gray);font-size:11.5px;">— 현장교사가 직접 작성</span></div>
+      <div class="guide">
+        <b>이런 내용을 적어주세요</b>
+        <div class="g-row"><span class="g-n">1</span> 오늘 무엇을 <b>어느 정도까지</b> 해냈는지</div>
+        <div class="g-row"><span class="g-n">2</span> <b>잘한 점</b> — 지난번보다 나아진 부분</div>
+        <div class="g-row"><span class="g-n">3</span> <b>보완할 점</b>과 다음에 맡길 일</div>
+        <div class="g-row"><span class="g-n">4</span> 안전·태도에서 짚을 점 (있을 때만)</div>
+        <div class="g-ex">예) 단체 예약 접수를 선배 도움 없이 끝까지 처리했습니다. 요금표를 스스로 찾아 적용한 점이 좋았고,
+          특별 요청 확인을 빠뜨려 다음에는 체크리스트를 함께 쓰기로 했습니다.</div>
+      </div>
+      <div class="chips">
+        <button type="button" class="chip" data-tip="수행 정도">수행 정도</button>
+        <button type="button" class="chip" data-tip="잘한 점">잘한 점</button>
+        <button type="button" class="chip" data-tip="보완할 점">보완할 점</button>
+        <button type="button" class="chip" data-tip="다음 계획">다음 계획</button>
+        <button type="button" class="chip" data-tip="안전·태도">안전·태도</button>
+      </div>
+      <textarea id="trTeacher" style="min-height:112px;" placeholder="위 안내를 참고해 적어주세요.">${esc(r.teacher||'')}</textarea>
     </div>
     <div class="bar">
       <button class="act-sub" id="trSave">💾 저장</button>
       <button class="act-save" id="trCancel">닫기</button>
     </div>`}
   </div>`;
+  // 빠른 입력 — 눌러서 항목 제목을 넣고 이어서 쓰게 한다
+  box.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    const t = $('trTeacher'); if (!t) return;
+    const tip = b.dataset.tip;
+    const cur = t.value.replace(/\s+$/, '');
+    t.value = (cur ? cur + '\n' : '') + tip + ' : ';
+    t.focus();
+    t.setSelectionRange(t.value.length, t.value.length);
+  });
   if ($('trSave')) $('trSave').onclick = saveTrDay;
   if ($('trCancel')) $('trCancel').onclick = () => { trDay=''; renderTrAll(); };
 }
@@ -2768,10 +2835,12 @@ function printTraining(){
   if (!ojt.length){ toast('이 달 OJT 훈련 기록이 없습니다'); return; }
   const nm = (trMine()[0] || {}).workerName || '';
   const h = ojt.reduce((s,l)=>s+Number(l.hours||0),0);
+  // 인쇄물에서도 누가 쓴 글인지 갈리게 한다 — 점검 때 가장 먼저 보는 부분이다
   const rows = ojt.map((d,i)=>`<tr>
     <td style="text-align:center;">${i+1}</td><td>${esc(d.date)}</td>
     <td style="text-align:center;">${d.hours||0}h</td>
-    <td>${esc(d.content||'')}<br><b>의견</b> ${esc(d.teacher||'-')}</td></tr>`).join('');
+    <td>${esc(d.content||'-')}</td>
+    <td>${esc(d.teacher||'-')}</td></tr>`).join('');
   const body = `
     <h1>기업현장교사 의견서</h1>
     <div class="docno">${esc(trPeriod())} · ${esc(nm)}</div>
@@ -2783,7 +2852,9 @@ function printTraining(){
     </table>
     <h2>훈련 내용 및 현장교사 의견</h2>
     <table class="grid">
-      <tr><th style="width:34px;">No</th><th style="width:96px;">훈련일</th><th style="width:48px;">시간</th><th>내용</th></tr>
+      <tr><th style="width:30px;">No</th><th style="width:84px;">훈련일</th><th style="width:40px;">시간</th>
+          <th style="width:42%;">훈련 내용 <span style="font-weight:400;">(학습근로자 작성)</span></th>
+          <th>기업현장교사 의견</th></tr>
       ${rows}
     </table>
     ${trMonthDoc && trMonthDoc.signTeacher ? `<table class="info" style="margin-top:16px;">
