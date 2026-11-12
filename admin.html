@@ -641,6 +641,7 @@
   <button onclick="switchTab('consulting', this)">💬 상담<span class="tab-badge" id="badgeConsulting"></span></button>
   <button onclick="switchTab('company', this)">🏢 기업</button>
   <button onclick="switchTab('docs', this)">📝 서류<span class="tab-badge" id="badgeDocs"></span></button>
+  <button onclick="switchTab('training', this)">🗓️ 훈련운영</button>
   <button onclick="switchTab('calendar', this)">📅 캘린더</button>
   <button onclick="switchTab('members', this)">👥 가입자</button>
   <button onclick="switchTab('apply', this)">📝 신청<span class="tab-badge" id="badgeApply"></span></button>
@@ -1025,6 +1026,92 @@
         oninput="renderConsulting()">
       <div id="consultingList"><div class="c-loading">📋 불러오는 중...</div></div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ 훈련운영 탭 ═══
+     일별 훈련 기록(LMS). 기존 '서류' 탭과 별개다.
+       · 능력단위는 그 달에 하나만 지정한다 (날짜별로 고르지 않는다)
+       · 비콘 엑셀을 올리면 OJT/Off-JT·시간·입퇴실·학습활동서가 들어간다
+       · 기업은 채워진 내용을 보고 현장교사 의견만 적는다
+-->
+<div class="tab-content" id="tab-training">
+  <div class="container">
+
+    <div class="card">
+      <div class="card-title">
+        🗓️ 훈련운영관리
+        <button class="refresh-btn" onclick="loadTraining()">🔄 새로고침</button>
+      </div>
+      <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
+        학습근로자의 <b>일별 훈련 기록</b>을 관리합니다. 센터가 능력단위를 정하고 비콘 출결을 올리면,
+        기업은 날짜마다 <b>현장교사 의견</b>만 적으면 됩니다.<br>
+        <small style="opacity:0.9;">기업의 월 마감 서명이 <b>월별 확인서를 대신</b>합니다 · 일별 기록을 모아 훈련강사의견 양식으로 출력됩니다</small>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">훈련과정</label>
+          <select class="form-input" id="tr-course" onchange="renderTraining()">
+            <option value="">불러오는 중...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">작성 월</label>
+          <select class="form-input" id="tr-period" onchange="renderTraining()"></select>
+        </div>
+      </div>
+      <div id="tr-courseInfo" style="font-size:12.5px;color:#718096;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🧩 과정 능력단위</div>
+      <div style="background:#EEF0F3;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#37404B;line-height:1.6;">
+        훈련계획서대로 <b>이 과정의 능력단위 전체</b>를 등록해 둡니다. 한 번만 하면 됩니다.
+      </div>
+      <div id="tr-unitList"><div class="empty-history">과정을 선택해주세요</div></div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.4fr 70px auto;gap:8px;margin-top:12px;">
+        <input type="text" class="form-input" id="tu-code" placeholder="능력단위코드" style="margin:0;">
+        <input type="text" class="form-input" id="tu-name" placeholder="능력단위명" style="margin:0;">
+        <input type="number" class="form-input" id="tu-plan" placeholder="시간" style="margin:0;">
+        <button class="send-btn" onclick="addTrainingUnit()" style="background:#7c3aed;margin:0;white-space:nowrap;">+ 추가</button>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #e4eaf4;">
+        <label class="form-label">📋 엑셀에서 붙여넣기 <span style="font-weight:400;color:#718096;font-size:11px;">(능력단위코드 · 능력단위명 · 시간 순)</span></label>
+        <textarea class="form-input" id="tu-bulk" style="min-height:76px;font-family:monospace;font-size:12px;"
+          placeholder="1201010401_23v5	연회 행사 운영	40"></textarea>
+        <button class="send-btn" onclick="bulkAddTrainingUnits()" style="background:#059669;margin-top:8px;">📥 일괄 등록</button>
+      </div>
+      <div class="result-box" id="tuResult"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 이 달 능력단위</div>
+      <div style="background:#FFFBF0;border:1px solid rgba(232,160,32,0.3);border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#92400e;line-height:1.6;">
+        그 달에 훈련할 능력단위 <b>하나</b>를 고릅니다. 날짜마다 따로 고르지 않습니다 —
+        그 달 기록 전부가 여기서 고른 능력단위로 붙습니다.
+      </div>
+      <div id="tr-monthUnit"><div class="empty-history">과정을 선택해주세요</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📥 비콘 출결 불러오기</div>
+      <div style="background:#EEF0F3;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:#37404B;line-height:1.6;">
+        비콘 시스템에서 <b>과정별로 받은 엑셀</b>을 그대로 올리면 훈련일·훈련시간·입퇴실 시각·학습활동서가 한 번에 들어갑니다.<br>
+        <b>OJT는 기업 훈련일</b>, <b>Off-JT는 학교 수업</b>으로 자동 구분됩니다.
+      </div>
+      <input type="file" class="form-input" id="tr-file" accept=".xlsx,.xls" style="padding:10px 12px;cursor:pointer;">
+      <button class="send-btn" onclick="importBeacon()" id="trImportBtn" style="background:#059669;margin-top:10px;">📥 불러오기</button>
+      <div class="result-box" id="trImportResult"></div>
+      <div style="background:#FFFBF0;border:1px solid rgba(232,160,32,0.3);border-radius:10px;padding:10px 13px;margin-top:12px;font-size:12.5px;color:#92400e;line-height:1.6;">
+        다시 올려도 <b>기업이 적은 현장교사 의견은 지워지지 않습니다.</b> 학습활동서가 비어 있던 날만 새로 채웁니다.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📖 훈련 기록</div>
+      <div id="tr-records"><div class="empty-history">과정을 선택해주세요</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -2012,6 +2099,7 @@
     if (tab === 'consulting') { loadConsulting(); loadFeedback(); setTimeout(refreshTabBadges, 1200); }
     if (tab === 'company') { loadCompanies(); loadCourses(); loadCompanyAccounts(); loadFirmNotify(); if (!document.getElementById('ca-pw').value) genCompanyPw(); }
     if (tab === 'docs') { loadOpinionDocs(); loadGuideTexts(); setTimeout(refreshTabBadges, 1500); }
+    if (tab === 'training') loadTraining();
     if (tab === 'calendar') initCalendarTab();
     if (tab === 'members') loadMembers();
     if (tab === 'apply') { loadApplications(); markApplySeen(); }
@@ -9552,6 +9640,414 @@
     a.download = `applications_${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  🗓️ 훈련운영관리 — 일별 훈련 기록
+  //
+  //  데이터
+  //    trainingUnits   과정별 능력단위 목록          id 자동
+  //    trainingMonths  과정×월 설정·마감            id = {courseId}__{YYYY-MM}
+  //    trainingLogs    학습근로자×날짜 일별 기록      id = {workerId}__{YYYY-MM-DD}
+  //
+  //  ⚠️ 설계에서 정한 것 — 바꾸기 전에 다시 생각할 것
+  //    · 능력단위는 그 달에 하나만. 날짜별로 고르지 않는다 (기업이 고를 게 없게)
+  //    · Off-JT(학교 수업)는 기록만 남기고 기업이 쓰지 않는다
+  //    · 비콘을 다시 올려도 기업이 쓴 teacher 는 절대 덮어쓰지 않는다
+  // ══════════════════════════════════════════════════════════
+  let trUnits = [];      // 현재 과정의 능력단위
+  let trMonth = null;    // 현재 과정×월 문서
+  let trLogs  = [];      // 현재 과정×월의 일별 기록
+
+  const trKeyMonth = (courseId, period) => `${courseId}__${period}`;
+  const trCourse = () => allCourses.find(c => c.id === document.getElementById('tr-course')?.value);
+  const trPeriod = () => document.getElementById('tr-period')?.value || '';
+
+  function trBuildPeriods() {
+    const sel = document.getElementById('tr-period');
+    if (!sel || sel.options.length) return;
+    const now = new Date(); now.setDate(1);
+    const cur = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const d = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    let html = '';
+    for (let i = 0; i < 16; i++) {
+      const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      html += `<option value="${ym}">${opYmLabel(ym)}${ym > cur ? ' (예정)' : ''}</option>`;
+      d.setMonth(d.getMonth() - 1);
+    }
+    sel.innerHTML = html;
+    // 서류와 같은 기준 — 기본은 지난달 (훈련을 마친 달을 정리한다)
+    const p = new Date(); p.setDate(1); p.setMonth(p.getMonth() - 1);
+    sel.value = p.getFullYear() + '-' + String(p.getMonth() + 1).padStart(2, '0');
+  }
+
+  async function loadTraining() {
+    trBuildPeriods();
+    if (!allCompanies.length) { try { await loadCompanies(); } catch(e) {} }
+    if (!allCourses.length)   { try { await loadCourses(); } catch(e) {} }
+    if (!allWorkers.length)   { try { await loadWorkers(); } catch(e) {} }
+    const sel = document.getElementById('tr-course');
+    if (sel) {
+      const keep = sel.value;
+      sel.innerHTML = '<option value="">과정을 선택하세요</option>'
+        + allCourses.slice().sort((a, b) => (a.companyName || '').localeCompare(b.companyName || '', 'ko'))
+            .map(c => `<option value="${c.id}">${escapeHtmlSafe(c.companyName || '기업미연결')} · ${escapeHtmlSafe(c.type || '')}</option>`).join('');
+      if (Array.from(sel.options).some(o => o.value === keep)) sel.value = keep;
+    }
+    await renderTraining();
+  }
+
+  async function renderTraining() {
+    const c = trCourse(), period = trPeriod();
+    const info = document.getElementById('tr-courseInfo');
+    if (!c) {
+      if (info) info.textContent = '';
+      ['tr-unitList','tr-monthUnit','tr-records'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<div class="empty-history">과정을 선택해주세요</div>';
+      });
+      return;
+    }
+    if (info) info.innerHTML = `${escapeHtmlSafe(c.dept || '학과 미지정')} · 과정번호 ${escapeHtmlSafe(c.courseNo || '-')}`
+      + (c.site ? ' · ' + escapeHtmlSafe(c.site) : '');
+
+    try {
+      const db = await wkDb();
+      const { collection, getDocs, query, where, doc, getDoc } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const [uS, lS, mS] = await Promise.all([
+        getDocs(query(collection(db, 'trainingUnits'), where('courseId', '==', c.id))),
+        getDocs(query(collection(db, 'trainingLogs'), where('courseId', '==', c.id), where('period', '==', period))),
+        getDoc(doc(db, 'trainingMonths', trKeyMonth(c.id, period)))
+      ]);
+      trUnits = uS.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.order || 0) - (b.order || 0) || (a.name || '').localeCompare(b.name || '', 'ko'));
+      trLogs  = lS.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      trMonth = mS.exists() ? { id: mS.id, ...mS.data() } : null;
+    } catch(e) {
+      document.getElementById('tr-records').innerHTML =
+        '<div class="empty-history">⚠️ 불러오지 못했습니다: ' + escapeHtmlSafe(e.message || '') + '</div>';
+      return;
+    }
+    trRenderUnits();
+    trRenderMonthUnit();
+    trRenderRecords();
+  }
+
+  // ── 과정 능력단위 목록 ──
+  function trRenderUnits() {
+    const el = document.getElementById('tr-unitList'); if (!el) return;
+    if (!trUnits.length) {
+      el.innerHTML = '<div class="empty-history">등록된 능력단위가 없습니다<br><small>아래에서 추가하거나 엑셀에서 붙여넣어 주세요</small></div>';
+      return;
+    }
+    el.innerHTML = trUnits.map(u => `
+      <div class="cal-event-item" style="border-left-color:#7c3aed;">
+        <div class="cal-event-info">
+          <div class="cal-event-title">${escapeHtmlSafe(u.name || '')}</div>
+          <div class="cal-event-meta">${escapeHtmlSafe(u.code || '')}${u.plan ? ' · 계획 ' + u.plan + '시간' : ''}</div>
+        </div>
+        <button onclick="deleteTrainingUnit('${u.id}')" class="delete-btn">삭제</button>
+      </div>`).join('');
+  }
+
+  async function addTrainingUnit() {
+    const c = trCourse(); if (!c) { alert('과정을 먼저 선택해주세요.'); return; }
+    const code = document.getElementById('tu-code').value.trim();
+    const name = document.getElementById('tu-name').value.trim();
+    const plan = Number(document.getElementById('tu-plan').value || 0);
+    if (!name) { showTuResult('능력단위명을 입력해주세요!', 'error'); return; }
+    await trSaveUnits(c, [{ code, name, plan }]);
+    ['tu-code','tu-name','tu-plan'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  async function bulkAddTrainingUnits() {
+    const c = trCourse(); if (!c) { alert('과정을 먼저 선택해주세요.'); return; }
+    const raw = document.getElementById('tu-bulk').value.trim();
+    if (!raw) { showTuResult('붙여넣을 내용이 없어요', 'error'); return; }
+    const rows = raw.split('\n').map(r => r.trim()).filter(Boolean).map(r => {
+      const x = r.split(/\t|,/).map(v => v.trim());
+      return { code: x[0] || '', name: x[1] || '', plan: Number((x[2] || '').replace(/[^0-9.]/g, '') || 0) };
+    }).filter(x => x.name);
+    if (!rows.length) { showTuResult('능력단위명이 있는 줄이 없어요', 'error'); return; }
+    if (!await customConfirm({ title: '능력단위 일괄 등록',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')} · ${escapeHtmlSafe(c.type || '')}</b><br>${rows.length}개를 등록할까요?`,
+      confirmText: '📥 등록' })) return;
+    await trSaveUnits(c, rows);
+    document.getElementById('tu-bulk').value = '';
+  }
+
+  async function trSaveUnits(c, list) {
+    try {
+      const db = await wkDb();
+      const { collection, addDoc, serverTimestamp } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      let n = trUnits.length;
+      for (const u of list) {
+        await addDoc(collection(db, 'trainingUnits'), {
+          courseId: c.id, companyId: c.companyId || '', courseType: c.type || '',
+          code: u.code, name: u.name, plan: u.plan || 0, order: ++n, createdAt: serverTimestamp()
+        });
+      }
+      await writeLog('create', 'trainingUnit', c.id, `능력단위 등록: ${c.companyName || ''} ${c.type || ''} (${list.length}개)`);
+      showTuResult(`✅ ${list.length}개를 등록했어요`, 'success');
+      renderTraining();
+    } catch(e) { showTuResult('❌ 오류: ' + (e.message || ''), 'error'); }
+  }
+
+  async function deleteTrainingUnit(id) {
+    const u = trUnits.find(x => x.id === id); if (!u) return;
+    const used = trMonth && trMonth.unitId === id;
+    if (!await customConfirm({ title: '능력단위 삭제',
+      message: `<b>${escapeHtmlSafe(u.name || '')}</b> 을(를) 삭제할까요?`
+        + (used ? '<br><br><span style="color:#92400e;font-size:12px;">⚠️ 이 달 능력단위로 지정되어 있습니다. 삭제하면 지정이 풀립니다.</span>' : ''),
+      confirmText: '🗑️ 삭제', danger: true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await deleteDoc(doc(db, 'trainingUnits', id));
+      await writeLog('delete', 'trainingUnit', id, `능력단위 삭제: ${u.name || ''}`);
+      renderTraining();
+    } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
+  }
+
+  function showTuResult(msg, kind) {
+    const box = document.getElementById('tuResult'); if (!box) return;
+    box.className = 'result-box show ' + (kind === 'error' ? 'error' : 'success');
+    box.innerHTML = msg;
+    setTimeout(() => { box.className = 'result-box'; }, 4000);
+  }
+
+  // ── 이 달 능력단위 (하나만) ──
+  function trRenderMonthUnit() {
+    const el = document.getElementById('tr-monthUnit'); if (!el) return;
+    const c = trCourse(); if (!c) return;
+    if (!trUnits.length) {
+      el.innerHTML = '<div class="empty-history">위에서 능력단위를 먼저 등록해주세요</div>';
+      return;
+    }
+    const picked = trMonth?.unitId || '';
+    const confirmed = trMonth?.status === 'confirmed';
+    const hours = trLogs.filter(l => l.kind === 'OJT').reduce((s, l) => s + Number(l.hours || 0), 0);
+    el.innerHTML = trUnits.map(u => {
+      const on = picked === u.id;
+      const pct = (on && u.plan) ? Math.min(100, Math.round(hours / u.plan * 100)) : 0;
+      return `<label class="cal-event-item" style="cursor:${confirmed ? 'default' : 'pointer'};border-left-color:${on ? '#7c3aed' : '#E3E6EA'};${on ? 'background:#FBF9FF;' : ''}">
+        <input type="radio" name="trMonthUnit" value="${u.id}" ${on ? 'checked' : ''} ${confirmed ? 'disabled' : ''}
+          onchange="setMonthUnit('${u.id}')" style="width:18px;height:18px;margin-right:10px;flex-shrink:0;">
+        <div class="cal-event-info">
+          <div class="cal-event-title">${escapeHtmlSafe(u.name || '')}</div>
+          <div class="cal-event-meta">${escapeHtmlSafe(u.code || '')}${u.plan ? ' · 계획 ' + u.plan + '시간' : ''}${on ? ` · 이 달 ${hours}시간 (${pct}%)` : ''}</div>
+        </div>
+      </label>`;
+    }).join('')
+    + (confirmed ? '<div style="font-size:12.5px;color:#92400e;margin-top:8px;">🔒 센터 확인이 끝나 바꿀 수 없습니다.</div>' : '');
+  }
+
+  async function setMonthUnit(unitId) {
+    const c = trCourse(), period = trPeriod();
+    if (!c || !period) return;
+    const u = trUnits.find(x => x.id === unitId); if (!u) return;
+    try {
+      const db = await wkDb();
+      const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const patch = {
+        courseId: c.id, companyId: c.companyId || '', companyName: c.companyName || '',
+        courseType: c.type || '', courseNo: c.courseNo || '', period,
+        unitId, unitName: u.name || '', unitCode: u.code || '', unitPlan: u.plan || 0,
+        status: trMonth?.status || 'open', updatedAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, 'trainingMonths', trKeyMonth(c.id, period)), patch, { merge: true });
+      await writeLog('update', 'trainingMonth', trKeyMonth(c.id, period),
+        `이 달 능력단위 지정: ${c.companyName || ''} ${period} → ${u.name || ''}`);
+      renderTraining();
+    } catch(e) { alert('저장 실패: ' + (e.message || '')); }
+  }
+
+  // ── 훈련 기록 보기 ──
+  function trRenderRecords() {
+    const el = document.getElementById('tr-records'); if (!el) return;
+    const c = trCourse(), period = trPeriod(); if (!c) return;
+    if (!trLogs.length) {
+      el.innerHTML = '<div class="empty-history">이 달 훈련 기록이 없습니다<br><small>위에서 비콘 엑셀을 올려주세요</small></div>';
+      return;
+    }
+    const byWorker = {};
+    trLogs.forEach(l => { (byWorker[l.workerId] = byWorker[l.workerId] || []).push(l); });
+    const st = trMonth?.status || 'open';
+    const stLabel = st === 'confirmed' ? '<span style="color:#166534;font-weight:700;">✅ 센터 확인 완료</span>'
+      : st === 'closed' ? '<span style="color:#9a3412;font-weight:700;">⏳ 기업 마감 · 센터 확인 대기</span>'
+      : '<span style="color:#64748b;">작성 중</span>';
+
+    el.innerHTML = `<div style="font-size:12.5px;color:#64748b;margin-bottom:10px;">
+        ${opYmLabel(period)} · ${stLabel}
+        ${trMonth?.unitName ? ' · 능력단위 <b>' + escapeHtmlSafe(trMonth.unitName) + '</b>' : ' · <b style="color:#b91c1c;">능력단위 미지정</b>'}
+      </div>`
+      + Object.entries(byWorker).map(([wid, list]) => {
+        const ojt = list.filter(l => l.kind === 'OJT');
+        const off = list.filter(l => l.kind === 'OFF');
+        const h = ojt.reduce((s, l) => s + Number(l.hours || 0), 0);
+        const done = ojt.filter(l => l.teacher).length;
+        const noAct = ojt.filter(l => !l.content);
+        const nm = list[0].workerName || '-';
+        return `<div style="border:1.5px solid #E3E6EA;border-radius:11px;padding:12px 14px;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px;">
+            <div style="font-size:14px;font-weight:700;">${escapeHtmlSafe(nm)}</div>
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#F3EEFF;color:#5B21B6;">OJT ${ojt.length}일 · ${h}시간</span>
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#F1F5F9;color:#64748B;">학교 ${off.length}일</span>
+            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:${done === ojt.length && ojt.length ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">현장교사 의견 ${done}/${ojt.length}</span>
+          </div>
+          ${noAct.length ? `<div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:9px;padding:8px 11px;font-size:12px;color:#7C2D12;margin-bottom:8px;line-height:1.6;">
+            학습활동서가 비어 있는 날 <b>${noAct.length}일</b> —
+            ${noAct.map(l => `<span style="display:inline-block;background:white;border:1px solid #FDBA74;border-radius:5px;padding:1px 6px;margin:2px 3px 0 0;">${escapeHtmlSafe((l.date || '').slice(5))}</span>`).join('')}
+          </div>` : ''}
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+            <tr><th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;width:66px;text-align:left;">날짜</th>
+                <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;width:50px;text-align:left;">구분</th>
+                <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;width:100px;text-align:left;">비콘</th>
+                <th style="border:1px solid #E3E6EA;background:#EEF0F3;padding:6px 8px;text-align:left;">훈련내용 · 현장교사 의견</th></tr>
+            ${list.map(l => `<tr>
+              <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;">${escapeHtmlSafe((l.date || '').slice(5))}</td>
+              <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;color:${l.kind === 'OJT' ? '#6D28D9' : '#64748B'};font-weight:700;">${l.kind === 'OJT' ? 'OJT' : '학교'}<br><span style="font-weight:400;color:#94a3b8;">${l.hours || 0}h</span></td>
+              <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;color:#64748b;">${escapeHtmlSafe(l.beacon || '-')}</td>
+              <td style="border:1px solid #E3E6EA;padding:6px 8px;vertical-align:top;">
+                ${l.content ? escapeHtmlSafe(l.content) : '<span style="color:#b91c1c;">학습활동서 미작성</span>'}
+                ${l.kind === 'OJT' ? `<br><span style="color:#64748b;">현장교사: ${l.teacher ? escapeHtmlSafe(l.teacher) : '<span style="color:#b91c1c;">미작성</span>'}</span>` : ''}
+              </td></tr>`).join('')}
+          </table>
+        </div>`;
+      }).join('');
+  }
+
+  // ══════ 비콘 엑셀 읽기 ══════
+  //
+  // ⚠️ 비콘 파일은 가로로 긴 표다. 날짜가 열로 늘어서고 한 날짜가 4칸을 쓴다.
+  //      [OJT 시작][OJT 종료][Off-JT 시작][Off-JT 종료]
+  //    학생 한 명이 5줄을 차지한다.
+  //      출석시간(정규) / 보강 / 입·퇴실 / 외출 / 학습활동서
+  //    열 위치가 파일마다 조금씩 다를 수 있어 좌표를 박아두지 않고 찾아낸다.
+  function trParseBeacon(rows) {
+    const cell = (r, c) => { const v = (rows[r] || [])[c]; return v == null ? '' : String(v).trim(); };
+    let hr = -1, cols = [];
+    for (let r = 0; r < Math.min(rows.length, 10); r++) {
+      const found = [];
+      for (let c = 0; c < (rows[r] || []).length; c++) {
+        const m = cell(r, c).match(/^(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})/);
+        if (m) found.push([c, `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`]);
+      }
+      if (found.length >= 5) { hr = r; cols = found; break; }
+    }
+    if (hr < 0) throw new Error('날짜 머리줄을 찾지 못했습니다. 비콘에서 받은 파일이 맞는지 확인해주세요.');
+
+    const blocks = [];
+    for (let r = hr + 1; r < rows.length; r++) {
+      if (cell(r, 2).startsWith('출석') && cell(r, 1)) blocks.push([r, cell(r, 1)]);
+    }
+    if (!blocks.length) throw new Error('학습근로자 줄을 찾지 못했습니다. (3번째 칸이 "출석시간"인 줄을 찾습니다)');
+
+    const num = s => { const m = String(s).match(/^(\d+(\.\d+)?)$/); return m ? parseFloat(m[1]) : 0; };
+    return {
+      period: cols[0][1].slice(0, 7),
+      people: blocks.map(([r0, name]) => {
+        const days = [];
+        cols.forEach(([c, date]) => {
+          const ojt = num(cell(r0, c)), off = num(cell(r0, c + 2));
+          if (!ojt && !off) return;
+          let beacon = cell(r0 + 2, c + 1); if (beacon === '-') beacon = '';
+          let act = cell(r0 + 4, c);        if (act === '-') act = '';
+          days.push({ date, kind: ojt > 0 ? 'OJT' : 'OFF', hours: ojt || off, beacon, content: act });
+        });
+        return { name, days };
+      })
+    };
+  }
+
+  async function importBeacon() {
+    const c = trCourse(); if (!c) { alert('훈련과정을 먼저 선택해주세요.'); return; }
+    const f = document.getElementById('tr-file').files[0];
+    if (!f) { alert('비콘 엑셀 파일을 선택해주세요.'); return; }
+    if (typeof XLSX === 'undefined') { alert('엑셀 모듈이 아직 로드되지 않았어요. 잠시 후 다시 시도해주세요.'); return; }
+    const btn = document.getElementById('trImportBtn');
+    btn.disabled = true; btn.textContent = '읽는 중...';
+    try {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+      const res = trParseBeacon(rows);
+
+      // 화면의 작성 월과 파일의 달이 다르면 먼저 물어본다
+      const period = trPeriod();
+      if (res.period !== period) {
+        if (!await customConfirm({ title: '달이 다릅니다',
+          message: `파일은 <b>${opYmLabel(res.period)}</b> 자료인데 화면은 <b>${opYmLabel(period)}</b>로 되어 있습니다.<br><br>파일의 달(${opYmLabel(res.period)})로 넣을까요?`,
+          confirmText: '파일의 달로' })) { btn.disabled = false; btn.textContent = '📥 불러오기'; return; }
+        document.getElementById('tr-period').value = res.period;
+        await renderTraining();
+      }
+      const per = trPeriod();
+
+      // 이 과정 학습근로자 명단 (이름으로 찾는다)
+      const mine = allWorkers.filter(w => !w.deleted && w.courseId === c.id);
+      const findW = nm => mine.find(w => (w.name || '').replace(/\s/g, '') === nm.replace(/\s/g, ''));
+
+      const db = await wkDb();
+      const { collection, getDocs, query, where, doc, setDoc } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const prevSnap = await getDocs(query(collection(db, 'trainingLogs'),
+        where('courseId', '==', c.id), where('period', '==', per)));
+      const prev = {};
+      prevSnap.docs.forEach(d => { prev[d.id] = d.data(); });
+
+      let added = 0, updated = 0, filled = 0, kept = 0;
+      const unknown = [];
+      for (const p of res.people) {
+        const w = findW(p.name);
+        if (!w) { unknown.push(p.name); continue; }
+        for (const d of p.days) {
+          if (!d.date.startsWith(per)) continue;   // 파일에 다른 달이 섞여 있으면 거른다
+          const id = `${w.id}__${d.date}`;
+          const old = prev[id];
+          const next = {
+            courseId: c.id, companyId: c.companyId || '', companyName: c.companyName || '',
+            courseType: c.type || '', period: per,
+            workerId: w.id, workerName: w.name || '',
+            date: d.date, kind: d.kind, hours: d.hours, beacon: d.beacon,
+            updatedAt: new Date().toISOString(), source: 'beacon'
+          };
+          if (!old) {
+            next.content = d.content; next.teacher = '';
+            added++;
+          } else {
+            // ⚠️ 기업이 쓴 현장교사 의견은 절대 건드리지 않는다.
+            //    학습활동서도 이미 내용이 있으면 그대로 둔다 (기업이 고쳐 썼을 수 있다).
+            if (!old.content && d.content) { next.content = d.content; filled++; }
+            if (old.teacher) kept++;
+            updated++;
+          }
+          await setDoc(doc(db, 'trainingLogs', id), next, { merge: true });
+        }
+      }
+      await writeLog('create', 'trainingLog', c.id,
+        `비콘 불러오기: ${c.companyName || ''} ${per} (추가 ${added} · 갱신 ${updated})`);
+
+      const box = document.getElementById('trImportResult');
+      box.className = 'result-box show ' + (unknown.length ? 'error' : 'success');
+      box.innerHTML = `<b>${opYmLabel(per)} 불러왔습니다.</b><br>`
+        + `새로 추가 ${added}일 · 갱신 ${updated}일`
+        + (filled ? ` · 학습활동서 ${filled}일 채움` : '')
+        + (kept ? ` · 기업이 쓴 의견 ${kept}일 보존` : '')
+        + `<br>대상: ${res.people.map(p => escapeHtmlSafe(p.name)).join(', ')}`
+        + (unknown.length ? `<br><br>⚠️ <b>명단에서 못 찾은 이름:</b> ${unknown.map(escapeHtmlSafe).join(', ')}<br>
+             <span style="font-size:12px;">기업 탭 → 학습근로자에서 이 과정에 먼저 등록해주세요.</span>` : '');
+      document.getElementById('tr-file').value = '';
+      await renderTraining();
+    } catch(e) {
+      const box = document.getElementById('trImportResult');
+      box.className = 'result-box show error';
+      box.innerHTML = '❌ 읽지 못했습니다: ' + escapeHtmlSafe(e.message || String(e));
+    }
+    btn.disabled = false; btn.textContent = '📥 불러오기';
   }
 
 </script>

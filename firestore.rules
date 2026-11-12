@@ -208,6 +208,65 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ═══════════════════════════════════════════
+    //  훈련운영관리 (일별 훈련 기록)
+    //
+    //  trainingUnits  과정별 능력단위 목록        — 센터가 등록
+    //  trainingMonths 과정×월 설정과 마감          — 센터가 월 능력단위 지정 / 기업이 서명 마감
+    //  trainingLogs   학습근로자×날짜 일별 기록     — 센터가 비콘으로 채우고 / 기업이 의견 작성
+    //
+    //  ⚠️ 그 달이 'confirmed'(센터 확인 완료)가 되면 기업은 더 손대지 못한다.
+    //     월 문서가 아직 없을 수도 있으므로 exists() 로 먼저 확인한다.
+    //     (없는 문서를 get() 하면 규칙이 오류로 보고 전부 거부한다 — 의견서에서 한 번 겪었다)
+    // ═══════════════════════════════════════════
+    function monthOpen(courseId, period) {
+      return !exists(/databases/$(database)/documents/trainingMonths/$(courseId + '__' + period))
+        || get(/databases/$(database)/documents/trainingMonths/$(courseId + '__' + period))
+             .data.get('status', 'open') != 'confirmed';
+    }
+
+    // 과정별 능력단위 — 센터가 등록, 기업은 읽기만
+    // ⚠️ 기업은 반드시 where('companyId','==',내기업) 으로 질의해야 통과한다.
+    match /trainingUnits/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow write: if isAdmin();
+    }
+
+    // 과정×월 — 문서 ID = {courseId}__{YYYY-MM}
+    //   센터: 월 능력단위 지정 · 확인 처리
+    //   기업: 서명 마감(status='closed')과 마감 취소까지. 확인 후에는 불가.
+    match /trainingMonths/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow create: if isAdmin()
+        || (isCompany() && request.resource.data.companyId == myCompanyId()
+            && request.resource.data.get('status', '') != 'confirmed');
+      allow update: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && request.resource.data.companyId == resource.data.companyId
+            && resource.data.get('status', 'open') != 'confirmed'
+            && request.resource.data.get('status', '') != 'confirmed');
+      allow delete: if isAdmin();
+    }
+
+    // 일별 기록 — 문서 ID = {workerId}__{YYYY-MM-DD}
+    //   기업은 자기 기업 것만, 그 달이 확인되기 전까지만 쓴다.
+    match /trainingLogs/{id} {
+      allow read: if isAdmin()
+        || (isCompany() && resource.data.companyId == myCompanyId());
+      allow create: if isAdmin()
+        || (isCompany() && request.resource.data.companyId == myCompanyId()
+            && monthOpen(request.resource.data.courseId, request.resource.data.period));
+      allow update: if isAdmin()
+        || (isCompany()
+            && resource.data.companyId == myCompanyId()
+            && request.resource.data.companyId == resource.data.companyId
+            && monthOpen(resource.data.courseId, resource.data.period));
+      allow delete: if isAdmin();
+    }
+
     // ── 중도탈락 관리 (민감: 탈락 사유·개선조치) ──
     // 로그인한 담당자만 접근. 학생 앱에서는 열 수 없음.
     match /dropouts/{id} {
