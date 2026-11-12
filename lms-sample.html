@@ -4,54 +4,51 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>훈련운영관리 — 샘플</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!--
   ════════════════════════════════════════════════════════════
-   훈련운영관리 (LMS) 샘플 화면
+   훈련운영관리 (LMS) 샘플 — 비콘 연동판
 
-   ⚠️ 이 파일은 운영과 완전히 분리된 데모입니다.
+   ⚠️ 운영과 완전히 분리된 데모입니다.
       · Firebase에 연결하지 않습니다. 저장해도 서버로 가지 않습니다.
-      · 아래 SAMPLE 데이터로만 움직입니다. 새로고침하면 처음으로 돌아갑니다.
-      · 화면 흐름과 기록 항목을 눈으로 확인하고 결정하기 위한 것입니다.
+      · 새로고침하면 처음으로 돌아갑니다.
 
-   담는 내용
-      기업  : 월 선택 → 능력단위 → 달력 → 일별 훈련기록 → 월 마감 서명
-      교수  : 담당 학과 과정 → 월별 능력단위 배정 → 월 종합 피드백
-      센터  : 능력단위 등록 → 기업 제출 확인 → 인쇄
+   확정된 운영 방식
+      · 능력단위는 그 달에 하나만 고른다 (날짜별로 고르지 않는다)
+      · 센터가 비콘 엑셀을 올리면 OJT 날짜·시간·비콘시각·학습활동서가 들어간다
+      · Off-JT(학교 수업)는 회색으로 표시만 하고 기업이 쓰지 않는다
+      · 기업은 채워진 내용을 보고 '현장교사 의견'만 적는다
+      · 학생이 학습활동서를 안 쓴 날은 비워두고 기업이 직접 적는다
+      · 엑셀을 다시 올려도 기업이 쓴 내용은 덮어쓰지 않는다
   ════════════════════════════════════════════════════════════
 -->
 <style>
   :root{
-    --navy:#3F4A57; --navy-d:#2B3440; --line:#E3E6EA; --bg:#F4F5F7;
-    --gray:#6B7785; --sub:#8A95A3; --text:#1B2430;
-    --amber:#E8A020; --amber-bg:#FFF7ED; --amber-line:#FDBA74; --amber-fg:#7C2D12;
+    --navy:#3F4A57; --line:#E3E6EA; --bg:#F4F5F7; --gray:#6B7785; --sub:#8A95A3; --text:#1B2430;
+    --amber-bg:#FFF7ED; --amber-line:#FDBA74; --amber-fg:#7C2D12;
     --green:#2E7D5B; --green-bg:#F0FDF4; --green-line:#86EFAC; --green-fg:#166534;
-    --red:#B3542F; --red-bg:#FDF4F2;
-    --purple:#7C3AED;
+    --purple:#7C3AED; --purple-bg:#F3EEFF; --purple-line:#C9B6F5;
+    --blue-bg:#EFF6FF; --blue-fg:#1D4ED8;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   body{margin:0; background:var(--bg); color:var(--text);
-    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-    font-size:14px; line-height:1.6;}
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; font-size:14px; line-height:1.6;}
   button{font-family:inherit; cursor:pointer;}
   input,textarea,select{font-family:inherit; font-size:14px; color:var(--text);}
 
-  /* 데모 안내 띠 */
   .demo{background:#2B3440; color:#E4EAF0; padding:9px 14px; font-size:12.5px; line-height:1.5;}
   .demo b{color:#F6C453;}
-
-  /* 역할 전환 */
   .roles{display:flex; gap:6px; padding:10px 14px; background:white; border-bottom:1px solid var(--line);
     position:sticky; top:0; z-index:50;}
   .roles button{flex:1; padding:9px 6px; border-radius:9px; border:1.5px solid var(--line);
     background:white; color:var(--gray); font-size:13px; font-weight:700;}
   .roles button.on{background:var(--navy); border-color:var(--navy); color:white;}
 
-  .wrap{max-width:760px; margin:0 auto; padding:14px 14px 60px;}
+  .wrap{max-width:780px; margin:0 auto; padding:14px 14px 70px;}
   .card{background:white; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px;}
   .card-t{font-size:15px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   .hint{font-size:12.5px; color:var(--gray); line-height:1.65;}
-  .info{background:#EEF0F3; border-radius:10px; padding:11px 13px; font-size:12.5px;
-    color:#37404B; line-height:1.65; margin-bottom:12px;}
+  .info{background:#EEF0F3; border-radius:10px; padding:11px 13px; font-size:12.5px; color:#37404B; line-height:1.65; margin-bottom:12px;}
   .warn{background:var(--amber-bg); border:1px solid var(--amber-line); border-radius:10px;
     padding:10px 13px; font-size:12.5px; color:var(--amber-fg); line-height:1.6; margin:10px 0;}
   .ok{background:var(--green-bg); border:1px solid var(--green-line); border-radius:10px;
@@ -59,601 +56,526 @@
 
   .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
   .sel{padding:9px 11px; border:1.5px solid var(--line); border-radius:9px; background:white; font-weight:600;}
-  .btn{padding:9px 14px; border-radius:9px; border:1.5px solid var(--line); background:white;
-    color:var(--navy); font-size:13px; font-weight:700;}
+  .btn{padding:9px 14px; border-radius:9px; border:1.5px solid var(--line); background:white; color:var(--navy); font-size:13px; font-weight:700;}
   .btn.pri{background:var(--navy); border-color:var(--navy); color:white;}
   .btn.go{background:var(--green); border-color:var(--green); color:white;}
   .btn.sm{padding:6px 10px; font-size:12px;}
   .btn:disabled{opacity:.45; cursor:default;}
 
-  /* 능력단위 */
   .unit{border:1.5px solid var(--line); border-radius:11px; padding:11px 13px; margin-bottom:8px;}
+  .unit.on{border-color:var(--purple-line); background:#FBF9FF;}
   .unit .nm{font-weight:700; font-size:14px;}
   .unit .meta{font-size:12px; color:var(--gray); margin-top:2px;}
   .bar{height:7px; background:#EEF0F3; border-radius:4px; overflow:hidden; margin-top:7px;}
   .bar i{display:block; height:100%; background:var(--purple);}
 
-  /* 달력 */
   .cal{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:10px;}
   .cal .dow{text-align:center; font-size:11.5px; color:var(--sub); font-weight:700; padding:4px 0;}
   .cal .d{aspect-ratio:1/1; border:1.5px solid var(--line); border-radius:9px; background:white;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-    font-size:13px; font-weight:600; position:relative;}
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; font-size:13px; font-weight:600;}
   .cal .d.empty{border:none; background:transparent;}
   .cal .d.sun{color:#C2410C;}
-  .cal .d.has{background:#F3EEFF; border-color:#C9B6F5;}
+  .cal .d.ojt{background:var(--purple-bg); border-color:var(--purple-line); cursor:pointer;}
+  .cal .d.ojt.written{background:#E9FBF1; border-color:var(--green-line);}
+  .cal .d.off{background:#F1F5F9; border-color:#CBD5E1; color:#94A3B8;}
   .cal .d.sel{outline:2.5px solid var(--navy); outline-offset:-2px;}
-  .cal .dots{display:flex; gap:2px; height:7px;}
-  .cal .dot{width:5px; height:5px; border-radius:50%;}
-  .dot.t{background:var(--purple);}  .dot.e{background:var(--amber);}  .dot.c{background:#2563EB;}
+  .cal .tag{font-size:9px; font-weight:700; line-height:1;}
+  .cal .ojt .tag{color:#6D28D9;} .cal .off .tag{color:#64748B;} .cal .written .tag{color:#15803D;}
   .legend{display:flex; gap:12px; flex-wrap:wrap; font-size:11.5px; color:var(--gray); margin-top:10px;}
-  .legend span{display:flex; align-items:center; gap:4px;}
+  .sw{width:11px; height:11px; border-radius:3px; display:inline-block; vertical-align:-1px; margin-right:3px; border:1.5px solid;}
 
-  /* 일별 기록 */
   .fld{margin-bottom:12px;}
   .fld label{display:block; font-size:12.5px; font-weight:700; color:#37404B; margin-bottom:5px;}
-  .fld textarea{width:100%; min-height:84px; padding:10px 12px; border:1.5px solid var(--line);
-    border-radius:10px; resize:vertical; line-height:1.6;}
-  .fld input[type=number]{width:110px; padding:9px 11px; border:1.5px solid var(--line); border-radius:9px;}
-  .lockmsg{font-size:12px; color:var(--sub); background:#F8FAFC; border:1px dashed var(--line);
-    border-radius:9px; padding:9px 11px;}
+  .fld textarea{width:100%; min-height:92px; padding:10px 12px; border:1.5px solid var(--line); border-radius:10px; resize:vertical; line-height:1.6;}
+  .lockmsg{font-size:12px; color:var(--sub); background:#F8FAFC; border:1px dashed var(--line); border-radius:9px; padding:9px 11px;}
+  .meta-line{font-size:12px; color:var(--gray); background:#F8FAFC; border-radius:8px; padding:8px 11px; margin-bottom:12px;}
 
   .pill{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:7px;}
-  .pill.t{background:#F3EEFF; color:#5B21B6;}
-  .pill.prof{background:#E0F2FE; color:#075985;}
+  .pill.t{background:var(--purple-bg); color:#5B21B6;}
+  .pill.off{background:#F1F5F9; color:#64748B;}
   .pill.done{background:var(--green-bg); color:var(--green-fg);}
   .pill.wait{background:var(--amber-bg); color:var(--amber-fg);}
+  .pill.b{background:var(--blue-bg); color:var(--blue-fg);}
 
   table.g{width:100%; border-collapse:collapse; font-size:13px; margin-top:8px;}
   table.g th,table.g td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
   table.g th{background:#EEF0F3; font-weight:700; color:#37404B; font-size:12.5px;}
-
-  .sign{border:1.5px dashed var(--line); border-radius:10px; height:78px; display:flex;
-    align-items:center; justify-content:center; color:var(--sub); font-size:12.5px; background:#FCFCFD;}
-  .sign.done{border-style:solid; border-color:var(--green-line); background:var(--green-bg);
-    color:var(--green-fg); font-weight:700;}
-
+  .sign{border:1.5px dashed var(--line); border-radius:10px; height:72px; display:flex; align-items:center;
+    justify-content:center; color:var(--sub); font-size:12.5px; background:#FCFCFD;}
+  .sign.done{border-style:solid; border-color:var(--green-line); background:var(--green-bg); color:var(--green-fg); font-weight:700;}
+  .drop{border:2px dashed var(--line); border-radius:12px; padding:20px; text-align:center; background:#FCFCFD;}
   @media print{ .demo,.roles,.noprint{display:none !important;} body{background:white;} .card{border:none; padding:0;} }
 </style>
 </head>
 <body>
 
-<div class="demo">
-  <b>샘플 화면입니다.</b> 운영 데이터와 연결되어 있지 않고, 저장해도 서버로 가지 않습니다. 새로고침하면 처음으로 돌아갑니다.
-</div>
+<div class="demo"><b>샘플 화면입니다.</b> 운영 데이터와 연결되어 있지 않고, 저장해도 서버로 가지 않습니다. 새로고침하면 처음으로 돌아갑니다.</div>
 
 <div class="roles">
-  <button id="rb-company" class="on" onclick="setRole('company')">🏢 기업</button>
-  <button id="rb-prof" onclick="setRole('prof')">🎓 교·강사</button>
-  <button id="rb-center" onclick="setRole('center')">🏛️ 센터</button>
+  <button id="rb-center" class="on" onclick="setRole('center')">🏛️ 센터</button>
+  <button id="rb-company" onclick="setRole('company')">🏢 기업</button>
 </div>
 
-<div class="wrap">
-  <div id="view"></div>
-</div>
+<div class="wrap"><div id="view"></div></div>
 
 <script>
 // ══════════ 샘플 데이터 ══════════
-// 실제로는 Firestore에서 읽어오지만, 여기서는 화면을 보기 위해 고정값을 쓴다.
-const DEPTS = ['P-TECH 글로벌호텔관광학과','P-TECH 글로벌 호텔조리학과','회계세무학과','마케팅경영학과','호텔관광학과'];
-
-const COURSES = [
-  { id:'c1', dept:'P-TECH 글로벌호텔관광학과', type:'P-TECH 1학년',
-    no:'ABF20273001235923', company:'노보텔 앰배서더 서울 강남',
-    workers:[{id:'w1',name:'김하늘'},{id:'w2',name:'박서준'}] },
-  { id:'c2', dept:'호텔관광학과', type:'전문대 식음료서비스_L3',
-    no:'ABJ20273001235402', company:'콘래드 서울',
-    workers:[{id:'w3',name:'이수민'}] }
+const COURSE = {
+  id:'c1', dept:'P-TECH 글로벌호텔관광학과', type:'P-TECH 1학년',
+  no:'ABF20263001235923', company:'디라이프스타일키친 동탄'
+};
+const UNITS = [
+  { id:'u1', code:'1201010401_23v5', name:'연회 행사 운영', plan:40 },
+  { id:'u2', code:'1201010403_23v5', name:'고객 응대 서비스', plan:32 },
+  { id:'u3', code:'1201010405_23v5', name:'식음료 서비스',   plan:24 }
 ];
+let WORKERS = [{ id:'w1', name:'손유란' }];
 
-// 센터가 등록한 과정별 능력단위 (계획시간 포함)
-const UNITS = {
-  c1:[
-    { id:'u1', code:'1201010401_23v5', name:'객실 예약 서비스', plan:40 },
-    { id:'u2', code:'1201010403_23v5', name:'프런트 오피스 운영', plan:32 },
-    { id:'u3', code:'1201010405_23v5', name:'고객 불만 처리',    plan:24 }
-  ],
-  c2:[
-    { id:'u4', code:'1301010301_20v4', name:'식음료 서비스 준비', plan:30 },
-    { id:'u5', code:'1301010303_20v4', name:'음료 서비스',        plan:28 }
-  ]
-};
+// 월 능력단위 — 그 달에 하나만
+let MONTH_UNIT = { '2026-09':'u1' };
 
-// 교수가 그 달에 배정한 능력단위
-let ASSIGNED = { 'c1|2027-03':['u1','u2'], 'c2|2027-03':['u4'] };
+// 일별 기록: key = workerId|YYYY-MM-DD
+// kind: 'OJT' | 'OFF'   content: 훈련내용(학습활동서에서 들어옴)   teacher: 현장교사 의견
+let DAYS = {};
 
-// 일별 훈련 기록 — key: courseId|workerId|YYYY-MM-DD
-let LOGS = {
-  'c1|w1|2027-03-03':{ unit:'u1', hours:4, content:'객실 예약 시스템 조회·수정 실습. 중복 예약 확인 절차를 익혔습니다.',
-                       teacher:'처음이라 속도는 느리지만 절차를 빠뜨리지 않고 확인합니다.', prof:'' },
-  'c1|w1|2027-03-05':{ unit:'u1', hours:4, content:'단체 예약 접수 실습. 객실 배정과 요금 적용을 함께 진행했습니다.',
-                       teacher:'단체 요금표를 스스로 찾아 적용했습니다.', prof:'' },
-  'c1|w1|2027-03-10':{ unit:'u2', hours:6, content:'체크인·체크아웃 응대. 오전 피크 시간에 선배와 함께 투입했습니다.',
-                       teacher:'대기 고객 안내가 자연스러워졌습니다.', prof:'현장 투입 시점이 적절합니다. 다음 달에는 단독 응대를 권합니다.' },
-  'c1|w2|2027-03-04':{ unit:'u1', hours:4, content:'예약 변경·취소 처리 실습.', teacher:'취소 수수료 안내를 정확히 했습니다.', prof:'' }
-};
+// 올려주신 비콘 엑셀을 미리 넣어둔 것 (손유란 2026-09)
+const SEED = [
+ ['2026-09-02','OFF',9,'09:59 ~ 18:29','개강 후 첫날이라 ot를 통해 수업 진행 방식과 시험에 대해 배움.'],
+ ['2026-09-04','OJT',5,'09:35 ~ 15:00','신랑·신부 사전 상담을 살펴봄 — 예약 후 여러 차례 상담을 통해 세부 사항을 확정함. 반복 상담이 세부 정보 확보의 축임을 파악함.'],
+ ['2026-09-06','OJT',5,'09:32 ~ 15:01','부모님 하객 특성 — 감정 선입견 강함, 자녀 결혼에 대한 기대·염려가 크고 전통 예절 중시함을 정리함.'],
+ ['2026-09-08','OJT',5,'09:37 ~ 15:01','럭셔리/커스텀 패키지 특징(모든 시설 최고급·완전 맞춤형 디자인/메뉴·전담 플래너 배정)을 확인함.'],
+ ['2026-09-09','OFF',9,'09:57 ~ 18:31','중국 음식 종류와 특징을 배우고 칵테일 조주 실습을 함'],
+ ['2026-09-13','OJT',5,'09:32 ~ 15:00','프리미엄 패키지 구성(넓은 예식장·고급 음향/조명 시스템·선택 메뉴·추가 데코레이션)을 정리함.'],
+ ['2026-09-16','OFF',7,'11:58 ~ 18:30','중국어 단어와 세계지도를 통한 전세계 음식 특징과 칵테일 조주함.'],
+ ['2026-09-17','OJT',5,'09:36 ~ 15:11','조명·음향 리허설 시 실제 신랑신부가 서는 위치에서 스팟라이트 각도 조정 실무를 정리함.'],
+ ['2026-09-19','OJT',5,'09:57 ~ 15:20','조명 4대 유형 — 플랫라이트·스팟라이트·무빙라이트·PAR 라이트 각각의 용도를 정리함.'],
+ ['2026-09-23','OFF',9,'09:30 ~ 18:22','중국어 시간에는 1인체부터 3인체 까지에 언어 배우고 칵테일은 맨하튼 만듬.'],
+ ['2026-09-26','OJT',5,'09:31 ~ 15:01',''],   // ← 학생이 학습활동서를 안 쓴 날
+ ['2026-09-29','OJT',5,'09:50 ~ 15:01','웨딩 종료 후 정리를 정리함 — 즉시 하객 환송·꽃 정리·기물 회수·청소 등을 병행 진행함.'],
+ ['2026-09-30','OFF',8,'10:51 ~ 18:30','중국어는 회화에 대해 배우고 식문화는 다양한 나라 식재료 배우고 칵테일은 데킬라선라이즈 조주함.']
+];
+SEED.forEach(([d,k,h,b,a]) => {
+  DAYS['w1|'+d] = { kind:k, hours:h, beacon:b, content:a, teacher:'', fromExcel:true };
+});
 
-// 월 마감 (= 월별 확인서 통합)
-let CLOSED = {};   // key: courseId|YYYY-MM  → { hrd, teacher, at, confirmed }
-
-let role = 'company';
-let cur = { course:'c1', worker:'w1', month:'2027-03', day:null, dept:DEPTS[0] };
+let CLOSED = {};             // key: YYYY-MM
+let role = 'center';
+let cur = { month:'2026-09', worker:'w1', day:null };
+let lastImport = null;       // 마지막 불러오기 결과
 
 // ══════════ 도우미 ══════════
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const course = () => COURSES.find(c => c.id === cur.course);
-const worker = () => (course().workers.find(w => w.id === cur.worker) || course().workers[0]);
-const units  = () => UNITS[cur.course] || [];
-const assigned = () => (ASSIGNED[cur.course + '|' + cur.month] || []);
-const unitName = id => (units().find(u => u.id === id) || {}).name || '-';
-const logKey = (d) => `${cur.course}|${cur.worker}|${d}`;
-const closeKey = () => `${cur.course}|${cur.month}`;
-const isClosed = () => !!CLOSED[closeKey()];
 const ymLabel = ym => { const [y,m]=ym.split('-'); return `${y}년 ${Number(m)}월`; };
+const unitOf = () => UNITS.find(u => u.id === MONTH_UNIT[cur.month]) || null;
+const wName = id => (WORKERS.find(w=>w.id===id)||{}).name || '-';
+const key = (w,d) => `${w}|${d}`;
+const isClosed = () => !!CLOSED[cur.month];
+function monthInfo(ym){ const [y,m]=ym.split('-').map(Number);
+  return { first:new Date(y,m-1,1).getDay(), count:new Date(y,m,0).getDate() }; }
+const dstr = (ym,d) => `${ym}-${String(d).padStart(2,'0')}`;
 
-// 그 달에 센터가 정한 평가일·면담일 (샘플)
-const EVENTS = { '2027-03': { eval:'2027-03-20', counsel:'2027-03-20' } };
-
-function monthDays(ym){
-  const [y,m] = ym.split('-').map(Number);
-  return { first:new Date(y,m-1,1).getDay(), count:new Date(y,m,0).getDate() };
+function daysOf(wid, ym, kind){
+  return Object.entries(DAYS)
+    .filter(([k,v]) => k.startsWith(wid+'|'+ym) && (!kind || v.kind===kind))
+    .map(([k,v]) => ({ date:k.split('|')[1], ...v }))
+    .sort((a,b)=>a.date.localeCompare(b.date));
 }
-function dstr(ym,d){ return `${ym}-${String(d).padStart(2,'0')}`; }
+const ojtHours = wid => daysOf(wid,cur.month,'OJT').reduce((s,d)=>s+Number(d.hours||0),0);
+const written  = wid => daysOf(wid,cur.month,'OJT').filter(d=>d.teacher).length;
+const noContent= wid => daysOf(wid,cur.month,'OJT').filter(d=>!d.content).length;
 
-// 능력단위별 실시 시간 합계 (그 과정 전체 학습근로자)
-function doneHours(unitId){
-  let h = 0;
-  Object.entries(LOGS).forEach(([k,v]) => {
-    const [c] = k.split('|');
-    if (c === cur.course && v.unit === unitId) h += Number(v.hours||0);
+function setRole(r){ role=r; cur.day=null;
+  ['center','company'].forEach(x=>$('rb-'+x).classList.toggle('on',x===r)); render(); }
+
+// ══════════ 비콘 엑셀 읽기 ══════════
+// 가로로 긴 표라 날짜가 열로 늘어선다. 날짜 칸은 7열부터 4칸씩.
+// 학생 한 명이 5줄(출석시간/보강/입퇴실/외출/학습활동서)을 차지한다.
+function parseBeacon(rows){
+  const cell = (r,c) => { const v = (rows[r]||[])[c]; return v==null ? '' : String(v).trim(); };
+  // 날짜 머리줄 찾기
+  let hr = -1, cols = [];
+  for (let r=0; r<Math.min(rows.length,8); r++){
+    const found = [];
+    for (let c=0; c<(rows[r]||[]).length; c++){
+      const m = cell(r,c).match(/^(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})/);
+      if (m) found.push([c, `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`]);
+    }
+    if (found.length >= 5){ hr = r; cols = found; break; }
+  }
+  if (hr < 0) throw new Error('날짜 머리줄을 찾지 못했습니다. 비콘에서 받은 파일이 맞는지 확인해주세요.');
+
+  // 학생 블록 찾기 — 3열이 '출석'으로 시작하는 줄
+  const blocks = [];
+  for (let r=hr+1; r<rows.length; r++){
+    if (cell(r,2).startsWith('출석') && cell(r,1)) blocks.push([r, cell(r,1)]);
+  }
+  if (!blocks.length) throw new Error('학습근로자 줄을 찾지 못했습니다.');
+
+  const num = s => { const m = String(s).match(/^(\d+(\.\d+)?)$/); return m ? parseFloat(m[1]) : 0; };
+  const out = [];
+  blocks.forEach(([r0, name]) => {
+    const days = [];
+    cols.forEach(([c, date]) => {
+      const ojt = num(cell(r0, c)), off = num(cell(r0, c+2));
+      if (!ojt && !off) return;
+      let beacon = cell(r0+2, c+1); if (beacon === '-') beacon = '';
+      let act = cell(r0+4, c);      if (act === '-') act = '';
+      days.push({ date, kind: ojt>0 ? 'OJT' : 'OFF', hours: ojt||off, beacon, content: act });
+    });
+    out.push({ name, days });
   });
-  return h;
+  return { month: cols[0][1].slice(0,7), people: out };
 }
 
-function setRole(r){
-  role = r; cur.day = null;
-  ['company','prof','center'].forEach(x => $('rb-'+x).classList.toggle('on', x===r));
-  render();
+function applyImport(res){
+  let added=0, updated=0, filled=0, kept=0;
+  const unknown=[];
+  res.people.forEach(p => {
+    const w = WORKERS.find(x => x.name === p.name);
+    if (!w) { unknown.push(p.name); return; }
+    p.days.forEach(d => {
+      const k = key(w.id, d.date), prev = DAYS[k];
+      if (!prev){
+        DAYS[k] = { kind:d.kind, hours:d.hours, beacon:d.beacon, content:d.content, teacher:'', fromExcel:true };
+        added++;
+      } else {
+        // ⚠️ 기업이 쓴 것은 절대 덮어쓰지 않는다. 비어 있는 것만 채운다.
+        prev.kind = d.kind; prev.hours = d.hours; prev.beacon = d.beacon;
+        if (!prev.content && d.content){ prev.content = d.content; filled++; }
+        else if (prev.teacher) kept++;
+        updated++;
+      }
+    });
+  });
+  lastImport = { added, updated, filled, kept, unknown, month:res.month,
+                 people:res.people.map(p=>p.name) };
+  if (res.month) cur.month = res.month;
 }
 
 // ══════════ 화면 ══════════
-function render(){
-  $('view').innerHTML =
-    role === 'company' ? viewCompany()
-    : role === 'prof'  ? viewProf()
-    : viewCenter();
-  bind();
+function render(){ $('view').innerHTML = role==='center' ? viewCenter() : viewCompany(); bind(); }
+
+function header(){
+  return `<div class="card">
+    <div class="card-t">📘 ${esc(COURSE.company)} · ${esc(COURSE.type)}</div>
+    <div class="row">
+      <select class="sel" id="selMonth">
+        ${['2026-09','2026-10','2026-11','2026-12'].map(m=>`<option value="${m}" ${m===cur.month?'selected':''}>${ymLabel(m)}</option>`).join('')}
+      </select>
+      <select class="sel" id="selWorker">
+        ${WORKERS.map(w=>`<option value="${w.id}" ${w.id===cur.worker?'selected':''}>${esc(w.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="hint" style="margin-top:8px;">${esc(COURSE.dept)} · 과정번호 ${esc(COURSE.no)}</div>
+  </div>`;
 }
 
-// ── 공통: 과정·월 선택 줄 ──
-function picker(opts={}){
-  return `<div class="card">
-    <div class="card-t">📘 ${opts.title || '훈련과정 선택'}</div>
-    <div class="row">
-      <select class="sel" id="selCourse">
-        ${COURSES.filter(c => !opts.dept || c.dept === opts.dept).map(c =>
-          `<option value="${c.id}" ${c.id===cur.course?'selected':''}>${esc(c.company)} · ${esc(c.type)}</option>`).join('')}
-      </select>
-      <select class="sel" id="selMonth">
-        ${['2027-01','2027-02','2027-03','2027-04'].map(m =>
-          `<option value="${m}" ${m===cur.month?'selected':''}>${ymLabel(m)}</option>`).join('')}
-      </select>
-      ${opts.worker !== false ? `<select class="sel" id="selWorker">
-        ${course().workers.map(w =>
-          `<option value="${w.id}" ${w.id===cur.worker?'selected':''}>${esc(w.name)}</option>`).join('')}
-      </select>` : ''}
+// ── 달력 (센터·기업 공용) ──
+function calendar(clickable){
+  const { first, count } = monthInfo(cur.month);
+  let cells = '';
+  for (let i=0;i<first;i++) cells += `<div class="d empty"></div>`;
+  for (let d=1; d<=count; d++){
+    const ds = dstr(cur.month,d), rec = DAYS[key(cur.worker,ds)];
+    const dow = (first+d-1)%7;
+    let cls = 'd', tag = '';
+    if (rec && rec.kind==='OJT'){ cls += ' ojt'; if (rec.teacher) cls += ' written';
+      tag = `<span class="tag">${rec.teacher ? '✓' : 'OJT'}</span>`; }
+    else if (rec && rec.kind==='OFF'){ cls += ' off'; tag = `<span class="tag">학교</span>`; }
+    if (dow===0) cls += ' sun';
+    if (cur.day===ds) cls += ' sel';
+    const clickAttr = (clickable && rec && rec.kind==='OJT') ? ` data-day="${ds}"` : '';
+    cells += `<div class="${cls}"${clickAttr}>${d}${tag}</div>`;
+  }
+  return `<div class="cal">
+    ${['일','월','화','수','목','금','토'].map(x=>`<div class="dow">${x}</div>`).join('')}${cells}
+  </div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--purple-bg);border-color:var(--purple-line);"></i>OJT · 기업 훈련</span>
+    <span><i class="sw" style="background:#E9FBF1;border-color:var(--green-line);"></i>의견 작성 완료</span>
+    <span><i class="sw" style="background:#F1F5F9;border-color:#CBD5E1;"></i>Off-JT · 학교 수업</span>
+  </div>`;
+}
+
+// ══════════ 센터 화면 ══════════
+function viewCenter(){
+  let h = header();
+  const u = unitOf();
+
+  // ① 이 달 능력단위 — 하나만
+  h += `<div class="card">
+    <div class="card-t">🎯 ${ymLabel(cur.month)} 능력단위
+      ${u ? `<span class="pill t">${esc(u.name)}</span>` : '<span class="pill wait">미지정</span>'}</div>
+    <div class="info">그 달에 훈련할 능력단위 <b>하나</b>를 고릅니다. 날짜마다 따로 고르지 않습니다 —
+      그 달 기록 전부가 여기서 고른 능력단위로 붙습니다.</div>
+    ${UNITS.map(x=>{
+      const on = u && u.id===x.id;
+      const done = on ? ojtHours(cur.worker) : 0;
+      const pct = x.plan ? Math.min(100, Math.round(done/x.plan*100)) : 0;
+      return `<label class="unit ${on?'on':''}" style="display:block;cursor:pointer;">
+        <div class="row" style="gap:10px;">
+          <input type="radio" name="mu" data-unit="${x.id}" ${on?'checked':''} style="width:18px;height:18px;">
+          <div style="flex:1;min-width:0;">
+            <div class="nm">${esc(x.name)}</div>
+            <div class="meta">${esc(x.code)} · 계획 ${x.plan}시간${on?` · 이 달 ${done}시간 (${pct}%)`:''}</div>
+            ${on?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}
+          </div>
+        </div></label>`;
+    }).join('')}
+    <button class="btn pri" id="btnUnit" style="margin-top:8px;">💾 이 달 능력단위로 지정</button>
+  </div>`;
+
+  // ② 비콘 엑셀 불러오기
+  h += `<div class="card">
+    <div class="card-t">📥 비콘 출결 불러오기</div>
+    <div class="info">비콘 시스템에서 <b>과정별로 받은 엑셀</b>을 그대로 올리면
+      훈련일·훈련시간·입퇴실 시각·학습활동서가 한 번에 들어갑니다.<br>
+      <b>OJT는 기업 훈련일</b>로, <b>Off-JT는 학교 수업</b>으로 자동 구분됩니다.</div>
+    <div class="drop">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">비콘 엑셀 파일 (.xlsx)</div>
+      <input type="file" id="xlsFile" accept=".xlsx,.xls">
+      <div class="hint" style="margin-top:8px;">올려주신 손유란 님 9월 자료가 이미 들어가 있습니다.</div>
     </div>
-    <div class="hint" style="margin-top:8px;">
-      ${esc(course().dept)} · 과정번호 ${esc(course().no)}
+    ${lastImport ? importResult() : ''}
+    <div class="warn" style="margin-bottom:0;">
+      다시 올려도 <b>기업이 적은 현장교사 의견은 지워지지 않습니다.</b>
+      학습활동서가 비어 있던 날만 새로 채웁니다.
     </div>
+  </div>`;
+
+  // ③ 현황
+  const ojt = daysOf(cur.worker,cur.month,'OJT'), off = daysOf(cur.worker,cur.month,'OFF');
+  const nc = noContent(cur.worker);
+  h += `<div class="card">
+    <div class="card-t">📅 ${ymLabel(cur.month)} 현황
+      <span class="pill t">OJT ${ojt.length}일 · ${ojtHours(cur.worker)}h</span>
+      <span class="pill off">학교 ${off.length}일</span>
+      <span class="pill ${written(cur.worker)===ojt.length&&ojt.length?'done':'wait'}">의견 ${written(cur.worker)}/${ojt.length}</span></div>
+    ${calendar(false)}
+    ${nc ? `<div class="warn">학습활동서가 비어 있는 날이 <b>${nc}일</b> 있습니다. 학생이 아직 쓰지 않았습니다 —
+      기업이 직접 적거나, 학생이 쓴 뒤 엑셀을 다시 올리면 채워집니다.
+      <div style="margin-top:6px;">${ojt.filter(d=>!d.content).map(d=>`<span class="pill wait" style="margin-right:4px;">${d.date.slice(5)}</span>`).join('')}</div>
+    </div>` : (ojt.length?`<div class="ok">학습활동서가 모두 들어와 있습니다.</div>`:'')}
+  </div>`;
+
+  // ④ 기록 전체 + 마감
+  h += `<div class="card">
+    <div class="card-t">📖 훈련 기록</div>
+    ${ojt.length === 0 ? `<div class="hint">OJT 훈련일이 없습니다. 비콘 엑셀을 먼저 올려주세요.</div>` :
+    `<table class="g">
+      <tr><th style="width:74px;">날짜</th><th style="width:54px;">시간</th>
+          <th style="width:112px;">비콘</th><th>훈련내용 · 현장교사 의견</th></tr>
+      ${ojt.map(d=>`<tr>
+        <td>${d.date.slice(5)}</td><td>${d.hours}h</td><td class="hint">${esc(d.beacon||'-')}</td>
+        <td>${d.content ? esc(d.content) : '<span style="color:#B3542F;">학습활동서 미작성</span>'}
+          <br><span class="hint">현장교사: ${d.teacher ? esc(d.teacher) : '<span style="color:#B3542F;">미작성</span>'}</span></td>
+      </tr>`).join('')}
+    </table>`}
+  </div>`;
+
+  const c = CLOSED[cur.month];
+  h += `<div class="card">
+    <div class="card-t">✅ 마감 처리
+      ${c ? (c.confirmed?'<span class="pill done">확인 완료</span>':'<span class="pill wait">확인 대기</span>') : '<span class="pill off">기업 미마감</span>'}</div>
+    ${c ? `<div class="hint">기업 서명 — 기업현장교사 <b>${esc(c.teacher)}</b> · HRD담당자 <b>${esc(c.hrd)}</b></div>` :
+         `<div class="hint">기업이 아직 마감하지 않았습니다.</div>`}
+    <div class="row" style="margin-top:10px;">
+      ${c && !c.confirmed ? `<button class="btn go" id="btnConfirm">✅ 확인 처리</button>`:''}
+      ${c && c.confirmed  ? `<button class="btn" id="btnUnlock">🔓 잠금 해제</button>`:''}
+      <button class="btn" id="btnPrint">🖨️ 인쇄</button>
+      <button class="btn" id="btnOpinion">📄 훈련강사의견 양식으로 출력</button>
+    </div>
+    <div class="hint" style="margin-top:9px;">센터는 기업이 적은 내용을 직접 고칠 수 있습니다.</div>
+  </div>`;
+  return h;
+}
+
+function importResult(){
+  const r = lastImport;
+  return `<div class="${r.unknown.length?'warn':'ok'}" style="margin-top:12px;">
+    <b>${ymLabel(r.month)} 불러왔습니다.</b><br>
+    새로 추가 ${r.added}일 · 갱신 ${r.updated}일${r.filled?` · 학습활동서 ${r.filled}일 채움`:''}${r.kept?` · 기업 작성 ${r.kept}일 보존`:''}<br>
+    대상: ${r.people.map(esc).join(', ')}
+    ${r.unknown.length?`<br><b>명단에서 못 찾은 이름:</b> ${r.unknown.map(esc).join(', ')} — 학습근로자 명단에 먼저 등록해주세요.`:''}
   </div>`;
 }
 
 // ══════════ 기업 화면 ══════════
 function viewCompany(){
-  const a = assigned();
+  const u = unitOf();
+  const ojt = daysOf(cur.worker,cur.month,'OJT');
   const closed = isClosed();
-
-  let h = picker();
-
-  // 이 달 능력단위
-  h += `<div class="card">
-    <div class="card-t">🎯 ${ymLabel(cur.month)} 훈련할 능력단위</div>
-    ${a.length === 0
-      ? `<div class="warn">아직 교·강사가 이 달 능력단위를 배정하지 않았습니다.</div>`
-      : a.map(id => {
-          const u = units().find(x => x.id === id); if (!u) return '';
-          const done = doneHours(id), pct = Math.min(100, Math.round(done / u.plan * 100));
-          return `<div class="unit">
-            <div class="nm">${esc(u.name)}</div>
-            <div class="meta">${esc(u.code)} · 계획 ${u.plan}시간 중 <b>${done}시간</b> 실시 (${pct}%)</div>
-            <div class="bar"><i style="width:${pct}%"></i></div>
-          </div>`;
-        }).join('')}
-  </div>`;
-
-  // 달력
-  const { first, count } = monthDays(cur.month);
-  const ev = EVENTS[cur.month] || {};
-  let cells = '';
-  for (let i=0;i<first;i++) cells += `<div class="d empty"></div>`;
-  for (let d=1;d<=count;d++){
-    const ds = dstr(cur.month,d);
-    const log = LOGS[logKey(ds)];
-    const dots = `<div class="dots">
-      ${log ? '<span class="dot t"></span>' : ''}
-      ${ev.eval===ds ? '<span class="dot e"></span>' : ''}
-      ${ev.counsel===ds ? '<span class="dot c"></span>' : ''}</div>`;
-    const dow = (first + d - 1) % 7;
-    cells += `<div class="d ${log?'has':''} ${cur.day===ds?'sel':''} ${dow===0?'sun':''}" data-day="${ds}">
-      ${d}${dots}</div>`;
-  }
-  const nLog = Object.keys(LOGS).filter(k => k.startsWith(`${cur.course}|${cur.worker}|${cur.month}`)).length;
-  const sumH = Object.entries(LOGS).filter(([k]) => k.startsWith(`${cur.course}|${cur.worker}|${cur.month}`))
-    .reduce((s,[,v]) => s + Number(v.hours||0), 0);
+  let h = header();
 
   h += `<div class="card">
-    <div class="card-t">📅 ${esc(worker().name)} · ${ymLabel(cur.month)}
-      <span class="pill t">${nLog}일 · ${sumH}시간</span></div>
-    <div class="info">날짜를 누르면 그날 훈련 내용을 적을 수 있습니다. 기록한 날은 색이 들어옵니다.</div>
-    <div class="cal">
-      ${['일','월','화','수','목','금','토'].map(x=>`<div class="dow">${x}</div>`).join('')}
-      ${cells}
-    </div>
-    <div class="legend">
-      <span><i class="dot t" style="display:inline-block;width:7px;height:7px;border-radius:50%;"></i> 훈련 기록</span>
-      <span><i class="dot e" style="display:inline-block;width:7px;height:7px;border-radius:50%;"></i> 내부평가일</span>
-      <span><i class="dot c" style="display:inline-block;width:7px;height:7px;border-radius:50%;"></i> 면담 예정일</span>
-    </div>
+    <div class="card-t">🎯 ${ymLabel(cur.month)} 훈련 능력단위</div>
+    ${u ? `<div class="unit on"><div class="nm">${esc(u.name)}</div>
+            <div class="meta">${esc(u.code)} · 계획 ${u.plan}시간 중 <b>${ojtHours(cur.worker)}시간</b> 실시</div>
+            <div class="bar"><i style="width:${u.plan?Math.min(100,Math.round(ojtHours(cur.worker)/u.plan*100)):0}%"></i></div></div>`
+       : `<div class="warn" style="margin:0;">센터가 아직 이 달 능력단위를 정하지 않았습니다.</div>`}
   </div>`;
 
-  // 일별 기록
+  h += `<div class="card">
+    <div class="card-t">📅 ${esc(wName(cur.worker))} · ${ymLabel(cur.month)}
+      <span class="pill ${written(cur.worker)===ojt.length&&ojt.length?'done':'wait'}">의견 ${written(cur.worker)}/${ojt.length}일</span></div>
+    <div class="info">보라색 날이 <b>훈련한 날</b>입니다. 센터가 비콘 출결로 넣어드렸습니다.<br>
+      날짜를 누르면 그날 내용이 이미 적혀 있고, <b>현장교사 의견만</b> 쓰시면 됩니다.</div>
+    ${calendar(true)}
+    ${ojt.length===0 ? `<div class="warn">아직 훈련일이 등록되지 않았습니다. 센터에 문의해주세요.</div>`:''}
+  </div>`;
+
   if (cur.day) h += dayCard(closed);
+  h += closeCard(closed, ojt);
 
-  // 월 마감
-  h += closeCard(closed, nLog);
-
-  // 안내
   h += `<div class="card">
-    <div class="card-t">📖 훈련 운영 안내</div>
+    <div class="card-t">📖 작성 안내</div>
     <div class="hint">
-      · 훈련한 날마다 <b>그날 무엇을 했는지</b>와 <b>현장교사 의견</b>을 적어주세요.<br>
-      · 한 번에 몰아서 적으셔도 됩니다. 날짜는 실제 훈련한 날로 골라주세요.<br>
-      · 월말에 <b>현장교사·HRD담당자 두 분이 서명</b>하면 그 달이 마감됩니다.<br>
-      · 마감하면 센터가 확인합니다. 확인 전까지는 다시 고칠 수 있습니다.
-    </div>
-    <div class="warn" style="margin-bottom:0;">
-      면담일지 날짜는 <b>내부평가일과 같아야 합니다.</b> 달력에 노란 점으로 표시됩니다.
+      · <b>훈련내용</b>은 학습근로자가 쓴 학습활동서를 가져온 것입니다. 사실과 다르면 고쳐주세요.<br>
+      · 비어 있는 날은 학생이 아직 쓰지 않은 것이니 직접 적어주세요.<br>
+      · <b>회색 날(학교)</b>은 Off-JT 수업일이라 기업에서 쓰지 않습니다.<br>
+      · 월말에 <b>현장교사·HRD담당자 두 분이 서명</b>하면 그 달이 마감됩니다. 이 서명이 월별 확인서를 대신합니다.
     </div>
   </div>`;
   return h;
 }
 
 function dayCard(closed){
-  const ds = cur.day;
-  const log = LOGS[logKey(ds)] || { unit:'', hours:'', content:'', teacher:'', prof:'' };
-  const a = assigned();
+  const ds = cur.day, r = DAYS[key(cur.worker,ds)];
+  if (!r) return '';
+  const u = unitOf();
   const [,mm,dd] = ds.split('-');
   return `<div class="card" id="dayCard">
     <div class="card-t">✏️ ${Number(mm)}월 ${Number(dd)}일 훈련 기록
-      ${log.prof ? '<span class="pill prof">교·강사 피드백 있음</span>' : ''}</div>
-    ${closed ? `<div class="lockmsg">🔒 이 달은 마감되어 고칠 수 없습니다. 고치려면 아래에서 <b>마감 취소</b>를 누르세요.</div>` : `
-    <div class="fld">
-      <label>능력단위</label>
-      <select class="sel" id="fUnit" style="width:100%;">
-        <option value="">선택하세요</option>
-        ${a.map(id => `<option value="${id}" ${log.unit===id?'selected':''}>${esc(unitName(id))}</option>`).join('')}
-      </select>
+      ${r.teacher ? '<span class="pill done">작성 완료</span>' : '<span class="pill wait">의견 미작성</span>'}</div>
+    <div class="meta-line">
+      능력단위 <b>${u?esc(u.name):'-'}</b> · 훈련시간 <b>${r.hours}시간</b>
+      ${r.beacon?` · 비콘 <b>${esc(r.beacon)}</b>`:''}
     </div>
+    ${closed ? `<div class="lockmsg">🔒 이 달은 마감되어 고칠 수 없습니다.</div>` : `
     <div class="fld">
-      <label>훈련 시간</label>
-      <input type="number" id="fHours" min="0" max="24" step="0.5" value="${log.hours}"> 시간
-    </div>
-    <div class="fld">
-      <label>훈련 내용</label>
-      <textarea id="fContent" placeholder="오늘 무엇을 어떻게 훈련했는지 적어주세요.">${esc(log.content)}</textarea>
+      <label>훈련 내용 ${r.fromExcel && r.content ? '<span class="pill b" style="margin-left:4px;">학습활동서에서 가져옴</span>' : ''}</label>
+      ${!r.content ? `<div class="warn" style="margin:0 0 7px;">학생이 학습활동서를 아직 쓰지 않았습니다. 직접 적어주세요.</div>`:''}
+      <textarea id="fContent" placeholder="그날 어떤 훈련을 했는지 적어주세요.">${esc(r.content)}</textarea>
     </div>
     <div class="fld">
       <label>기업현장교사 의견</label>
-      <textarea id="fTeacher" placeholder="학습근로자의 수행 정도, 보완할 점 등을 적어주세요.">${esc(log.teacher)}</textarea>
-    </div>`}
-    <div class="fld">
-      <label>교·강사 피드백 <span style="font-weight:400;color:var(--sub);">(기업은 읽기만 가능)</span></label>
-      ${log.prof
-        ? `<div class="ok" style="margin:0;">${esc(log.prof)}</div>`
-        : `<div class="lockmsg">아직 작성되지 않았습니다.</div>`}
+      <textarea id="fTeacher" placeholder="학습근로자의 수행 정도, 잘한 점, 보완할 점을 적어주세요.">${esc(r.teacher)}</textarea>
     </div>
-    ${closed ? '' : `<div class="row">
-      <button class="btn pri" id="btnSaveDay">💾 저장</button>
-      ${LOGS[logKey(ds)] ? `<button class="btn" id="btnDelDay" style="color:#B3542F;border-color:#FECACA;">🗑️ 삭제</button>` : ''}
-    </div>`}
+    <div class="row"><button class="btn pri" id="btnSaveDay">💾 저장</button>
+      <button class="btn" id="btnCloseDay">닫기</button></div>`}
   </div>`;
 }
 
-function closeCard(closed, nLog){
-  const c = CLOSED[closeKey()];
+function closeCard(closed, ojt){
+  const c = CLOSED[cur.month], u = unitOf();
+  const left = ojt.filter(d=>!d.teacher).length;
   return `<div class="card">
     <div class="card-t">✅ ${ymLabel(cur.month)} 마감
-      ${c ? (c.confirmed ? '<span class="pill done">센터 확인 완료</span>' : '<span class="pill wait">센터 확인 대기</span>') : ''}</div>
-    <div class="info">
-      이 서명 한 번으로 그 달 <b>월별 확인서</b>를 대신합니다. 따로 작성하지 않으셔도 됩니다.
-    </div>
+      ${c ? (c.confirmed?'<span class="pill done">센터 확인 완료</span>':'<span class="pill wait">센터 확인 대기</span>') : ''}</div>
+    <div class="info">이 서명 한 번으로 그 달 <b>월별 확인서</b>를 대신합니다. 따로 작성하지 않으셔도 됩니다.</div>
     <table class="g">
-      <tr><th style="width:140px;">이 달 훈련</th><td>${nLog}일 기록</td></tr>
-      <tr><th>배정 능력단위</th><td>${assigned().map(unitName).map(esc).join(' · ') || '-'}</td></tr>
-      <tr><th>면담일지</th><td>${EVENTS[cur.month]?.counsel ? '작성 예정일 ' + EVENTS[cur.month].counsel : '-'}</td></tr>
-      <tr><th>내부평가지</th><td>${EVENTS[cur.month]?.eval ? '평가일 ' + EVENTS[cur.month].eval : '-'}</td></tr>
+      <tr><th style="width:130px;">능력단위</th><td>${u?esc(u.name):'-'}</td></tr>
+      <tr><th>OJT 훈련</th><td>${ojt.length}일 · ${ojtHours(cur.worker)}시간</td></tr>
+      <tr><th>현장교사 의견</th><td>${written(cur.worker)}/${ojt.length}일 작성${left?` · <b style="color:#B3542F;">${left}일 남음</b>`:''}</td></tr>
     </table>
-    <div class="row" style="margin-top:12px; gap:10px;">
-      <div style="flex:1; min-width:180px;">
-        <div class="hint" style="margin-bottom:5px;">기업현장교사</div>
-        <div class="sign ${c?'done':''}">${c ? '✓ ' + esc(c.teacher) : '서명 칸'}</div>
-      </div>
-      <div style="flex:1; min-width:180px;">
-        <div class="hint" style="margin-bottom:5px;">HRD담당자</div>
-        <div class="sign ${c?'done':''}">${c ? '✓ ' + esc(c.hrd) : '서명 칸'}</div>
-      </div>
+    <div class="row" style="margin-top:12px;gap:10px;">
+      <div style="flex:1;min-width:170px;"><div class="hint" style="margin-bottom:5px;">기업현장교사</div>
+        <div class="sign ${c?'done':''}">${c?'✓ '+esc(c.teacher):'서명 칸'}</div></div>
+      <div style="flex:1;min-width:170px;"><div class="hint" style="margin-bottom:5px;">HRD담당자</div>
+        <div class="sign ${c?'done':''}">${c?'✓ '+esc(c.hrd):'서명 칸'}</div></div>
     </div>
     <div class="row" style="margin-top:12px;">
-      ${c
-        ? (c.confirmed
-            ? `<button class="btn" disabled>센터 확인이 끝나 고칠 수 없습니다</button>`
-            : `<button class="btn" id="btnReopen">✏️ 마감 취소하고 고치기</button>`)
-        : `<button class="btn go" id="btnClose">✍️ 서명하고 마감</button>`}
+      ${c ? (c.confirmed ? `<button class="btn" disabled>센터 확인이 끝나 고칠 수 없습니다</button>`
+                         : `<button class="btn" id="btnReopen">✏️ 마감 취소하고 고치기</button>`)
+          : `<button class="btn go" id="btnClose" ${left?'disabled':''}>✍️ 서명하고 마감</button>`}
       <button class="btn" id="btnPrint">🖨️ 인쇄 · PDF</button>
-      <button class="btn" id="btnOpinion">📄 훈련강사의견 양식으로 출력</button>
     </div>
+    ${!c && left ? `<div class="hint" style="margin-top:8px;color:#B3542F;">현장교사 의견을 모두 쓰셔야 마감할 수 있습니다.</div>`:''}
   </div>`;
 }
 
-// ══════════ 교·강사 화면 ══════════
-function viewProf(){
-  let h = `<div class="card">
-    <div class="card-t">🎓 담당 학과</div>
-    <div class="row">
-      <select class="sel" id="selDept">
-        ${DEPTS.map(d => `<option ${d===cur.dept?'selected':''}>${esc(d)}</option>`).join('')}
-      </select>
-    </div>
-    <div class="hint" style="margin-top:8px;">학과에 속한 훈련과정을 모두 볼 수 있습니다.</div>
-  </div>`;
-
-  const list = COURSES.filter(c => c.dept === cur.dept);
-  if (!list.length) return h + `<div class="card"><div class="hint">이 학과에 등록된 훈련과정이 없습니다.</div></div>`;
-  if (!list.some(c => c.id === cur.course)) cur.course = list[0].id;
-
-  h += picker({ dept:cur.dept, title:'과정 · 월 선택' });
-
-  // 능력단위 배정
-  const a = assigned();
-  h += `<div class="card">
-    <div class="card-t">🎯 ${ymLabel(cur.month)} 능력단위 배정</div>
-    <div class="info">센터가 등록해 둔 과정 능력단위 중 <b>이 달에 훈련할 것</b>을 고릅니다. 기업은 여기서 고른 것만 보게 됩니다.</div>
-    ${units().map(u => {
-      const on = a.includes(u.id);
-      const done = doneHours(u.id), pct = Math.min(100, Math.round(done/u.plan*100));
-      return `<label class="unit" style="display:block; cursor:pointer; ${on?'border-color:#C9B6F5;background:#FBF9FF;':''}">
-        <div class="row" style="gap:10px;">
-          <input type="checkbox" data-unit="${u.id}" ${on?'checked':''} style="width:18px;height:18px;">
-          <div style="flex:1;min-width:0;">
-            <div class="nm">${esc(u.name)}</div>
-            <div class="meta">${esc(u.code)} · 계획 ${u.plan}시간 · 누적 ${done}시간 (${pct}%)</div>
-            <div class="bar"><i style="width:${pct}%"></i></div>
-          </div>
-        </div>
-      </label>`;
-    }).join('')}
-    <button class="btn pri" id="btnAssign" style="margin-top:8px;">💾 배정 저장</button>
-  </div>`;
-
-  // 학습근로자별 기록 보기 + 월 종합 피드백
-  h += `<div class="card">
-    <div class="card-t">📝 학습근로자별 기록</div>
-    <div class="info">기업이 적은 훈련 기록입니다. <b>월 종합 피드백</b>을 남기고, 특별히 짚을 날이 있으면 그 날만 따로 적습니다.</div>
-    ${course().workers.map(w => {
-      const keys = Object.keys(LOGS).filter(k => k.startsWith(`${cur.course}|${w.id}|${cur.month}`)).sort();
-      const sum = keys.reduce((s,k)=>s+Number(LOGS[k].hours||0),0);
-      return `<div class="unit" style="margin-bottom:12px;">
-        <div class="row" style="justify-content:space-between;">
-          <div class="nm">${esc(w.name)}</div>
-          <span class="pill t">${keys.length}일 · ${sum}시간</span>
-        </div>
-        ${keys.length === 0 ? `<div class="hint" style="margin-top:8px;">아직 기록이 없습니다.</div>` :
-        `<table class="g">
-          <tr><th style="width:74px;">날짜</th><th style="width:120px;">능력단위</th><th>훈련 내용 · 현장교사 의견</th><th style="width:92px;" class="noprint">피드백</th></tr>
-          ${keys.map(k => { const d = k.split('|')[2], v = LOGS[k];
-            return `<tr>
-              <td>${d.slice(5)}</td>
-              <td>${esc(unitName(v.unit))}<br><span class="hint">${v.hours}시간</span></td>
-              <td>${esc(v.content)}<br><span class="hint">현장교사: ${esc(v.teacher||'-')}</span>
-                ${v.prof ? `<br><span style="color:#075985;">교·강사: ${esc(v.prof)}</span>` : ''}</td>
-              <td class="noprint"><button class="btn sm" data-pf="${k}">${v.prof?'수정':'작성'}</button></td>
-            </tr>`; }).join('')}
-        </table>`}
-        <div class="fld" style="margin-top:10px;">
-          <label>${esc(w.name)} · ${ymLabel(cur.month)} 종합 피드백</label>
-          <textarea data-sum="${w.id}" placeholder="이 달 전반적인 수행과 다음 달 지도 방향을 적어주세요.">${esc((LOGS[`SUM|${cur.course}|${w.id}|${cur.month}`]||{}).prof||'')}</textarea>
-        </div>
-      </div>`;
-    }).join('')}
-    <button class="btn pri" id="btnSaveSum">💾 종합 피드백 저장</button>
-  </div>`;
-  return h;
-}
-
-// ══════════ 센터 화면 ══════════
-function viewCenter(){
-  let h = picker({ worker:false, title:'과정 · 월 선택' });
-
-  h += `<div class="card">
-    <div class="card-t">🧩 과정 능력단위 등록</div>
-    <div class="info">훈련계획서대로 과정의 능력단위 전체를 등록합니다. 월별 배정은 교·강사가 합니다.</div>
-    <table class="g">
-      <tr><th style="width:150px;">능력단위코드</th><th>능력단위명</th><th style="width:80px;">계획시간</th><th style="width:80px;">실시</th></tr>
-      ${units().map(u => `<tr>
-        <td>${esc(u.code)}</td><td>${esc(u.name)}</td><td>${u.plan}h</td><td>${doneHours(u.id)}h</td>
-      </tr>`).join('')}
-    </table>
-    <div class="row" style="margin-top:10px;">
-      <input class="sel" id="nuCode" placeholder="능력단위코드" style="flex:1;min-width:150px;">
-      <input class="sel" id="nuName" placeholder="능력단위명" style="flex:1;min-width:150px;">
-      <input class="sel" id="nuPlan" type="number" placeholder="시간" style="width:90px;">
-      <button class="btn pri" id="btnAddUnit">+ 추가</button>
-    </div>
-  </div>`;
-
-  // 제출 현황
-  const c = CLOSED[closeKey()];
-  h += `<div class="card">
-    <div class="card-t">📋 ${ymLabel(cur.month)} 제출 현황</div>
-    <table class="g">
-      <tr><th style="width:150px;">기업 · 과정</th><th>상태</th><th style="width:150px;" class="noprint">처리</th></tr>
-      <tr>
-        <td>${esc(course().company)}<br><span class="hint">${esc(course().type)}</span></td>
-        <td>${c
-          ? (c.confirmed
-             ? '<span class="pill done">확인 완료</span>'
-             : `<span class="pill wait">확인 대기</span> <span class="hint">· 서명 ${esc(c.teacher)} / ${esc(c.hrd)}</span>`)
-          : '<span class="hint">아직 마감하지 않음</span>'}</td>
-        <td class="noprint">
-          ${c && !c.confirmed ? `<button class="btn go sm" id="btnConfirm">✅ 확인 처리</button>` : ''}
-          ${c && c.confirmed ? `<button class="btn sm" id="btnUnlock">🔓 잠금 해제</button>` : ''}
-          <button class="btn sm" id="btnPrint2">🖨️ 인쇄</button>
-        </td>
-      </tr>
-    </table>
-    <div class="hint" style="margin-top:10px;">
-      센터는 기업이 적은 내용을 직접 고칠 수 있습니다. 고치면 <b>마지막 수정: 센터</b> 로 남습니다.
-    </div>
-  </div>`;
-
-  // 전체 기록 보기
-  h += `<div class="card">
-    <div class="card-t">📖 ${ymLabel(cur.month)} 훈련 기록 전체</div>
-    ${course().workers.map(w => {
-      const keys = Object.keys(LOGS).filter(k => k.startsWith(`${cur.course}|${w.id}|${cur.month}`)).sort();
-      if (!keys.length) return `<div class="unit"><div class="nm">${esc(w.name)}</div><div class="hint">기록 없음</div></div>`;
-      return `<div class="unit">
-        <div class="nm">${esc(w.name)} <span class="hint">· ${keys.length}일</span></div>
-        <table class="g">
-          <tr><th style="width:70px;">날짜</th><th style="width:110px;">능력단위</th><th>내용</th></tr>
-          ${keys.map(k => { const v = LOGS[k];
-            return `<tr><td>${k.split('|')[2].slice(5)}</td><td>${esc(unitName(v.unit))}</td>
-              <td>${esc(v.content)}<br><span class="hint">현장교사: ${esc(v.teacher||'-')}</span>
-              ${v.prof?`<br><span style="color:#075985;">교·강사: ${esc(v.prof)}</span>`:''}</td></tr>`;
-          }).join('')}
-        </table>
-      </div>`;
-    }).join('')}
-  </div>`;
-  return h;
-}
-
-// ══════════ 동작 연결 ══════════
+// ══════════ 동작 ══════════
 function bind(){
-  const sc = $('selCourse'), sm = $('selMonth'), sw = $('selWorker'), sd = $('selDept');
-  if (sc) sc.onchange = e => { cur.course = e.target.value; cur.worker = course().workers[0].id; cur.day=null; render(); };
-  if (sm) sm.onchange = e => { cur.month = e.target.value; cur.day=null; render(); };
-  if (sw) sw.onchange = e => { cur.worker = e.target.value; cur.day=null; render(); };
-  if (sd) sd.onchange = e => { cur.dept = e.target.value; const l = COURSES.filter(c=>c.dept===cur.dept);
-                               if (l.length) { cur.course = l[0].id; cur.worker = l[0].workers[0].id; } render(); };
+  if ($('selMonth'))  $('selMonth').onchange  = e => { cur.month=e.target.value; cur.day=null; render(); };
+  if ($('selWorker')) $('selWorker').onchange = e => { cur.worker=e.target.value; cur.day=null; render(); };
 
-  document.querySelectorAll('.cal .d[data-day]').forEach(el => {
-    el.onclick = () => { cur.day = (cur.day === el.dataset.day) ? null : el.dataset.day; render();
-      setTimeout(() => $('dayCard')?.scrollIntoView({behavior:'smooth', block:'center'}), 30); };
+  document.querySelectorAll('.cal .d[data-day]').forEach(el => el.onclick = () => {
+    cur.day = (cur.day===el.dataset.day) ? null : el.dataset.day; render();
+    setTimeout(()=>$('dayCard')?.scrollIntoView({behavior:'smooth',block:'center'}),30);
   });
 
-  if ($('btnSaveDay')) $('btnSaveDay').onclick = () => {
-    const u = $('fUnit').value, hh = $('fHours').value, ct = $('fContent').value.trim();
-    if (!u) { alert('능력단위를 골라주세요.'); return; }
-    if (!ct) { alert('훈련 내용을 적어주세요.'); return; }
-    const prev = LOGS[logKey(cur.day)] || {};
-    LOGS[logKey(cur.day)] = { unit:u, hours:Number(hh||0), content:ct,
-      teacher:$('fTeacher').value.trim(), prof:prev.prof || '' };
-    render();
-  };
-  if ($('btnDelDay')) $('btnDelDay').onclick = () => {
-    if (!confirm('이 날 기록을 지울까요?')) return;
-    delete LOGS[logKey(cur.day)]; cur.day = null; render();
+  if ($('btnUnit')) $('btnUnit').onclick = () => {
+    const p = document.querySelector('[data-unit]:checked');
+    if (!p) { alert('능력단위를 골라주세요.'); return; }
+    MONTH_UNIT[cur.month] = p.dataset.unit; render();
   };
 
+  if ($('xlsFile')) $('xlsFile').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = ev => {
+      try {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, raw:false, defval:'' });
+        applyImport(parseBeacon(rows));
+        render();
+      } catch(err){ alert('읽지 못했습니다.\n\n' + (err.message||err)); }
+    };
+    fr.readAsArrayBuffer(f);
+  };
+
+  if ($('btnSaveDay')) $('btnSaveDay').onclick = () => {
+    const r = DAYS[key(cur.worker,cur.day)];
+    r.content = $('fContent').value.trim();
+    r.teacher = $('fTeacher').value.trim();
+    if (!r.content){ alert('훈련 내용을 적어주세요.'); return; }
+    cur.day = null; render();
+  };
+  if ($('btnCloseDay')) $('btnCloseDay').onclick = () => { cur.day=null; render(); };
+
   if ($('btnClose')) $('btnClose').onclick = () => {
-    const n = Object.keys(LOGS).filter(k => k.startsWith(`${cur.course}|`) && k.includes(`|${cur.month}-`)).length;
-    if (!n) { alert('이 달 훈련 기록이 없습니다.'); return; }
     if (!confirm('기업현장교사와 HRD담당자 서명을 받아 마감합니다.\n\n(샘플이라 서명 칸은 생략합니다)\n계속할까요?')) return;
-    CLOSED[closeKey()] = { teacher:'김현장', hrd:'박에이치', at:new Date().toISOString(), confirmed:false };
-    render();
+    CLOSED[cur.month] = { teacher:'김현장', hrd:'박에이치', confirmed:false }; render();
   };
   if ($('btnReopen')) $('btnReopen').onclick = () => {
     if (!confirm('마감을 취소하고 다시 고칩니다.\n서명이 취소됩니다. 계속할까요?')) return;
-    delete CLOSED[closeKey()]; render();
+    delete CLOSED[cur.month]; render();
   };
-  if ($('btnConfirm')) $('btnConfirm').onclick = () => { CLOSED[closeKey()].confirmed = true; render(); };
-  if ($('btnUnlock')) $('btnUnlock').onclick = () => { CLOSED[closeKey()].confirmed = false; render(); };
-  if ($('btnPrint'))  $('btnPrint').onclick  = () => window.print();
-  if ($('btnPrint2')) $('btnPrint2').onclick = () => window.print();
+  if ($('btnConfirm')) $('btnConfirm').onclick = () => { CLOSED[cur.month].confirmed = true; render(); };
+  if ($('btnUnlock'))  $('btnUnlock').onclick  = () => { CLOSED[cur.month].confirmed = false; render(); };
+  if ($('btnPrint'))   $('btnPrint').onclick   = () => window.print();
   if ($('btnOpinion')) $('btnOpinion').onclick = printOpinion;
-
-  if ($('btnAssign')) $('btnAssign').onclick = () => {
-    const picked = [...document.querySelectorAll('[data-unit]:checked')].map(x => x.dataset.unit);
-    ASSIGNED[cur.course + '|' + cur.month] = picked;
-    alert(`${ymLabel(cur.month)} 능력단위 ${picked.length}개를 배정했습니다.`);
-    render();
-  };
-  document.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => {
-    const k = b.dataset.pf;
-    const t = prompt(`${k.split('|')[2]} 교·강사 피드백`, LOGS[k].prof || '');
-    if (t === null) return;
-    LOGS[k].prof = t.trim(); render();
-  });
-  if ($('btnSaveSum')) $('btnSaveSum').onclick = () => {
-    document.querySelectorAll('[data-sum]').forEach(t => {
-      LOGS[`SUM|${cur.course}|${t.dataset.sum}|${cur.month}`] = { prof:t.value.trim() };
-    });
-    alert('종합 피드백을 저장했습니다.');
-  };
-  if ($('btnAddUnit')) $('btnAddUnit').onclick = () => {
-    const code = $('nuCode').value.trim(), nm = $('nuName').value.trim(), pl = Number($('nuPlan').value||0);
-    if (!nm) { alert('능력단위명을 적어주세요.'); return; }
-    (UNITS[cur.course] = UNITS[cur.course] || []).push({ id:'u'+Date.now(), code, name:nm, plan:pl||0 });
-    render();
-  };
 }
 
-// 일별 기록을 모아 의견서 양식으로 출력 (기업은 의견서를 따로 쓰지 않는다)
+// 일별 기록을 모아 의견서 양식으로 출력
 function printOpinion(){
-  const keys = Object.keys(LOGS).filter(k => k.startsWith(`${cur.course}|${cur.worker}|${cur.month}`)).sort();
-  if (!keys.length) { alert('이 달 훈련 기록이 없습니다.'); return; }
-  const rows = keys.map((k,i) => {
-    const v = LOGS[k];
-    return `<tr><td style="text-align:center;">${i+1}</td><td>${k.split('|')[2]}</td>
-      <td>${esc(unitName(v.unit))}</td><td>${v.hours}h</td>
-      <td>${esc(v.content)}<br><b>의견</b> ${esc(v.teacher||'-')}</td></tr>`;
-  }).join('');
-  const w = window.open('', '_blank', 'width=900,height=1000');
-  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
-    <title>기업현장교사 의견서</title><style>
-    @page{size:A4;margin:16mm 14mm;}
-    body{font-family:'Malgun Gothic',sans-serif;font-size:12.5px;color:#111;line-height:1.6;}
-    h1{text-align:center;letter-spacing:5px;font-size:20px;margin-bottom:14px;}
-    table{width:100%;border-collapse:collapse;margin-top:10px;}
-    th,td{border:1px solid #777;padding:7px 9px;vertical-align:top;}
-    th{background:#f1f3f5;}
-    .info th{width:120px;text-align:left;}
-    .note{margin-top:10px;font-size:11.5px;color:#555;}
-    </style></head><body>
-    <h1>기업현장교사 의견서</h1>
-    <table class="info">
-      <tr><th>기업</th><td>${esc(course().company)}</td><th style="width:90px;">작성 월</th><td>${ymLabel(cur.month)}</td></tr>
-      <tr><th>훈련과정</th><td>${esc(course().type)}</td><th>과정번호</th><td>${esc(course().no)}</td></tr>
-      <tr><th>학습근로자</th><td colspan="3">${esc(worker().name)}</td></tr>
-    </table>
-    <table><tr><th style="width:36px;">No</th><th style="width:86px;">훈련일</th>
-      <th style="width:130px;">능력단위</th><th style="width:46px;">시간</th><th>훈련 내용 및 의견</th></tr>${rows}</table>
-    <p class="note">※ 일별 훈련 기록을 모아 자동으로 만든 문서입니다.</p>
-    </body></html>`);
-  w.document.close(); w.focus(); setTimeout(()=>w.print(), 400);
+  const ojt = daysOf(cur.worker,cur.month,'OJT');
+  if (!ojt.length) { alert('이 달 OJT 훈련 기록이 없습니다.'); return; }
+  const u = unitOf();
+  const rows = ojt.map((d,i)=>`<tr>
+    <td style="text-align:center;">${i+1}</td><td>${d.date}</td><td style="text-align:center;">${d.hours}h</td>
+    <td>${esc(d.content)}<br><b>의견</b> ${esc(d.teacher||'-')}</td></tr>`).join('');
+  const w = window.open('','_blank','width=900,height=1000');
+  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>기업현장교사 의견서</title>
+  <style>@page{size:A4;margin:16mm 14mm;}
+  body{font-family:'Malgun Gothic',sans-serif;font-size:12.5px;color:#111;line-height:1.6;}
+  h1{text-align:center;letter-spacing:5px;font-size:20px;margin-bottom:14px;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;}
+  th,td{border:1px solid #777;padding:7px 9px;vertical-align:top;} th{background:#f1f3f5;}
+  .info th{width:112px;text-align:left;} .note{margin-top:10px;font-size:11.5px;color:#555;}</style></head><body>
+  <h1>기업현장교사 의견서</h1>
+  <table class="info">
+    <tr><th>기업</th><td>${esc(COURSE.company)}</td><th style="width:84px;">작성 월</th><td>${ymLabel(cur.month)}</td></tr>
+    <tr><th>훈련과정</th><td>${esc(COURSE.type)}</td><th>과정번호</th><td>${esc(COURSE.no)}</td></tr>
+    <tr><th>학습근로자</th><td>${esc(wName(cur.worker))}</td><th>능력단위</th><td>${u?esc(u.name):'-'}</td></tr>
+    <tr><th>훈련 실적</th><td colspan="3">${ojt.length}일 · ${ojtHours(cur.worker)}시간 (비콘 출결 기준)</td></tr>
+  </table>
+  <table><tr><th style="width:34px;">No</th><th style="width:94px;">훈련일</th><th style="width:48px;">시간</th>
+    <th>훈련 내용 및 현장교사 의견</th></tr>${rows}</table>
+  <p class="note">※ 일별 훈련 기록을 모아 자동으로 만든 문서입니다. 훈련일과 시간은 비콘 출결 자료를 따릅니다.</p>
+  </body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
 }
 
 render();
