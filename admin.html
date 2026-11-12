@@ -1357,9 +1357,22 @@
           </select>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">학습기업</label>
-        <select class="form-input" id="cs-company"><option value="">선택</option></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">학습기업</label>
+          <select class="form-input" id="cs-company"><option value="">선택</option></select>
+        </div>
+        <div class="form-group">
+          <!-- 학과는 교수 계정이 '담당 학과 전체'를 보기 위해 필요하다.
+               사업유형(P-TECH 1학년 등)만으로는 호텔관광인지 호텔조리인지 구분되지 않는다. -->
+          <label class="form-label">학과</label>
+          <select class="form-input" id="cs-dept">
+            <option value="">선택</option>
+          </select>
+          <div style="font-size:11.5px;color:#718096;margin-top:4px;">
+            교·강사가 담당 학과 과정을 찾는 기준입니다.
+          </div>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-group">
@@ -3100,15 +3113,34 @@
     ['cs-no','cs-site','cs-branch','cs-manager'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('cs-type').value = '';
     document.getElementById('cs-company').value = '';
+    fillCourseDeptOptions();
+    document.getElementById('cs-dept').value = '';
     document.getElementById('csSaveBtn').textContent = '📘 과정 등록';
     document.getElementById('csCancelBtn').style.display = 'none';
   }
+  // ══════ 훈련과정 학과 ══════
+  // 2027학년도 기준. 교·강사 계정이 '담당 학과 전체'를 보는 기준이 된다.
+  // 사업유형(P-TECH 1학년 등)만으로는 어느 학과인지 알 수 없어 따로 둔다.
+  const COURSE_DEPTS = [
+    ['P-TECH', ['P-TECH 글로벌호텔관광학과', 'P-TECH 글로벌 호텔조리학과']],
+    ['전문대 재학생단계', ['회계세무학과', '마케팅경영학과', '호텔관광학과']]
+  ];
+  function fillCourseDeptOptions() {
+    const sel = document.getElementById('cs-dept');
+    if (!sel || sel.options.length > 1) return;
+    sel.innerHTML = '<option value="">선택</option>'
+      + COURSE_DEPTS.map(([g, list]) =>
+          `<optgroup label="${g}">` + list.map(d => `<option>${d}</option>`).join('') + '</optgroup>'
+        ).join('');
+  }
+
   function readCourseForm() {
     const cid = document.getElementById('cs-company').value;
     const c = allCompanies.find(x => x.id === cid);
     return {
       courseNo: document.getElementById('cs-no').value.trim(),
       type: document.getElementById('cs-type').value,
+      dept: document.getElementById('cs-dept').value,
       companyId: cid,
       companyName: c ? (c.name || '') : '',
       site: document.getElementById('cs-site').value.trim(),
@@ -3175,6 +3207,7 @@
     } catch(e) { showCsResult('❌ 오류: ' + e.message, 'error'); }
   }
   async function loadCourses() {
+    fillCourseDeptOptions();
     const el = document.getElementById('courseList');
     try {
       const db = await wkDb();
@@ -3203,6 +3236,7 @@
                 <div class="cal-event-info">
                   <div class="cal-event-title">${c.companyName || '기업 미연결'}${c.site ? ' — ' + c.site : ''}</div>
                   <div class="cal-event-meta">${c.courseNo || ''}${c.branch ? ' · ' + c.branch : ''}${c.manager ? ' · 담당 ' + c.manager : ''}</div>
+                  <div class="cal-event-desc" style="color:${c.dept ? '#7c3aed' : '#b91c1c'};">${c.dept ? '🎓 ' + escapeHtmlSafe(c.dept) : '⚠️ 학과 미지정 — 교·강사 화면에 안 보입니다'}</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
                   <button onclick="editCourse('${c.id}')" class="member-edit-btn">✏️ 수정</button>
@@ -3218,6 +3252,8 @@
     document.getElementById('cs-edit-id').value = id;
     document.getElementById('cs-no').value = c.courseNo || '';
     document.getElementById('cs-type').value = c.type || '';
+    fillCourseDeptOptions();
+    document.getElementById('cs-dept').value = c.dept || '';
     refreshCourseCompanyOptions();
     document.getElementById('cs-company').value = c.companyId || '';
     document.getElementById('cs-site').value = c.site || '';
