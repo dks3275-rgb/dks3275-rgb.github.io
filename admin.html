@@ -1108,7 +1108,11 @@
     </div>
 
     <div class="card">
-      <div class="card-title">📖 훈련 기록</div>
+      <div class="card-title">
+        📖 훈련 기록
+        <button class="refresh-btn" onclick="clearTrainingMonth()"
+          style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;">🗑️ 이 달 기록 지우기</button>
+      </div>
       <div id="tr-records"><div class="empty-history">과정을 선택해주세요</div></div>
     </div>
 
@@ -9918,6 +9922,35 @@
           </table>
         </div>`;
       }).join('');
+  }
+
+  // ── 이 달 기록 전부 지우기 ──
+  // 시범 운영 중에는 "잘못 올렸으니 처음부터 다시" 가 자주 필요하다.
+  // 다른 달·다른 과정은 건드리지 않고, 고른 과정의 그 달 기록만 지운다.
+  async function clearTrainingMonth() {
+    const c = trCourse(), period = trPeriod();
+    if (!c) { alert('훈련과정을 먼저 선택해주세요.'); return; }
+    if (!trLogs.length && !trMonth) { alert('지울 기록이 없습니다.'); return; }
+    const withTeacher = trLogs.filter(l => l.teacher).length;
+    if (!await customConfirm({
+      title: '이 달 기록 지우기',
+      message: `<b>${escapeHtmlSafe(c.companyName || '')} · ${escapeHtmlSafe(c.type || '')}</b><br>`
+        + `${opYmLabel(period)} 훈련 기록 <b>${trLogs.length}건</b>을 지울까요?<br><br>`
+        + (withTeacher ? `<span style="color:#b91c1c;">⚠️ 기업이 쓴 현장교사 의견 ${withTeacher}건도 함께 사라집니다.</span><br><br>` : '')
+        + `<span style="font-size:12px;color:#64748b;">· 이 과정의 이 달 것만 지웁니다 (다른 달·다른 과정은 그대로)<br>`
+        + `· 능력단위 목록은 남습니다<br>`
+        + `· 비콘 엑셀을 다시 올리면 처음부터 새로 들어갑니다</span>`,
+      confirmText: '🗑️ 지우기', danger: true })) return;
+    try {
+      const db = await wkDb();
+      const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      for (const l of trLogs) await deleteDoc(doc(db, 'trainingLogs', l.id));
+      if (trMonth) await deleteDoc(doc(db, 'trainingMonths', trMonth.id));
+      await writeLog('delete', 'trainingLog', c.id,
+        `훈련 기록 초기화: ${c.companyName || ''} ${c.type || ''} ${period} (${trLogs.length}건)`);
+      alert(`${opYmLabel(period)} 기록 ${trLogs.length}건을 지웠습니다.\n\n능력단위 목록은 그대로 있습니다.`);
+      await renderTraining();
+    } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
   }
 
   // ══════ 비콘 엑셀 읽기 ══════
