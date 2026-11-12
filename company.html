@@ -2786,8 +2786,7 @@ function renderTrClose(){
       <span style="font-size:12px;">HRD담당자 서명은 <b>학습관리 → 월별 확인서</b>에서 그 달 전체를 종합해 받습니다.</span></div>
     <div style="font-size:13px;line-height:1.9;">
       <b>능력단위</b> ${esc((trMonthDoc&&trMonthDoc.unitName)||'-')}<br>
-      <b>OJT 훈련</b> ${ojt.length}일 · ${h}시간<br>
-      <b>현장교사 의견</b> ${ojt.length-left}/${ojt.length}일 작성${left?` <span style="color:#B3542F;">· ${left}일 남음</span>`:''}
+      <b>OJT 훈련</b> ${ojt.length}일 · ${h}시간
     </div>
 
     <div class="fld" style="margin-top:14px;">
@@ -2889,7 +2888,7 @@ function printTraining(){
     <td>${esc(d.teacher||'-')}</td></tr>`).join('');
   const body = `
     <h1>기업현장교사 의견서</h1>
-    <div class="docno">${esc(trPeriod())} · ${esc(nm)}</div>
+    <div class="docno">${esc(nm)}</div>
     <table class="info">
       <tr><th>기업</th><td>${esc(myAccount.companyName||'')}</td><th>작성 월</th><td>${esc(ymLabel(trPeriod()))}</td></tr>
       <tr><th>훈련과정</th><td>${esc(curCourse.type||'')}</td><th>과정번호</th><td>${esc(curCourse.courseNo||'-')}</td></tr>
@@ -2905,8 +2904,7 @@ function printTraining(){
     </table>
     ${trMonthDoc && trMonthDoc.signTeacher ? `<table class="info" style="margin-top:16px;">
       <tr><th>기업현장교사</th><td>${esc(trMonthDoc.signTeacher)}
-        ${trMonthDoc.signature?`<br><img src="${trMonthDoc.signature}" style="max-width:190px;border-bottom:1px solid #999;margin-top:4px;">`:''}</td>
-          <th style="width:84px;">마감일</th><td>${esc((trMonthDoc.signedAt||'').slice(0,10))}</td></tr>
+        ${trMonthDoc.signature?`<br><img src="${trMonthDoc.signature}" style="max-width:190px;border-bottom:1px solid #999;margin-top:4px;">`:''}</td></tr>
     </table>` : ''}
     <p style="margin-top:10px;font-size:11.5px;color:#555;">※ 일별 훈련 기록을 모아 만든 문서입니다. 훈련일과 시간은 비콘 출결 자료를 따릅니다.</p>`;
   openPrint(`기업현장교사 의견서 - ${nm} ${trPeriod()}`, body);
