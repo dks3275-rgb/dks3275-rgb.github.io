@@ -890,6 +890,12 @@ function renderFirmNotices() {
 // 화면 흐름
 //   home → course → (training | docs) → (opinion | counsel | checklist)
 // 로그인하면 먼저 '훈련운영 / 학습관리' 를 고르고, 그다음 과정을 고른다.
+//
+// ⚠️ 훈련운영 기능 사용 여부 — 2026-11 시범운영을 마치고 당분간 쓰지 않기로 했다.
+//    코드는 그대로 남겨두고 이 한 줄만 바꾼다. 다시 쓸 때는 true 로.
+//    false 일 때는 홈의 두 갈래 입구를 숨기고, 로그인하면 곧바로
+//    과정 목록 → 학습관리(서류) 로 들어간다. (훈련운영 도입 전과 같은 흐름)
+const TRAINING_ON = false;
 const VIEW_IDS = {
   home:      'homeView',        // 두 갈래 입구
   course:    'courseView',      // 훈련과정 목록
@@ -910,6 +916,8 @@ function showOnly(name) {
 // 뒤로가기로 돌아왔을 때 화면을 되살린다.
 // 필요한 자료가 없으면(새로고침 등) 한 단계 위로 떨어뜨린다.
 function renderView(name) {
+  // 훈련운영을 쓰지 않을 때는 홈(두 갈래 입구)과 훈련운영 화면이 없다
+  if (!TRAINING_ON && (name === 'home' || name === 'training')) name = 'course';
   // 새로고침 등으로 자료가 없으면 한 단계 위로 떨어뜨린다
   if ((name === 'docs' || name === 'training') && !curCourse) name = 'course';
   if (name === 'opinion'   && !curOpinion)  name = 'docs';
@@ -920,7 +928,7 @@ function renderView(name) {
   if (name === 'docs')     { openDocs(); }
   if (name === 'training') { loadTraining(); }
 }
-if (window.BackNav) BackNav.init(renderView, 'home');
+if (window.BackNav) BackNav.init(renderView, TRAINING_ON ? 'home' : 'course');
 // 같은 화면을 다시 그릴 때(저장 후 새로고침 등)는 기록을 쌓지 않는다.
 // 안 그러면 뒤로가기를 두 번 눌러야 빠져나가게 된다.
 function navTo(name) {
@@ -929,7 +937,7 @@ function navTo(name) {
 }
 function navBack() {
   if (window.BackNav) BackNav.back();
-  else showOnly('home');   // 도구를 못 불러왔을 때의 대비
+  else showOnly(TRAINING_ON ? 'home' : 'course');   // 도구를 못 불러왔을 때의 대비
 }
 
 // ══════════ 훈련과정 목록 ══════════
@@ -993,6 +1001,19 @@ function goMode(mode) {
 }
 $('goTraining').onclick = () => goMode('training');
 $('goDocs').onclick     = () => goMode('docs');
+
+// 훈련운영을 쓰지 않을 때의 화면 정리 —
+//  · 홈(두 갈래 입구)을 아예 없애고 과정 목록을 첫 화면으로 쓴다
+//  · 홈에 있던 '센터 알림' 카드를 과정 목록 맨 위로 옮긴다
+//  · 과정 목록의 '← 처음으로' 는 돌아갈 곳이 없으므로 숨긴다
+if (!TRAINING_ON) {
+  coMode = 'docs';
+  const home = $('homeView'), cv = $('courseView'), nt = $('noticeCard');
+  if (cv && nt) cv.insertBefore(nt, cv.firstChild);   // 알림 카드를 과정 목록 위로
+  if (home) home.remove();
+  const back = $('courseBack'); if (back) back.style.display = 'none';
+  if (cv) cv.style.display = 'block';
+}
 
 // 학습관리 화면 머리말 + 서류 목록 새로고침
 function openDocs() {

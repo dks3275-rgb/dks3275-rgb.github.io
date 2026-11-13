@@ -1112,6 +1112,8 @@
         📖 훈련 기록
         <button class="refresh-btn" onclick="clearTrainingMonth()"
           style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;">🗑️ 이 달 기록 지우기</button>
+        <button class="refresh-btn" onclick="resetTrainingCourse()"
+          style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;">↩️ 이 과정 전부 되돌리기</button>
       </div>
       <div id="tr-records"><div class="empty-history">과정을 선택해주세요</div></div>
     </div>
@@ -9979,7 +9981,12 @@
       const db = await wkDb();
       const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       await setDoc(doc(db, 'trainingMonths', trKeyMonth(c.id, period)),
-        Object.assign({ updatedAt: new Date().toISOString() }, patch), { merge: true });
+        Object.assign({
+          courseId: c.id, period,
+          companyId: c.companyId || '', companyName: c.companyName || '',
+          courseType: c.type || '',
+          updatedAt: new Date().toISOString()
+        }, patch), { merge: true });
       await writeLog('update', 'trainingMonth', trKeyMonth(c.id, period),
         `${logText}: ${c.companyName || ''} ${c.type || ''} ${period}`);
       await renderTraining();
@@ -10129,6 +10136,55 @@
       alert(`${opYmLabel(period)} 기록 ${trLogs.length}건을 지웠습니다.\n\n능력단위 목록은 그대로 있습니다.`);
       await renderTraining();
     } catch(e) { alert('삭제 실패: ' + (e.message || '')); }
+  }
+
+  // ── 이 과정 전부 되돌리기 ──
+  // 시범운영을 끝내고 "훈련운영을 쓰기 전 상태로" 깨끗이 돌릴 때 쓴다.
+  // 고른 과정의 모든 달 기록·월 설정·능력단위를 다 지운다.
+  // 다른 과정은 건드리지 않는다. 서류(의견서·면담일지·확인서·평가지)는 전혀 손대지 않는다.
+  async function resetTrainingCourse() {
+    const c = trCourse();
+    if (!c) { alert('훈련과정을 먼저 선택해주세요.'); return; }
+    let units = [], logs = [], months = [];
+    try {
+      const db = await wkDb();
+      const { collection, getDocs, query, where, doc, deleteDoc, documentId } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      // 월 문서는 id 가 {courseId}__{YYYY-MM} 로 정해져 있다.
+      // 센터가 먼저 만든 문서에는 courseId 필드가 없을 수 있어 id 범위로 찾는다.
+      const [uS, lS, mS] = await Promise.all([
+        getDocs(query(collection(db, 'trainingUnits'),  where('courseId', '==', c.id))),
+        getDocs(query(collection(db, 'trainingLogs'),   where('courseId', '==', c.id))),
+        getDocs(query(collection(db, 'trainingMonths'),
+          where(documentId(), '>=', c.id + '__'),
+          where(documentId(), '<=', c.id + '__')))
+      ]);
+      units = uS.docs.map(d => d.id);
+      logs = lS.docs.map(d => d.id);
+      months = mS.docs.map(d => d.id);
+      if (!units.length && !logs.length && !months.length) {
+        alert('이 과정에는 훈련운영 기록이 없습니다.\n이미 되돌려진 상태입니다.');
+        return;
+      }
+      if (!await customConfirm({
+        title: '이 과정 훈련운영 전부 되돌리기',
+        message: `<b>${escapeHtmlSafe(c.companyName || '')} · ${escapeHtmlSafe(c.type || '')}</b><br>`
+          + `훈련운영 기록을 <b>전부</b> 지워 도입 전 상태로 돌릴까요?<br><br>`
+          + `<span style="font-size:13px;">· 일별 훈련 기록 <b>${logs.length}건</b> (모든 달)<br>`
+          + `· 월 설정·마감 <b>${months.length}건</b><br>`
+          + `· 능력단위 <b>${units.length}건</b></span><br><br>`
+          + `<span style="color:#b91c1c;">⚠️ 되돌릴 수 없습니다. 기업이 쓴 현장교사 의견도 함께 사라집니다.</span><br><br>`
+          + `<span style="font-size:12px;color:#64748b;">· 다른 과정은 그대로입니다<br>`
+          + `· 의견서·면담일지·월별 확인서·내부평가지는 전혀 손대지 않습니다</span>`,
+        confirmText: '↩️ 전부 지우기', danger: true })) return;
+      for (const id of logs)   await deleteDoc(doc(db, 'trainingLogs', id));
+      for (const id of months) await deleteDoc(doc(db, 'trainingMonths', id));
+      for (const id of units)  await deleteDoc(doc(db, 'trainingUnits', id));
+      await writeLog('delete', 'trainingLog', c.id,
+        `훈련운영 전체 되돌리기: ${c.companyName || ''} ${c.type || ''} (기록 ${logs.length} · 월 ${months.length} · 능력단위 ${units.length})`);
+      alert(`되돌렸습니다.\n\n기록 ${logs.length}건 · 월 설정 ${months.length}건 · 능력단위 ${units.length}건을 지웠습니다.`);
+      await renderTraining();
+    } catch(e) { alert('되돌리지 못했습니다: ' + (e.message || '')); }
   }
 
   // ══════ 비콘 엑셀 읽기 ══════
