@@ -221,6 +221,18 @@
     .cal-event-desc { font-size: 12px; color: #718096; margin-top: 4px; }
     /* 기간 일정 안내 박스 */
     .date-range-hint { font-size: 12px; color: var(--blue); background: #EEF0F3; border-radius: 8px; padding: 8px 12px; margin-top: 8px; }
+    /* 서류 종류 고르기 — 의견서 / 면담일지 / 확인서 / 내부평가지 */
+    .doc-kind-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    @media (max-width: 560px) { .doc-kind-tabs { grid-template-columns: 1fr 1fr; } }
+    .doc-kind { padding: 11px 8px; border: 2px solid var(--border); border-radius: 11px; background: white;
+                font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 700; color: #4a5568;
+                cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .doc-kind:hover { border-color: var(--blue); color: var(--blue); }
+    .doc-kind.active { border-color: var(--blue); background: var(--blue); color: white; }
+    .dk-badge { display: none; margin-left: 5px; background: #dc2626; color: white; font-size: 10.5px;
+                font-weight: 700; padding: 1px 6px; border-radius: 9px; vertical-align: middle; }
+    .dk-badge.on { display: inline-block; }
+    .doc-kind.active .dk-badge { background: white; color: #dc2626; }
     .notice-target-btn { flex:1; padding:10px 8px; border:2px solid var(--border); border-radius:10px; background:white; font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:600; cursor:pointer; color:#4a5568; transition:all 0.2s; }
     .notice-target-btn.selected { border-color:var(--blue); background:var(--blue); color:white; }
     .subt-chip { display:inline-flex; align-items:center; gap:5px; padding:6px 11px; background:white; border:1.5px solid var(--border); border-radius:8px; font-size:12px; font-weight:500; color:#4a5568; cursor:pointer; transition:all 0.15s; }
@@ -1649,7 +1661,38 @@
       <div id="docsMatrix"><div class="empty-history">불러오는 중...</div></div>
     </div>
 
+    <!-- ══════ 서류 보기 — 월·기업 선택 + 서류 종류 고르기 ══════
+         예전에는 서류 4종이 세로로 쌓여 있고, 카드마다 같은 월·기업 선택이
+         한 벌씩(총 4벌) 들어 있었다. 화면이 너무 길어 늘 접어두고 쓰게 됐다.
+         → 선택은 여기 한 줄로 모으고, 서류는 한 번에 하나만 보여준다.
+         ⚠️ 선택 상자의 id(op-period · op-company)는 그대로 둔다.
+            목록·엑셀·인쇄 등 여러 곳이 이 id로 지금 보는 달과 기업을 읽는다. -->
     <div class="card">
+      <div class="card-title">🗂️ 서류 보기</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">작성 월</label>
+          <select class="form-input doc-period" id="op-period" onchange="syncDocFilter(this)"></select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">기업</label>
+          <select class="form-input doc-company" id="op-company" onchange="syncDocFilter(this)">
+            <option value="">전체 기업</option>
+          </select>
+        </div>
+      </div>
+      <div class="doc-kind-tabs" id="docKindTabs">
+        <button class="doc-kind active" data-kind="op" onclick="switchDocKind('op')">📝 의견서<span class="dk-badge" id="dkb-op"></span></button>
+        <button class="doc-kind" data-kind="cn" onclick="switchDocKind('cn')">🗣️ 면담일지<span class="dk-badge" id="dkb-cn"></span></button>
+        <button class="doc-kind" data-kind="ck" onclick="switchDocKind('ck')">✅ 확인서<span class="dk-badge" id="dkb-ck"></span></button>
+        <button class="doc-kind" data-kind="as" onclick="switchDocKind('as')">📄 내부평가지<span class="dk-badge" id="dkb-as"></span></button>
+      </div>
+      <div style="font-size:12px;color:#64748b;margin-top:10px;">
+        빨간 숫자는 <b>기업이 제출했는데 센터가 아직 확인하지 않은</b> 건수입니다 (모든 달 기준).
+      </div>
+    </div>
+
+    <div class="card" id="docCard-op">
       <div class="card-title">
         📝 기업현장교사 의견서
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
@@ -1658,18 +1701,6 @@
         <b>센터가 훈련기간별 의견 초안을 등록</b>하면, 기업현장교사가 확인·수정하고 전자서명합니다.<br>
 
         <small style="opacity:0.9;">단계: 초안 대기 → 확인·서명 → 센터 확인 · 자필 증빙은 월별 확인서 한 장으로 받습니다</small>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group">
-          <label class="form-label">작성 월</label>
-          <select class="form-input doc-period" id="op-period" onchange="syncDocFilter(this)"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">기업</label>
-          <select class="form-input doc-company" id="op-company" onchange="syncDocFilter(this)">
-            <option value="">전체 기업</option>
-          </select>
-        </div>
       </div>
       <div style="border:1.5px solid #E3E6EA;border-radius:12px;padding:14px 15px;margin-bottom:14px;background:#FAFBFC;">
         <div style="font-size:13.5px;font-weight:700;margin-bottom:10px;">✏️ 의견 초안 작성</div>
@@ -1697,35 +1728,20 @@
       <div id="opDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="docCard-cn">
       <div class="card-title">
         🗣️ 학습근로자 면담일지
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
       </div>
       <div style="background:#EEF0F3;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#37404B;line-height:1.65;">
         기업이 <b>학습근로자 한 명당 월 최소 1회</b> 면담하고 기록합니다. 한 달에 여러 번이면 여러 장이 쌓입니다.<br>
-        <small style="opacity:0.9;">공동훈련센터는 분기별 최소 1회 · 센터가 쓸 때는 [근로관련] 항목 제외 · 아래 <b>작성 월·기업</b> 선택 적용</small>
-      </div>
-            <!-- 서류 카드마다 같은 월·기업 선택을 둔다.
-           예전에는 맨 위 의견서 카드에만 있어서, 아래로 스크롤해 내려오면
-           지금 어느 달을 보고 있는지 알 수 없었다 (위로 올라갔다 와야 했다). -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">작성 월</label>
-          <select class="form-input doc-period" onchange="syncDocFilter(this)"></select>
-        </div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">기업</label>
-          <select class="form-input doc-company" onchange="syncDocFilter(this)">
-            <option value="">전체 기업</option>
-          </select>
-        </div>
+        <small style="opacity:0.9;">공동훈련센터는 분기별 최소 1회 · 센터가 쓸 때는 [근로관련] 항목 제외 · 맨 위 <b>작성 월·기업</b> 선택이 적용됩니다</small>
       </div>
       <button class="send-btn" onclick="downloadCounselExcel()" style="background:#059669;">📊 면담일지 엑셀로 내려받기</button>
       <div id="cnDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="docCard-ck">
       <div class="card-title">
         ✅ 월별 체크리스트
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
@@ -1734,28 +1750,13 @@
 이 확인서가 <b>그 달 서류 전체의 최종 확인</b> 역할을 합니다. 출력물에 그 달 작성된 서류 현황이 자동으로 찍히고,<br>
         기업이 자필 서명한 사진을 올리면 <b>한 장으로 월 증빙이 완성</b>됩니다.<br>
         <small style="opacity:0.9;">항목은 <b>앱에서 실제로 한 일</b>만 확인합니다 — 고용24 조회·비용 신청처럼 검증할 수 없는 것은 넣지 않습니다.<br>
-        아래 <b>작성 월·기업</b> 선택 적용 · '아니오' 항목이 있으면 붉게 표시됩니다.</small>
-      </div>
-            <!-- 서류 카드마다 같은 월·기업 선택을 둔다.
-           예전에는 맨 위 의견서 카드에만 있어서, 아래로 스크롤해 내려오면
-           지금 어느 달을 보고 있는지 알 수 없었다 (위로 올라갔다 와야 했다). -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">작성 월</label>
-          <select class="form-input doc-period" onchange="syncDocFilter(this)"></select>
-        </div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">기업</label>
-          <select class="form-input doc-company" onchange="syncDocFilter(this)">
-            <option value="">전체 기업</option>
-          </select>
-        </div>
+        맨 위 <b>작성 월·기업</b> 선택이 적용됩니다 · '아니오' 항목이 있으면 붉게 표시됩니다.</small>
       </div>
       <button class="send-btn" onclick="downloadChecklistExcel()" style="background:#059669;">📊 체크리스트 엑셀로 내려받기</button>
       <div id="ckDocList" style="margin-top:14px;"><div class="empty-history">불러오는 중...</div></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="docCard-as">
       <div class="card-title">
         📄 내부평가지
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
@@ -1766,22 +1767,7 @@
         등록할 때 비워뒀어도 아래 목록에서 넣을 수 있습니다.<br>
         <b>학습근로자마다 평가지가 다르면</b> 한 파일로 합쳐 올리거나, 파일 이름에 이름을 적어 여러 개 올리시면 됩니다.
         <small style="opacity:0.9;">(평가지는 의견서·면담일지와 달리 <b>훈련과정 단위</b>로 주고받습니다.)</small><br>
-        <small style="opacity:0.9;">아래 <b>작성 월·기업</b> 선택이 함께 적용됩니다 · 파일 1개 20MB 이하</small>
-      </div>
-            <!-- 서류 카드마다 같은 월·기업 선택을 둔다.
-           예전에는 맨 위 의견서 카드에만 있어서, 아래로 스크롤해 내려오면
-           지금 어느 달을 보고 있는지 알 수 없었다 (위로 올라갔다 와야 했다). -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">작성 월</label>
-          <select class="form-input doc-period" onchange="syncDocFilter(this)"></select>
-        </div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">기업</label>
-          <select class="form-input doc-company" onchange="syncDocFilter(this)">
-            <option value="">전체 기업</option>
-          </select>
-        </div>
+        <small style="opacity:0.9;">맨 위 <b>작성 월·기업</b> 선택이 함께 적용됩니다 · 파일 1개 20MB 이하</small>
       </div>
       <div class="form-group">
         <label class="form-label">평가지를 올릴 훈련과정</label>
@@ -4682,7 +4668,39 @@
     return out.sort((a, b) => (a.when || '').localeCompare(b.when || ''));
   }
 
+  // ══════ 서류 종류 고르기 ══════
+  // 의견서·면담일지·확인서·내부평가지를 세로로 쌓지 않고 한 번에 하나만 보여준다.
+  // 네 장을 다 쌓으면 화면이 너무 길어져 늘 접어두고 쓰게 됐다.
+  const DOC_CARDS = { op: 'docCard-op', cn: 'docCard-cn', ck: 'docCard-ck', as: 'docCard-as' };
+  let docKind = 'op';
+  function switchDocKind(kind) {
+    if (!DOC_CARDS[kind]) kind = 'op';
+    docKind = kind;
+    try { localStorage.setItem('adminDocKind', kind); } catch(_) {}
+    Object.entries(DOC_CARDS).forEach(([k, id]) => {
+      const c = document.getElementById(id); if (!c) return;
+      c.style.display = (k === kind) ? '' : 'none';
+      // 예전에 접어둔 상태가 남아 있으면 골라도 빈 카드만 보인다 → 펴준다
+      if (k === kind) c.classList.remove('collapsed');
+    });
+    document.querySelectorAll('#docKindTabs .doc-kind')
+      .forEach(b => b.classList.toggle('active', b.dataset.kind === kind));
+  }
+  // 탭 이름 옆 숫자 = 그 종류의 '센터 확인 대기' 건수 (⏳ 카드와 같은 기준, 모든 달)
+  function renderDocKindTabs() {
+    const cnt = { op: 0, cn: 0, ck: 0, as: 0 };
+    pendingItems().forEach(it => { cnt[it.kind.key] = (cnt[it.kind.key] || 0) + 1; });
+    Object.keys(cnt).forEach(k => {
+      const b = document.getElementById('dkb-' + k); if (!b) return;
+      b.textContent = cnt[k];
+      b.classList.toggle('on', cnt[k] > 0);
+    });
+  }
+  // 마지막으로 보던 종류를 기억한다 (새로고침해도 같은 자리)
+  try { switchDocKind(localStorage.getItem('adminDocKind') || 'op'); } catch(_) { switchDocKind('op'); }
+
   function renderPendingDocs() {
+    renderDocKindTabs();
     const card = document.getElementById('pendingCard');
     const el = document.getElementById('pendingList');
     if (!card || !el) return;
@@ -4705,7 +4723,7 @@
             ${off ? '<b style="color:#c2410c;"> · 다른 달</b>' : ''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${off ? `<button class="mini-btn" onclick="pendingGoto('${E(it.period)}')"
+          ${off ? `<button class="mini-btn" onclick="pendingGoto('${E(it.period)}','${it.kind.key}')"
                     style="background:#fed7aa;color:#7c2d12;">📅 이 달 보기</button>` : ''}
           ${it.kind.view ? `<button class="mini-btn" onclick="${it.kind.view}('${E(it.id)}')"
                     style="background:#3F4A57;color:white;">📄 보기</button>` : ''}
@@ -4717,7 +4735,7 @@
   }
 
   // 그 서류가 속한 달로 화면을 옮긴다 (기업 필터는 풀어둔다 — 안 그러면 또 안 보일 수 있다)
-  function pendingGoto(period) {
+  function pendingGoto(period, kind) {
     const pss = document.querySelectorAll('.doc-period');
     if (!pss.length) return;
     pss.forEach(ps => {
@@ -4730,8 +4748,12 @@
       ps.value = period;
     });
     document.querySelectorAll('.doc-company').forEach(cs => { cs.value = ''; });
+    // 누른 서류 종류로 바꿔준다. 안 그러면 다른 종류를 보고 있을 때
+    // 달만 바뀌고 화면에는 아무 변화가 없어 "안 눌렸나?" 하게 된다.
+    if (kind && DOC_CARDS[kind]) switchDocKind(kind);
     renderDocsTab();
-    document.getElementById('opDocList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById((kind || 'op') + 'DocList')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // ══════ 기업 × 월 제출 현황 한눈에 보기 ══════
@@ -4859,7 +4881,9 @@
     const next = sel.value === companyId ? '' : companyId;   // 다시 누르면 전체로
     document.querySelectorAll('.doc-company').forEach(s => { s.value = next; });
     renderDocsTab();
-    document.getElementById('opDocList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 지금 보고 있는 서류 종류의 목록으로 내려간다 (종류는 바꾸지 않는다)
+    document.getElementById(docKind + 'DocList')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // 작성 월 선택지 — 앞으로 3개월 + 지난 15개월
