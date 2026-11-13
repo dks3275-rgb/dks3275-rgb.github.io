@@ -68,12 +68,35 @@
        PC에서 양옆이 비어 있는데 표만 세로로 길어지는 걸 막는다.
        좁은 화면(노트북·태블릿·휴대폰)에서는 규칙이 꺼져 지금 그대로 1단. */
     @media (min-width: 1000px) {
-      .wide-card { width: min(1620px, calc(100vw - 56px));
+      .wide-card { width: min(1320px, calc(100vw - 56px));
                    margin-left: 50%; transform: translateX(-50%); }
+      /* 표만 들어 있어 더 넓혀도 되는 카드 */
+      .wide-card.xwide { width: min(1620px, calc(100vw - 56px)); }
+      /* 카드가 넓어져도 입력칸까지 길어질 이유는 없다 */
+      .wide-card .form-input { max-width: 560px; }
     }
     /* 표를 여러 덩어리로 나눠 좌우로 늘어놓는다 (칸 수는 화면 폭에 따라 JS가 정한다) */
     .dm-grid { display: grid; gap: 14px; }
     .dm-grid > div { overflow-x: auto; min-width: 0; }
+
+    /* 카드형 목록을 좌우로 늘어놓는다.
+       JS 로 쪼개지 않고 CSS 만으로 — 칸 수는 폭에 따라 저절로 1~3단이 된다.
+       순서는 "왼쪽→오른쪽→다음 줄" 이라 가나다 순으로 읽는 흐름이 유지된다. */
+    .list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+                 gap: 10px; align-items: start; }
+    .list-grid > * { margin-bottom: 0 !important; min-width: 0; }
+    @media (max-width: 999px) { .list-grid { grid-template-columns: 1fr; } }
+
+    /* 목록 행 오른쪽의 버튼 묶음 — 좁으면 세로, 카드가 넓어지면 가로로 편다.
+       세로로 쌓인 버튼이 행 높이의 바닥값을 만들고 있어서 이게 제일 크게 줄어든다.
+       화면이 아니라 '카드 자신의 폭' 을 기준으로 하므로 2단으로 쪼개도 알아서 맞춘다. */
+    .cal-event-item { container-type: inline-size; }
+    .row-acts { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    @container (min-width: 440px) {
+      .row-acts { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; }
+      /* 삭제는 되돌릴 수 없으니 수정 바로 옆에 붙지 않게 떼어놓는다 */
+      .row-acts .delete-btn { margin-left: 10px; }
+    }
     /* 탭 이름 옆 미확인 건수 — 알림이 안 와도 놓치지 않게 */
     .tab-badge { display: none; margin-left: 6px; background: #dc2626; color: white;
                  font-size: 10.5px; font-weight: 700; min-width: 17px; height: 17px;
@@ -691,7 +714,7 @@
 <!-- 활동 로그 탭 -->
 <div class="tab-content" id="tab-logs">
   <div class="container">
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">📜 관리자 활동 로그</div>
       <p style="font-size:13px;color:#718096;margin-bottom:14px;">
         최근 90일간의 관리자 활동 기록입니다. 삭제/수정/발송 이력을 확인할 수 있어요.
@@ -880,7 +903,7 @@
     <button class="send-btn" id="noticeBtn" onclick="postNotice()">📢 공지사항 등록</button>
     <div class="result-box" id="noticeResult"></div>
   </div>
-  <div class="card">
+  <div class="card wide-card">
     <div class="card-title">📋 등록된 공지사항
       <select class="filter-select" id="noticeListFilter" onchange="loadNotices()">
         <option value="all">전체 보기</option>
@@ -950,7 +973,7 @@
     </div>
 
     <!-- ═══ 학습근로자 명단 ═══ -->
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">
         👷 학습근로자 명단
         <button class="refresh-btn" onclick="loadWorkers()">🔄 새로고침</button>
@@ -1203,7 +1226,7 @@
       <div class="result-box" id="calResult"></div>
     </div>
 
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">
         📋 등록된 일정
         <button class="refresh-btn" onclick="loadCalendarEvents()">🔄 새로고침</button>
@@ -1295,7 +1318,7 @@
       <div class="result-box" id="examResult"></div>
     </div>
 
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">
         📋 등록된 D-day 일정
         <button class="refresh-btn" onclick="loadExamSchedules()">🔄 새로고침</button>
@@ -1358,7 +1381,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">
         🏢 학습기업 관리
         <button class="refresh-btn" onclick="loadCompanies()">🔄 새로고침</button>
@@ -1432,7 +1455,7 @@
     </div>
 
     <!-- ═══ 훈련과정 ═══ -->
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">
         📘 훈련과정 관리
         <button class="refresh-btn" onclick="loadCourses()">🔄 새로고침</button>
@@ -1506,7 +1529,7 @@
     </div>
 
     <!-- ═══ 기업 계정 ═══ -->
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">
         🔑 기업 계정 발급
         <div style="display:flex;gap:8px;">
@@ -1610,7 +1633,7 @@
       <div id="pendingList"></div>
     </div>
 
-    <div class="card wide-card">
+    <div class="card wide-card xwide">
       <div class="card-title">
         📊 기업별 제출 현황
         <button class="refresh-btn" onclick="loadOpinionDocs()">🔄 새로고침</button>
@@ -1978,7 +2001,7 @@
       <div class="result-box" id="bulkExtraResult"></div>
     </div>
 
-    <div class="card">
+    <div class="card wide-card">
       <div class="card-title">📋 등록된 자료
         <div style="display:flex;gap:8px;align-items:center;">
           <select class="filter-select" id="libListFilter" onchange="loadLibrary()">
@@ -2756,7 +2779,7 @@
         if (!a.pinned && b.pinned) return 1;
         return 0;
       });
-      listEl.innerHTML = notices.map(n => {
+      listEl.innerHTML = '<div class="list-grid">' + notices.map(n => {
         const target = n.target || 'all';
         const targetLabel = target === 'company' ? '🏢 전담인력' : target === 'student' ? '🎓 재학생' : target === 'graduate' ? '🎉 졸업생' : target === 'prospect' ? '🌱 예비신입생' : target === 'teacher' ? '🧑‍🏫 교·강사' : '📣 전체';
         const targetClass = target === 'company' ? 'company' : target === 'student' ? 'student' : target === 'graduate' ? 'graduate' : target === 'prospect' ? 'prospect' : 'all';
@@ -2786,7 +2809,7 @@
             </span>
           </div>
         </div>`;
-      }).join('');
+      }).join('') + '</div>';
     } catch(e) { listEl.innerHTML = '<div class="empty-history">⚠️ 불러오기 실패: ' + e.message + '</div>'; }
   }
 
@@ -3132,6 +3155,7 @@
         return;
       }
       el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">총 ${allCompanies.length}곳</div>`
+        + '<div class="list-grid">'
         + allCompanies.map(c => `
           <div class="cal-event-item" style="border-left-color:#7c5cfa;">
             <div class="cal-event-info">
@@ -3139,11 +3163,11 @@
               <div class="cal-event-meta">${c.insuranceNo ? '사업장번호 ' + c.insuranceNo : '<span style="color:#d97706;">사업장번호 없음</span>'}${c.dept ? ' · ' + c.dept : ''}${c.contact ? ' · ' + c.contact : ''}${c.phone ? ' · ' + c.phone : ''}</div>
               ${c.field || c.address ? `<div class="cal-event-desc">${[c.field, c.address].filter(Boolean).join(' · ')}</div>` : ''}
             </div>
-            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <div class="row-acts">
               <button onclick="editCompany('${c.id}')" class="member-edit-btn">✏️ 수정</button>
               <button onclick="deleteCompany('${c.id}')" class="delete-btn">삭제</button>
             </div>
-          </div>`).join('');
+          </div>`).join('') + '</div>';
     } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
   function editCompany(id) {
@@ -3335,18 +3359,18 @@
         + Object.entries(byType).map(([t, list]) => `
           <div style="margin-bottom:14px;">
             <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:6px;">${t} · ${list.length}개</div>
-            ${list.map(c => `
+            <div class="list-grid">${list.map(c => `
               <div class="cal-event-item" style="border-left-color:#7c3aed;">
                 <div class="cal-event-info">
                   <div class="cal-event-title">${c.companyName || '기업 미연결'}${c.site ? ' — ' + c.site : ''}</div>
                   <div class="cal-event-meta">${c.courseNo || ''}${c.branch ? ' · ' + c.branch : ''}${c.manager ? ' · 담당 ' + c.manager : ''}</div>
                   <div class="cal-event-desc" style="color:${c.dept ? '#7c3aed' : '#b91c1c'};">${c.dept ? '🎓 ' + escapeHtmlSafe(c.dept) : '⚠️ 학과 미지정 — 교·강사 화면에 안 보입니다'}</div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                <div class="row-acts">
                   <button onclick="editCourse('${c.id}')" class="member-edit-btn">✏️ 수정</button>
                   <button onclick="deleteCourse('${c.id}')" class="delete-btn">삭제</button>
                 </div>
-              </div>`).join('')}
+              </div>`).join('')}</div>
           </div>`).join('');
     } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
@@ -3605,6 +3629,7 @@
         return;
       }
       el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#4a5568;margin-bottom:10px;">총 ${allCompanyAccounts.length}개 계정</div>`
+        + '<div class="list-grid">'
         + allCompanyAccounts.map(a => {
           const nCourses = allCourses.filter(c => c.companyId === a.companyId).length;
           const off = a.active === false;
@@ -3615,7 +3640,7 @@
                 ${a.loginOnly ? ' <span style="font-size:11px;color:#92400e;">· 센터 발급 아이디</span>' : ''}</div>
               <div class="cal-event-desc" style="color:#059669;">🔓 훈련과정 ${nCourses}개 관리</div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <div class="row-acts">
               ${a.loginOnly
                 ? `<button onclick="explainPwReissue('${a.uid}')" class="member-edit-btn" style="opacity:0.75;">🔑 비번 분실 시</button>`
                 : `<button onclick="resendCompanyPw('${a.uid}')" class="member-edit-btn">🔑 비번 재설정</button>
@@ -3624,7 +3649,7 @@
               <button onclick="deleteCompanyAccount('${a.uid}')" class="delete-btn">삭제</button>
             </div>
           </div>`;
-        }).join('');
+        }).join('') + '</div>';
     } catch(e) { if (el) el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
   // ══════ 비밀번호 분실 — 재발급 절차 ══════
@@ -3910,7 +3935,7 @@
         + Object.entries(byDept).map(([d, list]) => `
           <div style="margin-bottom:14px;">
             <div style="font-size:12px;font-weight:700;color:#3F4A57;margin-bottom:6px;">${d} · ${list.length}명</div>
-            ${list.map(w => `
+            <div class="list-grid">${list.map(w => `
               <div class="cal-event-item" style="border-left-color:${w.dropout ? '#cbd5e0' : '#3F4A57'};${w.dropout ? 'opacity:0.65;' : ''}">
                 <div class="cal-event-info">
                   <div class="cal-event-title">${w.name}${w.dropout ? ' <span style="font-size:11px;color:#991b1b;font-weight:700;">· 중도탈락</span>' : ''}</div>
@@ -3919,13 +3944,13 @@
                       return c ? `<div class="cal-event-desc" style="color:#7c3aed;">📘 ${c.type || ''}${c.site ? ' · ' + c.site : ''}</div>`
                         : (w.dropout ? '' : `<div class="cal-event-desc" style="color:#b91c1c;">⚠️ 훈련과정 미연결 — 기업 화면에 서류가 뜨지 않습니다</div>`); })()}
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                <div class="row-acts">
                   <button onclick="editWorker('${w.id}')" class="member-edit-btn">✏️ 수정</button>
                   <button onclick="toggleWorkerDropout('${w.id}')" class="member-edit-btn"
                     style="${w.dropout ? '' : 'background:#fff7ed;border-color:#fdba74;color:#9a3412;'}">${w.dropout ? '↩️ 복귀' : '⚠️ 중도탈락'}</button>
                   <button onclick="deleteWorker('${w.id}')" class="delete-btn">삭제</button>
                 </div>
-              </div>`).join('')}
+              </div>`).join('')}</div>
           </div>`).join('');
     } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
@@ -6134,7 +6159,7 @@
     const actionEmoji = { delete:'🗑️', auto_delete:'⏰', restore:'♻️', update:'✏️', create:'➕', send:'📤' };
     const actionColor = { delete:'#dc3545', auto_delete:'#fd7e14', restore:'#28a745', update:'#ffc107', create:'#17a2b8', send:'#7c3aed' };
     const targetLabel = { consulting:'상담', notice:'공지', calendar:'캘린더', library:'자료', member:'가입자', survey:'만족도', notification:'알림' };
-    document.getElementById('logsList').innerHTML = pageItems.map(log => {
+    document.getElementById('logsList').innerHTML = '<div class="list-grid">' + pageItems.map(log => {
       const time = log.timestamp ? new Date(log.timestamp).toLocaleString('ko-KR') : '-';
       const emoji = actionEmoji[log.action] || '📝';
       const color = actionColor[log.action] || '#6c757d';
@@ -6145,7 +6170,7 @@
         </div>
         <div style="font-size:13px;color:#1a2a3a;">${(log.detail || '-').replace(/</g, '&lt;')}</div>
       </div>`;
-    }).join('') + paginationHtml;
+    }).join('') + '</div>' + paginationHtml;   // 쪽 넘김 막대는 그리드 밖에 둔다
   }
 
   // (관리자 권한 상태 카드는 🔔 알림 탭의 '관리자 알림 받기'로 통합됨)
@@ -6701,7 +6726,7 @@
       const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       if (events.length === 0) { el.innerHTML = '<div class="empty-history">등록된 일정이 없어요</div>'; return; }
 
-      el.innerHTML = events.map(e => {
+      el.innerHTML = '<div class="list-grid">' + events.map(e => {
         const sd = e.startDate || e.date;
         const ed = e.endDate || e.date;
         const isRange = sd !== ed;
@@ -6713,12 +6738,12 @@
             <div class="cal-event-meta">${dateTxt} · 댓글 ${e.commentCount||0}</div>
             ${e.description ? `<div class="cal-event-desc">${e.description.substring(0,60)}${e.description.length>60?'...':''}</div>` : ''}
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <div class="row-acts">
             <button onclick="openCalEdit('${e.id}')" class="member-edit-btn">✏️ 수정</button>
             <button onclick="deleteCalEvent('${e.id}')" class="delete-btn">삭제</button>
           </div>
         </div>`;
-      }).join('');
+      }).join('') + '</div>';
     } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
 
@@ -6866,7 +6891,7 @@
       if (items.length === 0) { el.innerHTML = '<div class="empty-history">등록된 시험 일정이 없어요</div>'; return; }
 
       const todayStr = localToday();
-      el.innerHTML = items.map(e => {
+      el.innerHTML = '<div class="list-grid">' + items.map(e => {
         const color = EXAM_TYPE_COLORS[e.type] || '#5B6A7D';
         const isRange = e.endDate && e.endDate !== e.startDate;
         const dateTxt = isRange ? `${e.startDate} ~ ${e.endDate}` : `${e.startDate}${e.time ? ' · ' + e.time : ''}`;
@@ -6879,12 +6904,12 @@
             <div class="cal-event-meta">${dateTxt}${e.location ? ' · ' + e.location : ''}${applyTxt}</div>
             ${e.description ? `<div class="cal-event-desc">${e.description.substring(0,60)}${e.description.length>60?'...':''}</div>` : ''}
           </div>
-          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <div class="row-acts">
             <button onclick="openExamEdit('${e.id}')" class="member-edit-btn">✏️ 수정</button>
             <button onclick="deleteExamSchedule('${e.id}')" class="delete-btn">삭제</button>
           </div>
         </div>`;
-      }).join('');
+      }).join('') + '</div>';
     } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }
 
@@ -7505,7 +7530,7 @@
 
       if (items.length === 0) { listEl.innerHTML = '<div class="empty-history">등록된 자료가 없어요</div>'; return; }
 
-      listEl.innerHTML = items.map(item => {
+      listEl.innerHTML = '<div class="list-grid">' + items.map(item => {
         const targetLabel = item.target === 'company' ? '🏢 전담인력' : item.target === 'student' ? '🎓 재학생' : item.target === 'graduate' ? '🎉 졸업생' : item.target === 'prospect' ? '🌱 예비신입생' : item.target === 'teacher' ? '🧑‍🏫 교·강사' : item.target === 'all' ? '🛡️ 산업안전보건' : '📣 전체';
         const targetClass = item.target === 'company' ? 'company' : item.target === 'student' ? 'student' : item.target === 'graduate' ? 'graduate' : item.target === 'prospect' ? 'prospect' : 'all';
         const fileIcon = item.fileType?.includes('pdf') ? '📄' : item.fileType?.startsWith('image') ? '🖼️' : '📁';
@@ -7523,7 +7548,7 @@
             <button class="delete-btn" onclick="deleteLibItem('${item.id}')">삭제</button>
           </div>
         </div>`;
-      }).join('');
+      }).join('') + '</div>';
     } catch(e) { listEl.innerHTML = '<div class="empty-history">⚠️ 불러오기 실패: ' + e.message + '</div>'; }
   }
 
