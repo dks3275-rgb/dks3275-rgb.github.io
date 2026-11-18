@@ -1,5 +1,13 @@
 name: Daily Firestore Backup
 
+# ⚠️ 2026-11 점검에서 고친 것
+#   1) 백업 대상에 서류·기업·학습근로자·훈련운영 컬렉션이 빠져 있었다 → backup.js 에서 추가
+#   2) 백업 JSON을 매일 저장소에 커밋하면 .git 이 계속 불어난다.
+#      (한 번 커밋한 파일은 지워도 히스토리에 영원히 남는다 — 지금 .git 이 365MB 인 이유)
+#      → 매일 것은 Actions 아티팩트(90일 보관)로 두고,
+#        저장소에는 '매월 1일' 것과 작은 요약 파일만 커밋한다.
+#   3) 비밀값(FIREBASE_SA_JSON)이 없으면 왜 실패했는지 바로 보이게 했다.
+
 on:
   schedule:
     # 매일 한국시간 새벽 3시 = UTC 18:00
@@ -15,6 +23,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: 비밀값 확인
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SA_JSON" ]; then
+            echo "::error::FIREBASE_SA_JSON 비밀값이 없습니다."
+            echo "GitHub 저장소 → Settings → Secrets and variables → Actions →"
+            echo "New repository secret → 이름: FIREBASE_SA_JSON"
+            echo "값: Firebase 콘솔 → 프로젝트 설정 → 서비스 계정 → 새 비공개 키 생성 으로 받은 JSON 전체"
+            exit 1
+          fi
+          echo "✅ 비밀값 있음"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,29 +59,48 @@ jobs:
         if: always()
         run: rm -rf .secrets
 
-      - name: Commit backup
+      # 매일 받는 백업 — 저장소를 건드리지 않고 90일간 보관한다.
+      # 복구가 필요하면 Actions → 해당 실행 → Artifacts 에서 내려받으면 된다.
+      - name: 백업 파일 보관 (아티팩트, 90일)
+        uses: actions/upload-artifact@v4
+        with:
+          name: firestore-backup-${{ github.run_id }}
+          path: backups/backup-*.json
+          retention-days: 90
+
+      # 저장소에는 '요약'만 매일, '전체 백업'은 매월 1일만 커밋한다.
+      - name: 저장소에 커밋
         run: |
+          DAY=$(TZ=Asia/Seoul date +'%d')
+          DATE=$(TZ=Asia/Seoul date +'%Y-%m-%d')
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # backups 폴더에 변경사항이 있을 때만 커밋
-          git add backups/
+
+          # 요약 파일은 작아서 매일 커밋해도 괜찮다 (백업이 돌고 있는지 확인용)
+          git add backups/latest.json
+
+          if [ "$DAY" = "01" ]; then
+            echo "매월 1일 — 전체 백업도 함께 보관합니다"
+            git add "backups/backup-$DATE.json"
+            # 400일보다 오래된 월별 백업은 정리
+            find backups -name 'backup-*.json' -mtime +400 -delete 2>/dev/null || true
+            git add -A backups/
+          fi
+
           if git diff --staged --quiet; then
-            echo "No backup changes"
+            echo "변경 없음"
           else
-            DATE=$(date +'%Y-%m-%d')
             git commit -m "🗄️ Auto backup $DATE"
             git push
           fi
 
-      - name: Cleanup old backups (30+ days)
+      - name: 결과 요약
+        if: always()
         run: |
-          find backups -name "*.json" -mtime +30 -delete 2>/dev/null || true
-          if [ -d backups ] && [ "$(find backups -name '*.json' 2>/dev/null | wc -l)" != "$(find backups -name '*.json' -mtime -30 2>/dev/null | wc -l)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add backups/
-            if ! git diff --staged --quiet; then
-              git commit -m "🧹 Cleanup old backups (30+ days)"
-              git push
-            fi
+          if [ -f backups/latest.json ]; then
+            echo "### 🗄️ 백업 결과" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat backups/latest.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
           fi

@@ -15,15 +15,45 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // 백업할 컬렉션 목록
+//
+// ⚠️ 새 기능을 만들어 컬렉션이 생기면 여기에 꼭 추가할 것.
+//    2026-11 점검에서 올해 만든 서류 관련 컬렉션이 통째로 빠져 있는 걸 발견했다.
+//    기업현장교사 전자서명이 들어간 서류들이 백업되지 않고 있었다.
+//    (firestore.rules 의 match 블록 목록과 맞춰보면 빠진 게 있는지 알 수 있다)
 const COLLECTIONS = [
+  // ── 앱 공통 ──
   'users',
   'notices',
   'consulting',
   'library',
   'calendar_events',
+  'exam_schedules',
   'surveyConfig',
   'audit_logs',
-  'scheduled_notifications'
+  'scheduled_notifications',
+  'applications',
+  'feedback',
+  'jobs',
+  'notifications',
+  'app_config',
+  'admins',
+  // ── 학습기업 · 훈련과정 ──
+  'companies',
+  'companyAccounts',
+  'courses',
+  'workers',
+  'dropouts',
+  'firmNotifications',
+  // ── 서류 (전자서명 포함 — 제일 중요) ──
+  'teacherOpinions',
+  'ojtCounseling',
+  'checklists',
+  'assessments',
+  'counseling',
+  // ── 훈련운영 (지금은 꺼둔 기능) ──
+  'trainingUnits',
+  'trainingMonths',
+  'trainingLogs'
 ];
 
 async function backupCollection(name) {
@@ -75,10 +105,14 @@ async function main() {
   fs.writeFileSync(filename, JSON.stringify(backup, null, 2), 'utf8');
 
   // 요약 파일 (최신 백업 정보)
+  // 이 파일만 매일 저장소에 커밋된다 — 백업이 돌고 있는지 여기서 확인할 수 있다.
+  const sizeKB = Number((fs.statSync(filename).size / 1024).toFixed(1));
   const summary = {
     lastBackup: new Date().toISOString(),
     totalDocs,
+    sizeKB,
     file: `backup-${today}.json`,
+    note: '전체 백업은 Actions → 해당 실행 → Artifacts 에서 90일간 받을 수 있습니다. 매월 1일 것은 backups/ 폴더에 남습니다.',
     collections: Object.keys(backup.collections).map(k => ({
       name: k,
       count: backup.collections[k]._error ? 'error' : Object.keys(backup.collections[k]).length

@@ -2155,7 +2155,13 @@
   runAfterAuth(() => {
     setTimeout(() => { if (document.getElementById('tab-stats')?.classList.contains('active')) loadStats(); }, 500);
     setTimeout(refreshTabBadges, 900);
-    setInterval(refreshTabBadges, 3 * 60 * 1000);   // 3분마다 다시 센다
+    // 10분마다 다시 센다. 배지 숫자가 3분 만에 바뀔 일은 거의 없고,
+    // 자동으로 도는 것이라 주기를 줄이면 그만큼 읽기 비용이 그대로 줄어든다.
+    setInterval(refreshTabBadges, 10 * 60 * 1000);
+    // 다른 탭 보다가 돌아왔을 때는 기다리지 말고 바로 한 번 센다
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshTabBadges();
+    });
   });
 
   // 알림을 눌러 admin.html#consulting 같은 주소로 들어오면 해당 탭 자동 열기
@@ -9200,39 +9206,58 @@
     else { el.textContent = ''; el.classList.remove('on'); }
   }
 
+  // ══════ 옆 메뉴 빨간 숫자 (배지) ══════
+  //
+  // ⚠️ 2026-11 점검에서 고친 것 — 비용 문제였다.
+  //    예전에는 숫자 하나 띄우려고 6개 컬렉션을 통째로 읽고 JS에서 걸러냈다.
+  //    Firestore는 '읽은 문서 1건당' 과금한다. 조건 없이 컬렉션을 읽으면 그 안의 전부가 센다.
+  //    3분마다 돌았으니 관리자 창을 8시간 열어두면 하루 160번 × 전체 문서 수.
+  //    서류가 쌓일수록 늘기만 해서, 6개 합계가 313건을 넘으면 무료 한도(하루 5만)를 넘겼다.
+  //
+  //    → 조건을 쿼리에 넣어 '대기 중인 것'만 읽는다. 보통 0~20건이면 끝난다.
+  //      전부 단일 필드 조건이라 색인(index)을 따로 만들 필요가 없다.
+  //
+  // ⚠️ 상태값을 바꾸면 여기도 같이 고쳐야 한다.
+  //    의견서·면담일지는 서명하면 'signed', 체크리스트·평가지는 'submitted'.
+  //    센터가 확인 처리하면 'confirmed'가 되어 숫자에서 빠진다.
+  const BADGE_DOC_KINDS = [
+    ['teacherOpinions', 'signed'],
+    ['ojtCounseling',   'signed'],
+    ['checklists',      'submitted'],
+    ['assessments',     'submitted']
+  ];
+
+  let _badgeLastAt = 0;
   async function refreshTabBadges() {
+    // 다른 탭을 보고 있거나 창을 내려놨으면 쉰다 (안 보이는 숫자를 갱신할 이유가 없다)
+    if (document.visibilityState !== 'visible') return;
+    // 탭을 자주 왔다 갔다 해도 1분에 한 번만 센다
+    if (Date.now() - _badgeLastAt < 60 * 1000) return;
+    _badgeLastAt = Date.now();
     try {
       const db = await wkDb();
-      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-      const [cSnap, aSnap] = await Promise.all([
-        getDocs(collection(db, 'consulting')),
-        getDocs(collection(db, 'applications'))
-      ]);
-      const waiting = cSnap.docs.map(d => d.data())
-        .filter(c => !c.deleted && c.status === '대기중').length;
-      setBadge('badgeConsulting', waiting);
+      const { collection, getDocs, query, where } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
       const seen = Number(localStorage.getItem(APPLY_SEEN_KEY) || 0);
-      const fresh = aSnap.docs.map(d => d.data()).filter(a => {
-        const t = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        return t > seen;
-      }).length;
-      setBadge('badgeApply', fresh);
-
-      // 서류 = 기업이 제출했지만 센터가 아직 확인하지 않은 건수
-      //   의견서·면담일지는 서명하면 'signed', 체크리스트·평가지는 'submitted'가 된다.
-      //   센터가 확인 처리하면 'confirmed'로 바뀌어 숫자에서 빠진다.
-      const [opS, cnS, ckS, asS] = await Promise.all([
-        getDocs(collection(db, 'teacherOpinions')),
-        getDocs(collection(db, 'ojtCounseling')),
-        getDocs(collection(db, 'checklists')),
-        getDocs(collection(db, 'assessments'))
+      const [cSnap, aSnap, ...docSnaps] = await Promise.all([
+        // 상담 — 대기중인 것만 (삭제된 건 수가 적어 여기서 마저 거른다)
+        getDocs(query(collection(db, 'consulting'), where('status', '==', '대기중'))),
+        // 신청 — 마지막으로 확인한 시각 이후 것만 (createdAt 은 Date.now() 숫자)
+        getDocs(query(collection(db, 'applications'), where('createdAt', '>', seen))),
+        // 서류 4종 — 센터 확인 대기 중인 것만
+        ...BADGE_DOC_KINDS.map(([col, st]) =>
+          getDocs(query(collection(db, col), where('status', '==', st))))
       ]);
-      const pending = [opS, cnS, ckS, asS].reduce((sum, snap) =>
-        sum + snap.docs.map(d => d.data())
-          .filter(x => x.status === 'signed' || x.status === 'submitted').length, 0);
-      setBadge('badgeDocs', pending);
-    } catch(e) { /* 배지는 보조 장치라 실패해도 넘어간다 */ }
+
+      setBadge('badgeConsulting', cSnap.docs.filter(d => !d.data().deleted).length);
+      setBadge('badgeApply', aSnap.size);
+      setBadge('badgeDocs', docSnaps.reduce((sum, s) => sum + s.size, 0));
+    } catch(e) {
+      // 배지는 보조 장치라 실패해도 넘어간다.
+      // 다만 왜 안 뜨는지 알 수 없으면 곤란하니 콘솔에는 남긴다.
+      console.warn('[배지] 갱신 실패:', e && e.message);
+    }
   }
 
   // 신청 탭을 열면 그 시점을 '확인함'으로 기록한다
