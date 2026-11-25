@@ -1,8 +1,8 @@
 {
-  "lastBackup": "2026-11-24T03:45:55.733Z",
-  "totalDocs": 948,
-  "sizeKB": 1832.6,
-  "file": "backup-2026-11-24.json",
+  "lastBackup": "2026-11-25T01:52:57.764Z",
+  "totalDocs": 950,
+  "sizeKB": 1834.5,
+  "file": "backup-2026-11-25.json",
   "note": "전체 백업은 Actions → 해당 실행 → Artifacts 에서 90일간 받을 수 있습니다. 매월 1일 것은 backups/ 폴더에 남습니다.",
   "collections": [
     {
@@ -11,11 +11,11 @@
     },
     {
       "name": "notices",
-      "count": 6
+      "count": 7
     },
     {
       "name": "consulting",
-      "count": 11
+      "count": 12
     },
     {
       "name": "library",
