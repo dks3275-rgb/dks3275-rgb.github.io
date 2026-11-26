@@ -126,7 +126,10 @@
     .card.collapsed > *:not(.card-title) { display: none !important; }
     .fold-all-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35); color: white;
                     font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
-                    font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-weight: 600; margin-left: auto; }
+                    font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-weight: 600; white-space: nowrap; }
+    /* 버튼이 2개라 첫 번째만 오른쪽으로 밀고, 둘은 붙여 둔다
+       (둘 다 margin-left:auto 면 남는 공간이 반씩 나뉘어 사이가 벌어진다) */
+    .header .fold-all-btn:first-of-type { margin-left: auto; }
     .card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--light); display: flex; justify-content: space-between; align-items: center; }
     .group-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
     .group-btn { padding: 14px 8px; border: 2px solid var(--border); border-radius: 12px; background: white; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #4a5568; text-align: center; }
@@ -683,6 +686,7 @@
 <div class="header">
   <img class="au-logo" src="assets/logo-au-white.png" alt="안산대학교" width="613" height="128">
   <h1>일학습병행 관리자</h1>
+  <button class="fold-all-btn" onclick="refreshCurrentTab()" title="지금 보는 탭을 최신 내용으로 다시 불러옵니다">🔄 최신 내용</button>
   <button class="fold-all-btn" id="foldAllBtn" onclick="toggleFoldAll()">⇅ 전체 접기</button>
 </div>
 <div class="tab-nav">
@@ -2200,6 +2204,44 @@
   // 주소 해시(#tab)를 같이 바꿔, 휴대폰 뒤로가기로 이전 탭으로 돌아가게 한다.
   // hashchange → openTabFromHash → switchTab 순환을 막기 위해 표시만 해둔다.
   let _tabFromHash = false;
+
+  // ── 탭 다시 열 때 또 불러오지 않기 ──
+  //  탭을 누를 때마다 목록을 통째로 다시 읽어오면, 왔다 갔다 하는 것만으로
+  //  Firestore 읽기가 빠르게 쌓인다(한 바퀴 약 1,600건).
+  //  그래서 "방금 읽었으면 건너뛴다". 기준은 3분.
+  //
+  //  ⚠️ 여기서 막는 건 **탭을 누를 때**뿐이다.
+  //     저장·삭제한 뒤 코드가 직접 부르는 loadXxx() 는 그대로 실행되므로
+  //     고친 내용은 언제나 바로 화면에 반영된다.
+  //     (직접 부른 경우 시각을 갱신하지 않아, 다음 탭 전환 때 한 번 더 읽는다.
+  //      낡은 내용을 보여주느니 한 번 더 읽는 쪽이 안전하다)
+  const TAB_CACHE_MS = 3 * 60 * 1000;
+  let _tabLoadedAt = {};
+  // 방금 읽었으면 true (= 건너뛴다)
+  function tabFresh(key) {
+    const t = _tabLoadedAt[key];
+    return t && (Date.now() - t < TAB_CACHE_MS);
+  }
+  // 탭 전환용 로더 실행기. 신선하면 건너뛰고, 아니면 돌리고 시각을 찍는다.
+  function tabLoad(key, fn) {
+    if (tabFresh(key)) return;
+    _tabLoadedAt[key] = Date.now();
+    // 불러오다 실패하면 기억을 지운다.
+    // 안 그러면 "불러오기 실패" 화면이 3분 동안 그대로 굳는다.
+    try {
+      const r = fn();
+      if (r && typeof r.catch === 'function') r.catch(() => { delete _tabLoadedAt[key]; });
+    } catch (e) { delete _tabLoadedAt[key]; throw e; }
+  }
+  // 🔄 새로고침 버튼 — 기억한 걸 다 버리고 지금 탭을 다시 읽는다
+  function refreshCurrentTab() {
+    _tabLoadedAt = {};
+    try { _allUsersCache = null; } catch (_) {}
+    const cur = document.querySelector('.tab-content.active')?.id?.replace('tab-', '');
+    if (cur) switchTab(cur, document.querySelector('.tab-nav button.active'));
+  }
+  window.refreshCurrentTab = refreshCurrentTab;
+
   function switchTab(tab, btn) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
@@ -2208,20 +2250,20 @@
     if (!_tabFromHash && location.hash.replace('#', '') !== tab) {
       try { location.hash = tab; } catch (e) {}
     }
-    if (tab === 'stats') loadStats();
-    if (tab === 'push') loadAdminNotifySetup();
-    if (tab === 'notice') loadNotices();
-    if (tab === 'scheduled') loadScheduledItems();
-    if (tab === 'survey') loadSurveyStatus();
-    if (tab === 'consulting') { loadConsulting(); loadFeedback(); setTimeout(refreshTabBadges, 1200); }
-    if (tab === 'company') { loadCompanies(); loadCourses(); loadCompanyAccounts(); loadFirmNotify(); if (!document.getElementById('ca-pw').value) genCompanyPw(); }
-    if (tab === 'docs') { loadOpinionDocs(); loadGuideTexts(); setTimeout(refreshTabBadges, 1500); }
-    if (tab === 'training') loadTraining();
-    if (tab === 'calendar') initCalendarTab();
-    if (tab === 'members') loadMembers();
-    if (tab === 'apply') { loadApplications(); markApplySeen(); }
-    if (tab === 'library') loadLibrary();
-    if (tab === 'logs') loadLogs();
+    if (tab === 'stats') tabLoad('stats', loadStats);
+    if (tab === 'push') tabLoad('push', loadAdminNotifySetup);
+    if (tab === 'notice') tabLoad('notice', loadNotices);
+    if (tab === 'scheduled') tabLoad('scheduled', loadScheduledItems);
+    if (tab === 'survey') tabLoad('survey', loadSurveyStatus);
+    if (tab === 'consulting') { tabLoad('consulting', () => { loadConsulting(); loadFeedback(); }); setTimeout(refreshTabBadges, 1200); }
+    if (tab === 'company') { tabLoad('company', () => { loadCompanies(); loadCourses(); loadCompanyAccounts(); loadFirmNotify(); }); if (!document.getElementById('ca-pw').value) genCompanyPw(); }
+    if (tab === 'docs') { tabLoad('docs', () => { loadOpinionDocs(); loadGuideTexts(); }); setTimeout(refreshTabBadges, 1500); }
+    if (tab === 'training') tabLoad('training', loadTraining);
+    if (tab === 'calendar') tabLoad('calendar', initCalendarTab);
+    if (tab === 'members') tabLoad('members', loadMembers);
+    if (tab === 'apply') { tabLoad('apply', loadApplications); markApplySeen(); }
+    if (tab === 'library') tabLoad('library', loadLibrary);
+    if (tab === 'logs') tabLoad('logs', loadLogs);
   }
   // 관리자 인증 가드 — 실제 Firebase 로그인(request.auth) 확인
   // ⚠️ sessionStorage 토큰이 아니라 Firebase Auth의 실제 로그인 상태를 기준으로 판정
