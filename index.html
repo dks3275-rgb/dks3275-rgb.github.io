@@ -59,13 +59,18 @@
       --cat-graduate: #FF9F1C;
       --cat-prospect: #00C896;
       --cat-company: #7C5CFA;
-      /* radius / shadow */
-      --tk-radius-sm: 10px;
-      --tk-radius: 14px;
-      --tk-radius-lg: 20px;
-      --tk-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-      --tk-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      --tk-shadow-lg: 0 8px 24px rgba(33,130,246,0.12);
+      /* 학교 공식 색 — AU_signatures.ai 원본에서 뽑은 값 */
+      --au-blue: #1A6FB3;
+      --ink-navy: #1F2D4A;
+      /* radius / shadow
+         ⚠️ 20px + 그림자 조합이 '말랑한 장난감' 느낌의 큰 원인이었다.
+            반경을 줄이고 그림자 대신 얇은 테두리로 면을 구분한다. */
+      --tk-radius-sm: 8px;
+      --tk-radius: 10px;
+      --tk-radius-lg: 12px;
+      --tk-shadow-sm: none;
+      --tk-shadow: none;
+      --tk-shadow-lg: 0 6px 20px rgba(31,45,74,0.10);
       /* 레거시 호환 — 기존 코드는 그대로 사용 가능 */
       --navy: var(--tk-primary-dark); --blue: var(--tk-primary); --accent: var(--tk-warning);
       --bg: var(--tk-bg); --white: var(--tk-surface); --text: var(--tk-text);
@@ -109,18 +114,22 @@
       to { transform: translateY(0); opacity: 1; }
     }
 
-    .top-header { background: #E8F2FF; padding: 36px 24px 40px; position: relative; overflow: hidden; }
-    .top-header::before { content: ''; position: absolute; top: -60px; right: -50px; width: 200px; height: 200px; border-radius: 50%; background: rgba(49,130,246,0.10); }
-    .top-header::after { content: ''; position: absolute; bottom: -50px; left: -40px; width: 140px; height: 140px; border-radius: 50%; background: rgba(124,92,250,0.08); }
-    .top-header-inner { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; }
-    .logo-badge { display: inline-block; background: var(--tk-surface); color: var(--tk-primary); font-size: 11px; font-weight: 700; letter-spacing: -0.2px; padding: 5px 12px; border-radius: 100px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(49,130,246,0.08); }
-    .top-header h1 { color: var(--tk-text); font-size: 24px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; letter-spacing: -0.6px; }
-    .top-header h1 span { color: var(--tk-primary); }
-    .top-header p { color: var(--tk-text-sub); font-size: 13px; letter-spacing: -0.2px; }
-    .user-float { max-width: 480px; margin: -22px auto 0; padding: 0 16px; position: relative; z-index: 2; }
-    .user-info-card { background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 16px 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 16px rgba(33,82,166,0.08); border: 1px solid var(--tk-border); }
-    .user-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--tk-primary); color: white; font-weight: 700; font-size: 17px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -0.4px; }
-    .user-name { font-size: 16px; font-weight: 700; color: var(--tk-text); letter-spacing: -0.3px; }
+    /* ══════ 헤더 — 학교 공식 시그니처 + 네이비 ══════
+       예전에는 연한 하늘색 배경에 장식용 원 두 개가 떠 있었다.
+       원을 빼고 네이비 단색으로 바꾸니 아래 흰 카드들이 더 선명해진다.
+       네이비(#1F2D4A)는 바탕, 학교 파랑(#1A6FB3)은 포인트로만 쓴다. */
+    .top-header { background: var(--ink-navy); padding: 22px 20px 24px; }
+    .top-header-inner { max-width: 480px; margin: 0 auto; }
+    .top-header .au-logo { height: 26px; width: auto; display: block; margin-bottom: 14px; }
+    .top-header h1 { color: #fff; font-size: 19px; font-weight: 700; line-height: 1.4; letter-spacing: -0.5px; }
+    .top-header h1 span { display: block; font-size: 14px; font-weight: 500; color: #C7D2E4; margin-top: 3px; letter-spacing: -0.3px; }
+    /* 사용자 줄 — 떠 있는 카드가 아니라 헤더에 붙는 한 줄로 */
+    .user-float { max-width: 480px; margin: 0 auto; padding: 0; position: relative; z-index: 2; }
+    /* 사용자 줄은 화면 끝까지 붙지만, 설치 배너는 카드라 좌우 여백이 필요하다 */
+    #installBanner { padding: 0 16px; }
+    .user-info-card { background: var(--tk-surface); border-radius: 0; padding: 13px 20px; display: flex; align-items: center; gap: 11px; box-shadow: none; border: 0; border-bottom: 1px solid var(--tk-border); }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: #EEF1F5; color: var(--ink-navy); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; letter-spacing: -0.4px; }
+    .user-name { font-size: 14px; font-weight: 600; color: var(--tk-text); letter-spacing: -0.3px; }
     .user-grade { font-size: 12px; color: var(--tk-text-sub); margin-top: 2px; font-weight: 500; }
     .user-category-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; margin-right: 5px; vertical-align: middle; letter-spacing: -0.2px; }
     .badge-student { background: #E8F2FF; color: var(--cat-student); }
@@ -128,23 +137,53 @@
     .badge-prospect { background: #DEFCEF; color: #007A5C; }
     .badge-company { background: #EFE9FE; color: #5A3FCE; }
     .badge-teacher { background: #E7F9F1; color: #0E8A5F; }
-    .edit-btn { margin-left: auto; background: var(--tk-bg); border: 1px solid var(--tk-border); color: var(--tk-text-sub); font-size: 12px; padding: 7px 12px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 500; transition: all 0.15s; }
-    .edit-btn:hover { background: var(--tk-surface); border-color: var(--tk-border-strong); }
+    .edit-btn { margin-left: auto; background: none; border: 0; color: var(--tk-text-sub); font-size: 12.5px; cursor: pointer; font-family: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+    .edit-btn:hover { color: var(--tk-text); }
     .container { max-width: 480px; margin: 0 auto; padding: 16px 16px 50px; }
-    .status-card { background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 18px 20px; margin-bottom: 12px; box-shadow: var(--tk-shadow); border: 1px solid var(--tk-border); display: flex; align-items: center; gap: 14px; }
-    .status-dot-wrap { width: 44px; height: 44px; border-radius: 50%; background: var(--tk-primary-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .status-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--tk-border-strong); }
-    .status-dot.active { background: var(--tk-success); box-shadow: 0 0 0 4px rgba(0,200,150,0.15); }
-    .status-info { flex: 1; }
-    .status-label { font-size: 11px; font-weight: 500; color: var(--tk-text-muted); margin-bottom: 3px; letter-spacing: -0.1px; }
-    .status-text { font-size: 16px; font-weight: 700; color: var(--tk-text); letter-spacing: -0.3px; }
-    .status-sub { font-size: 12px; color: var(--tk-text-sub); margin-top: 2px; }
-    .section-title { font-size: 13px; font-weight: 700; color: var(--tk-text); margin: 22px 0 12px; letter-spacing: -0.3px; }
+    /* 알림 상태 — 큰 카드였지만 평소엔 "정상"만 확인하면 되는 정보라 한 줄로 줄였다 */
+    .status-card { background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 11px 14px; margin-bottom: 14px; box-shadow: none; border: 1px solid var(--tk-border); display: flex; align-items: center; gap: 10px; }
+    .status-dot-wrap { width: auto; height: auto; border-radius: 0; background: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tk-border-strong); }
+    .status-dot.active { background: #1F9D6B; box-shadow: none; }
+    .status-info { flex: 1; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+    .status-label { display: none; }
+    .status-text { font-size: 13px; font-weight: 600; color: var(--tk-text); letter-spacing: -0.3px; }
+    .status-sub { font-size: 12px; color: var(--tk-text-muted); margin-top: 0; }
+    .section-title { font-size: 11.5px; font-weight: 600; color: var(--tk-text-muted); margin: 20px 0 9px; letter-spacing: 0.04em; }
+
+    /* ══════ 가장 가까운 일정 (D-day) ══════
+       예전에는 메뉴 타일 구석에 작은 주황 뱃지로 붙어 있었다.
+       학생이 제일 궁금해하는 정보라 맨 위로 올리고 숫자를 키웠다. */
+    .dday-card { display: none; background: var(--ink-navy); border-radius: var(--tk-radius-lg);
+                 padding: 15px 17px; margin-bottom: 4px; color: #fff; text-decoration: none; }
+    .dday-card.on { display: block; }
+    .dday-card .k { font-size: 11px; color: #A9B6CC; font-weight: 500; letter-spacing: 0.04em; }
+    .dday-card .t { font-size: 15px; font-weight: 600; margin-top: 5px; letter-spacing: -0.3px; }
+    .dday-card .r { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: 8px; }
+    .dday-card .d { font-size: 12.5px; color: #C7D2E4; }
+    .dday-card .num { font-size: 29px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+
+    /* 목록형 메뉴 — 자주 쓰지 않는 항목은 타일 대신 한 줄로 */
+    .menu-rows { background: var(--tk-surface); border: 1px solid var(--tk-border);
+                 border-radius: var(--tk-radius-lg); overflow: hidden; margin-bottom: 10px; }
+    .menu-row { display: flex; align-items: center; gap: 12px; padding: 14px;
+                border-bottom: 1px solid #F1F3F5; text-decoration: none; color: inherit; }
+    .menu-row:last-child { border-bottom: 0; }
+    .menu-row .label { font-size: 13.5px; font-weight: 600; letter-spacing: -0.3px; }
+    .menu-row .value { font-size: 11.5px; color: var(--tk-text-muted); margin-top: 1px; }
+    .menu-row .chev { margin-left: auto; color: #C4CAD2; font-size: 17px; }
+
+    /* 선형 아이콘 — 이모지 대신.
+       이모지는 기기마다 그림이 달라 통제가 안 되고 채도가 높아 캐주얼하게 읽힌다. */
+    .ico { width: 21px; height: 21px; flex-shrink: 0; stroke: var(--ink-navy); stroke-width: 1.6;
+           fill: none; stroke-linecap: round; stroke-linejoin: round; display: block; }
+    .menu-row .ico { width: 20px; height: 20px; }
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     .info-card { background: var(--tk-surface); border: 1px solid var(--tk-border); border-radius: var(--tk-radius-lg); padding: 18px 16px; text-align: left; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: block; }
-    .info-card:hover { border-color: var(--tk-border-strong); transform: translateY(-1px); box-shadow: var(--tk-shadow); }
-    .info-card:active { transform: translateY(0); }
+    .info-card:hover { border-color: var(--tk-border-strong); }
+    .info-card:active { background: var(--tk-surface-alt); }
     .info-card .icon { font-size: 26px; margin-bottom: 10px; display: block; }
+    .info-card .ico { margin-bottom: 11px; }
     .info-card .label { font-size: 13.5px; color: var(--tk-text); margin-bottom: 4px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.35; }
     .info-card .value { font-size: 11.5px; font-weight: 500; color: var(--tk-text-muted); }
     .info-card.full { grid-column: 1 / -1; }
@@ -257,7 +296,7 @@
     .install-btn-skip { background: transparent; color: var(--tk-text-muted); border: none; padding: 8px; font-family: inherit; font-size: 12px; cursor: pointer; }
     .install-tip { background: #FFF8E6; border: none; border-radius: 10px; padding: 11px 14px; font-size: 12px; color: #8F5C00; line-height: 1.5; margin-bottom: 14px; }
     .install-tip strong { color: #6B4500; }
-    .install-banner-btn { width: 100%; background: var(--tk-primary); color: white; border: none; border-radius: var(--tk-radius); padding: 14px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .install-banner-btn { width: 100%; background: var(--au-blue); color: white; border: none; border-radius: var(--tk-radius); padding: 14px 18px; display: flex; align-items: center; gap: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
     .install-banner-btn:hover { background: var(--tk-primary-dark); }
     .install-banner-btn:active { transform: scale(0.99); }
     .install-banner-icon { font-size: 26px; }
@@ -504,9 +543,8 @@
 <!-- 메인 UI -->
 <div class="top-header">
   <div class="top-header-inner">
-    <div class="logo-badge">AU 일학습병행</div>
-    <h1>안산대학교<br><span>일학습병행 공동훈련센터</span></h1>
-    <p>안산대학교 일학습병행 공동훈련센터 어플입니다.</p>
+    <img class="au-logo" src="assets/logo-au-white.png" alt="안산대학교 ANSAN UNIVERSITY" width="613" height="128">
+    <h1>일학습병행 공동훈련센터<span>학사일정 · 공지 · 자료를 한곳에서</span></h1>
   </div>
 </div>
 <div class="user-float">
@@ -516,12 +554,12 @@
       <div class="user-name" id="userNameDisplay"></div>
       <div class="user-grade" id="userGradeDisplay"></div>
     </div>
-    <button class="edit-btn" onclick="showModal()">✏️ 수정</button>
+    <button class="edit-btn" onclick="showModal()">정보 수정</button>
   </div>
 </div>
 <div class="user-float" id="installBanner" style="margin-top:10px;">
   <button class="install-banner-btn" onclick="checkAndShowInstallGuide(true)">
-    <span class="install-banner-icon">📱</span>
+    <svg class="ico" viewBox="0 0 24 24" style="stroke:#fff;"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
     <span class="install-banner-text">
       <strong>앱으로 설치하기</strong>
       <small>홈화면에 추가하면 더 편해요</small>
@@ -538,20 +576,57 @@
       <div class="status-sub" id="statusSub">잠시만 기다려주세요</div>
     </div>
   </div>
+  <!-- 가장 가까운 일정 — 재학생 메뉴일 때만 보인다 (JS가 .on 을 붙인다) -->
+  <a class="dday-card" id="ddayCard" href="exam-schedule.html">
+    <div class="k">가장 가까운 일정</div>
+    <div class="t" id="ddayTitle">-</div>
+    <div class="r"><div class="d" id="ddayDate"></div><div class="num" id="ddayNum"></div></div>
+  </a>
+
   <div class="section-title">메뉴</div>
-  <!-- 재학생 메뉴 -->
-  <div class="info-grid" id="menuStudent" style="display:none;">
-    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
-    <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
-    <a class="info-card examsched-card" href="exam-schedule.html"><div class="icon">🗓️</div><div class="label">다가오는 일정</div><div class="value" data-exam-sub>D-day 확인하기</div></a>
-    <a class="info-card calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학사 일정</div><div class="value">캘린더 바로가기</div></a>
-    <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">모의시험 풀기</div><div class="value">외부평가</div></a>
-    <a class="info-card full survey-card" href="survey.html"><div class="icon">📋</div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></a>
-    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
-    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
-    <div class="school-pill-wrap">
-      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
-      <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
+  <!-- 재학생 메뉴
+       ⚠️ 아이콘은 이모지 대신 인라인 SVG 를 쓴다.
+          이모지는 안드로이드·아이폰·윈도우가 각각 다르게 그려서 화면이 통제되지 않고,
+          3D 광택과 높은 채도 때문에 캐주얼하게 읽힌다.
+          외부 아이콘 라이브러리를 부르면 로딩이 하나 늘어나므로 코드에 직접 넣었다. -->
+  <div id="menuStudent" style="display:none;">
+    <div class="info-grid">
+      <a class="info-card" href="notice.html">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8.5a4 4 0 0 1 0 7"/><path d="M19 6a7.5 7.5 0 0 1 0 12"/></svg>
+        <div class="label">공지사항</div><div class="value">바로가기</div></a>
+      <a class="info-card" href="library.html">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H9a2 2 0 0 1 2 2v13a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 1 4 16V5.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H15a2 2 0 0 0-2 2v13a1.5 1.5 0 0 1 1.5-1.5h4A1.5 1.5 0 0 0 20 16V5.5Z"/></svg>
+        <div class="label">자료실</div><div class="value">바로가기</div></a>
+      <a class="info-card calendar-card" href="calendar.html">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <div class="label">학사 일정</div><div class="value">캘린더</div></a>
+      <a class="info-card exam-card" href="exam.html">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+        <div class="label">모의시험</div><div class="value">외부평가 대비</div></a>
+    </div>
+
+    <div class="section-title">참여 · 문의</div>
+    <div class="menu-rows">
+      <a class="menu-row" href="survey.html">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h4"/></svg>
+        <div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="consulting.html">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9Z"/></svg>
+        <div><div class="label">1:1 상담</div><div class="value">궁금한 점이나 어려운 점을 알려주세요</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="feedback.html">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5l2-7Z"/></svg>
+        <div><div class="label">익명 의견함</div><div class="value">이름 없이 의견·건의 보내기</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="notification-check.html">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <div><div class="label">알림 진단</div><div class="value">알림이 안 올 때</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>
+        <div><div class="label">안산대학교 홈페이지</div><div class="value">입학 안내</div></div>
+        <span class="chev">›</span></a>
     </div>
   </div>
   <!-- 교·강사 메뉴 -->
@@ -1184,9 +1259,16 @@
       if (el) el.style.display = 'none';
       else console.warn('[menu] 요소 없음:', id);
     });
+    // ⚠️ 'grid' 로 못 박지 않는다. 재학생 메뉴는 타일(info-grid)과 목록(menu-rows)을
+    //    같이 담는 바깥 상자라 block 이어야 하고, 나머지는 CSS 에서 이미 grid 다.
+    //    인라인 display 를 지워서 각자의 CSS 가 결정하게 둔다.
     const mine = document.getElementById(MENUS[category] || '');
-    if (mine) mine.style.display = 'grid';
+    if (mine) mine.style.display = '';
     else console.warn('[menu] 표시할 메뉴를 찾지 못함:', category);
+
+    // 가장 가까운 일정 카드는 재학생 화면에서만 (다른 유형은 메뉴 안 타일로 본다)
+    const dd = document.getElementById('ddayCard');
+    if (dd) dd.classList.toggle('on', category === 'student' && !!dd.dataset.filled);
   }
 
   function showToast(msg, type = 'info') {
@@ -1388,7 +1470,8 @@
 
   (async function showExamDday() {
     const cards = document.querySelectorAll('.examsched-card');
-    if (!cards.length) return;
+    const ddayCard = document.getElementById('ddayCard');
+    if (!cards.length && !ddayCard) return;
     try {
       const cfg = { apiKey:"AIzaSyD6r6R593RIfe8GCMjM3lgQgCcfiF0Rbuc", authDomain:"au-ilhaksub.firebaseapp.com", projectId:"au-ilhaksub", storageBucket:"au-ilhaksub.firebasestorage.app", messagingSenderId:"407960160823", appId:"1:407960160823:web:1e830d6b0d69e4a7b84db2" };
       const app = getApps().length ? getApps()[0] : initializeApp(cfg);
@@ -1424,6 +1507,19 @@
         const sub = card.querySelector('[data-exam-sub]');
         if (sub) sub.textContent = next.title || next.type || 'D-day 확인하기';
       });
+
+      // 재학생 화면 상단의 전용 카드도 채운다
+      if (ddayCard) {
+        const fmt = iso => { const [, m, d] = iso.split('-'); return `${+m}월 ${+d}일`; };
+        const sameDay = (next.endDate || next.startDate) === next.startDate;
+        ddayCard.querySelector('#ddayTitle').textContent = next.title || next.type || '';
+        ddayCard.querySelector('#ddayDate').textContent =
+          fmt(next.startDate) + (sameDay ? '' : ' ~ ' + fmt(next.endDate));
+        ddayCard.querySelector('#ddayNum').textContent = label;
+        ddayCard.dataset.filled = '1';
+        // 메뉴 표시가 이미 끝난 뒤에 자료가 도착할 수 있다 → 재학생이면 여기서 켠다
+        if (document.getElementById('menuStudent')?.style.display !== 'none') ddayCard.classList.add('on');
+      }
     } catch(e) { /* 실패해도 카드는 그대로 노출 */ }
   })();
 </script>
