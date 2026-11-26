@@ -1236,6 +1236,43 @@
       </div>
       <button class="send-btn" onclick="saveCalendarEvent()">📅 일정 등록</button>
       <div class="result-box" id="calResult"></div>
+
+      <!-- ══════ 엑셀에서 한 번에 붙여넣기 ══════
+           학사일정처럼 수십 건을 한꺼번에 넣을 때 쓴다.
+           ⚠️ 여기서는 알림을 보내지 않는다. 75건을 넣으면 푸시가 75번 날아간다. -->
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
+        <label class="form-label">📋 엑셀에서 붙여넣기
+          <span style="font-weight:400;color:#718096;font-size:11px;">(카테고리 · 제목 · 시작일 · 종료일 · 상세내용 순 · 탭으로 구분)</span></label>
+        <div style="background:#EEF0F3;border-radius:10px;padding:10px 13px;margin:8px 0;font-size:12.5px;color:#37404B;line-height:1.6;">
+          한 줄에 일정 하나. <b>종료일을 비우면 하루짜리</b>로 들어갑니다.<br>
+          날짜는 <code>2026-12-07</code> · <code>2026.12.07</code> · <code>12/07</code> 중 아무 형식이나 됩니다
+          (연도를 안 적으면 아래에서 고른 기준 연도를 씁니다).<br>
+          <b style="color:#b45309;">일괄 등록은 알림을 보내지 않습니다.</b> 같은 제목·같은 날짜가 이미 있으면 건너뜁니다.
+        </div>
+        <div style="display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:end;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">기준 연도</label>
+            <input type="number" class="form-input" id="cal-bulk-year" min="2020" max="2100">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">카테고리를 못 알아볼 때</label>
+            <select class="form-input" id="cal-bulk-fallback">
+              <option value="학교일정">📅 학교일정</option>
+              <option value="시험/평가">📝 시험/평가</option>
+              <option value="휴강/공휴일">🏖️ 휴강/공휴일</option>
+              <option value="행사/이벤트">🎉 행사/이벤트</option>
+              <option value="">— 건너뛰기 (등록 안 함) —</option>
+            </select>
+          </div>
+        </div>
+        <textarea class="form-input" id="cal-bulk" style="min-height:120px;font-family:monospace;font-size:12px;margin-top:10px;"
+          placeholder="시험/평가	2학기 기말평가(15주)	2026-12-07	2026-12-13&#10;학교일정	종강일	2026-12-20&#10;휴강/공휴일	동계방학	2026-12-21	2027-02-28"></textarea>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <button class="send-btn" onclick="previewCalBulk()" style="background:#3F4A57;margin:0;">👀 미리보기</button>
+          <button class="send-btn" onclick="bulkAddCalendar()" id="calBulkBtn" style="background:#059669;margin:0;" disabled>📥 일괄 등록</button>
+        </div>
+        <div id="calBulkPreview" style="margin-top:12px;"></div>
+      </div>
     </div>
 
     <div class="card wide-card">
@@ -6676,6 +6713,158 @@
       document.getElementById('cal-date').value = today;
       document.getElementById('cal-enddate').value = today;
     }
+    // 일괄 등록의 기준 연도 — 연도를 안 적은 날짜("12.07.")를 해석할 때 쓴다
+    const by = document.getElementById('cal-bulk-year');
+    if (by && !by.value) by.value = new Date().getFullYear();
+  }
+
+  // ══════════════════════════════════════════
+  //  📋 캘린더 일괄 등록 — 학사일정처럼 수십 건을 한 번에
+  //
+  //  ⚠️ 설계에서 정한 것
+  //   · 알림은 절대 보내지 않는다. 75건 넣으면 푸시가 75번 날아간다.
+  //   · 먼저 미리보기로 전부 보여주고, 확인한 뒤에만 등록 버튼이 열린다.
+  //   · 제목+시작일이 같은 일정이 이미 있으면 건너뛴다 (두 번 눌러도 안전).
+  //   · 날짜 형식을 여러 가지 받는다. 학사일정 문서가 "12.07.(월)" 처럼 적혀 오기 때문.
+  // ══════════════════════════════════════════
+  const CAL_CATEGORIES = ['학교일정','시험/평가','보강','휴강/공휴일','과제/제출',
+                          '현장훈련','외부평가','공지/안내','긴급공지','행사/이벤트'];
+  let calEvents = [];   // loadCalendarEvents 가 채운다 (중복 검사용)
+
+  // "2026-12-07" · "2026.12.07" · "12/07" · "12.07.(월)" 전부 받아준다.
+  // 연도가 없으면 기준 연도를 쓰되, 1·2월은 다음 해로 넘긴다
+  //   (학사일정은 3월 시작이라 "02.12." 는 이듬해 2월인 경우가 많다)
+  function calParseDate(raw, baseYear) {
+    if (!raw) return '';
+    const s = String(raw).replace(/\([^)]*\)/g, '').trim();   // "(월)" 같은 요일 제거
+    if (!s) return '';
+    const n = s.match(/\d+/g);
+    if (!n) return '';
+    let y, m, d;
+    if (n.length >= 3 && n[0].length === 4) { y = +n[0]; m = +n[1]; d = +n[2]; }
+    else if (n.length >= 2) { m = +n[0]; d = +n[1]; y = baseYear + (m <= 2 ? 1 : 0); }
+    else return '';
+    if (!(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return '';
+    const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    // 2월 30일 같은 없는 날짜 거르기
+    const chk = new Date(iso + 'T00:00:00');
+    if (chk.getMonth() + 1 !== m || chk.getDate() !== d) return '';
+    return iso;
+  }
+
+  let calBulkRows = [];   // 미리보기에서 확인된 줄만 담는다
+
+  function calParseBulk() {
+    const text = document.getElementById('cal-bulk').value;
+    const baseYear = Number(document.getElementById('cal-bulk-year').value) || new Date().getFullYear();
+    const fallback = document.getElementById('cal-bulk-fallback').value;
+    const ok = [], skip = [];
+    const seen = new Set();
+
+    text.split('\n').forEach((line, i) => {
+      if (!line.trim()) return;
+      const c = line.split('\t').map(x => x.trim());
+      // 탭이 없으면 2칸 이상 공백으로도 나눠본다 (PDF에서 긁어온 경우)
+      const cells = c.length > 1 ? c : line.trim().split(/\s{2,}/).map(x => x.trim());
+      const no = i + 1;
+
+      let [cat, title, sd, ed, desc] = [cells[0] || '', cells[1] || '', cells[2] || '', cells[3] || '', cells[4] || ''];
+      if (!CAL_CATEGORIES.includes(cat)) {
+        if (!fallback) { skip.push(`${no}행: 카테고리 "${cat}" 를 모르겠습니다`); return; }
+        // 첫 칸이 카테고리가 아니라 제목이었던 경우 — 한 칸씩 밀어서 다시 읽는다
+        if (cells.length && !CAL_CATEGORIES.includes(cells[0])) {
+          [title, sd, ed, desc] = [cells[0] || '', cells[1] || '', cells[2] || '', cells[3] || ''];
+          cat = fallback;
+        }
+      }
+      if (!title) { skip.push(`${no}행: 제목이 없습니다`); return; }
+      const startDate = calParseDate(sd, baseYear);
+      if (!startDate) { skip.push(`${no}행 "${title}": 시작 날짜를 못 읽었습니다 (${sd || '비어있음'})`); return; }
+      let endDate = calParseDate(ed, baseYear) || startDate;
+      if (endDate < startDate) {
+        // 12.21 ~ 02.28 처럼 해를 넘기는 기간
+        const ny = calParseDate(ed, baseYear + 1);
+        if (ny && ny > startDate) endDate = ny;
+        else { skip.push(`${no}행 "${title}": 종료일이 시작일보다 빠릅니다`); return; }
+      }
+      const key = title + '|' + startDate;
+      if (seen.has(key)) { skip.push(`${no}행 "${title}": 붙여넣은 내용 안에서 중복`); return; }
+      if (calEvents.some(e => (e.title || '') === title && (e.startDate || e.date) === startDate)) {
+        skip.push(`${no}행 "${title}": 이미 등록되어 있습니다`); return;
+      }
+      seen.add(key);
+      ok.push({ category: cat, title, startDate, endDate, description: desc });
+    });
+    return { ok, skip };
+  }
+
+  function previewCalBulk() {
+    const box = document.getElementById('calBulkPreview');
+    const btn = document.getElementById('calBulkBtn');
+    const { ok, skip } = calParseBulk();
+    calBulkRows = ok;
+    btn.disabled = ok.length === 0;
+
+    const W = ['일','월','화','수','목','금','토'];
+    const wd = iso => W[new Date(iso + 'T00:00:00').getDay()];
+    const rows = ok.map(r => `<tr>
+      <td style="padding:6px 8px;border:1px solid #e4eaf4;white-space:nowrap;">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${CAT_COLORS[r.category] || '#94a3b8'};margin-right:5px;"></span>${escapeHtmlSafe(r.category)}</td>
+      <td style="padding:6px 8px;border:1px solid #e4eaf4;font-weight:600;">${escapeHtmlSafe(r.title)}</td>
+      <td style="padding:6px 8px;border:1px solid #e4eaf4;white-space:nowrap;">
+        ${r.startDate}(${wd(r.startDate)})${r.endDate !== r.startDate ? ` ~ ${r.endDate}(${wd(r.endDate)})` : ''}</td>
+    </tr>`).join('');
+
+    box.innerHTML =
+      (ok.length ? `<div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:6px;">✅ 등록할 일정 ${ok.length}건</div>
+        <div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px;">${rows}</table></div>` : '')
+      + (skip.length ? `<div style="font-size:13px;font-weight:700;color:#b91c1c;margin:10px 0 6px;">⚠️ 건너뛸 ${skip.length}건</div>
+        <div style="font-size:12px;color:#7f1d1d;line-height:1.7;background:#fef2f2;border-radius:8px;padding:9px 12px;">
+        ${skip.map(escapeHtmlSafe).join('<br>')}</div>` : '')
+      + (!ok.length && !skip.length ? '<div class="empty-history">붙여넣은 내용이 없습니다</div>' : '');
+  }
+
+  async function bulkAddCalendar() {
+    if (!calBulkRows.length) { showCalResult('먼저 미리보기를 눌러주세요', 'error'); return; }
+    if (!await customConfirm({
+      title: '학사일정 일괄 등록',
+      message: `일정 <b>${calBulkRows.length}건</b>을 등록할까요?<br><br>`
+        + `<span style="font-size:12px;color:#64748b;">· 알림은 발송되지 않습니다<br>`
+        + `· 잘못 넣었으면 아래 목록에서 하나씩 지울 수 있습니다</span>`,
+      confirmText: '📥 등록' })) return;
+
+    const btn = document.getElementById('calBulkBtn');
+    btn.disabled = true; btn.textContent = '등록 중...';
+    let done = 0;
+    try {
+      const { collection, addDoc, serverTimestamp } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      for (const r of calBulkRows) {
+        await addDoc(collection(calDb, 'calendar_events'), {
+          category: r.category,
+          date: r.startDate,            // 하위 호환용
+          startDate: r.startDate,
+          endDate: r.endDate,
+          time: '',                     // 일괄 등록은 시간 없음
+          title: r.title,
+          description: r.description || '',
+          commentCount: 0,
+          createdAt: serverTimestamp()
+        });
+        done++;
+      }
+      await writeLog('create', 'calendar', '', `학사일정 일괄 등록 ${done}건`);
+      showCalResult(`✅ ${done}건을 등록했습니다 (알림은 보내지 않았습니다)`, 'success');
+      document.getElementById('cal-bulk').value = '';
+      document.getElementById('calBulkPreview').innerHTML = '';
+      calBulkRows = [];
+      loadCalendarEvents();
+    } catch(e) {
+      showCalResult(`❌ ${done}건까지 등록하고 멈췄습니다: ${e.message || ''}`, 'error');
+      loadCalendarEvents();
+    }
+    btn.textContent = '📥 일괄 등록';
   }
 
   async function saveCalendarEvent() {
@@ -6754,6 +6943,7 @@
         snapshot = await getDocs(q);
       }
       const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      calEvents = events;   // 일괄 등록에서 중복 검사에 쓴다
       if (events.length === 0) { el.innerHTML = '<div class="empty-history">등록된 일정이 없어요</div>'; return; }
 
       el.innerHTML = '<div class="list-grid">' + events.map(e => {
