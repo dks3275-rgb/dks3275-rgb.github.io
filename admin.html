@@ -27,27 +27,31 @@
     });
   </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
-    :root { --navy: #3F4A57; --blue: #5B6A7D; --accent: #7A8899; --gray: #8A929C; --light: #F4F5F7; --border: #E3E6EA; }
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+    /* 학교 공식 파랑 #1A6FB3 · 앱 바탕 네이비 #1F2D4A — 사용자 화면과 같은 톤을 쓴다 */
+    :root { --ink-navy: #1F2D4A; --au-blue: #1A6FB3;
+            --navy: #1F2D4A; --blue: #1F2D4A; --accent: #5B6A7D;
+            --gray: #8B95A1; --light: #F4F5F7; --border: #E3E6EA; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Noto Sans KR', sans-serif; background: var(--light); color: #2d3748; min-height: 100vh; }
-    .header { background: var(--blue); padding: 20px 24px; display: flex; align-items: center; gap: 12px; }
-    .header-badge { background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
-    .header h1 { color: white; font-size: 18px; font-weight: 700; }
+    body { font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; background: var(--light); color: #191F28; min-height: 100vh; -webkit-font-smoothing: antialiased; letter-spacing: -0.3px; }
+    .header { background: var(--ink-navy); padding: 13px 20px; display: flex; align-items: center; gap: 12px; }
+    .header .au-logo { height: 19px; width: auto; flex-shrink: 0; }
+    .header-badge { display: none; }
+    .header h1 { color: white; font-size: 15px; font-weight: 600; letter-spacing: -0.4px; }
     /* ── 좌측 사이드바 메뉴 (탭이 계속 늘어나므로 세로 목록이 유리) ── */
     :root { --sidebar-w: 172px; }
     .tab-nav { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
                background: white; border-right: 2px solid var(--light);
                display: flex; flex-direction: column; gap: 3px;
                padding: 16px 10px; overflow-y: auto; z-index: 50; }
-    .tab-nav::before { content: 'AU 관리자'; display: block; font-size: 12px; font-weight: 700;
+    .tab-nav::before { content: '관리자'; display: block; font-size: 12px; font-weight: 700;
                        color: var(--gray); letter-spacing: 0.5px; padding: 0 10px 12px; }
     .tab-nav button { text-align: left; padding: 11px 12px; border: none; background: none;
-                      border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px;
+                      border-radius: 10px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 13px;
                       font-weight: 600; color: #4a5568; cursor: pointer; transition: all 0.15s;
                       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
     .tab-nav button:hover { background: var(--light); color: var(--navy); }
-    .tab-nav button.active { background: var(--blue); color: white; font-weight: 700; }
+    .tab-nav button.active { background: var(--ink-navy); color: white; font-weight: 700; }
     .header { margin-left: var(--sidebar-w); }
     .tab-content { margin-left: var(--sidebar-w); }
     /* 좁은 화면에서는 상단 가로 메뉴로 되돌린다 */
@@ -107,7 +111,7 @@
     .mini-btn { border: none; border-radius: 8px; padding: 7px 12px; font-family: inherit;
                 font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
     .mini-btn:active { transform: translateY(1px); }
-    .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); }
+    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(33,150,243,0.08); }
     /* ── 카드 접기/펴기 (내용이 길어 스크롤이 과해지는 문제) ── */
     .card > .card-title { cursor: pointer; user-select: none; gap: 8px; }
     .card > .card-title::after { content: '▾'; font-size: 12px; color: var(--gray); flex-shrink: 0;
@@ -118,19 +122,19 @@
     .card.collapsed > *:not(.card-title) { display: none !important; }
     .fold-all-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.35); color: white;
                     font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
-                    font-family: 'Noto Sans KR', sans-serif; font-weight: 600; margin-left: auto; }
+                    font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-weight: 600; margin-left: auto; }
     .card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--light); display: flex; justify-content: space-between; align-items: center; }
     .group-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
-    .group-btn { padding: 14px 8px; border: 2px solid var(--border); border-radius: 12px; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #4a5568; text-align: center; }
+    .group-btn { padding: 14px 8px; border: 2px solid var(--border); border-radius: 12px; background: white; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: #4a5568; text-align: center; }
     .group-btn:hover { border-color: var(--blue); color: var(--blue); background: #EEF0F3; }
     .group-btn.selected { border-color: var(--blue); background: var(--blue); color: white; }
     .group-btn .icon { font-size: 20px; display: block; margin-bottom: 6px; }
     .form-group { margin-bottom: 16px; }
     .form-label { display: block; font-size: 13px; font-weight: 500; color: #4a5568; margin-bottom: 8px; }
-    .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; color: #2d3748; transition: border-color 0.2s; outline: none; background: white; }
+    .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 14px; color: #2d3748; transition: border-color 0.2s; outline: none; background: white; }
     .form-input:focus { border-color: var(--blue); }
     textarea.form-input { resize: vertical; min-height: 120px; }
-    .send-btn { width: 100%; padding: 16px; background: var(--blue); color: white; border: none; border-radius: 12px; font-family: 'Noto Sans KR', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+    .send-btn { width: 100%; padding: 16px; background: var(--blue); color: white; border: none; border-radius: 12px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
     .send-btn:hover { background: var(--navy); transform: translateY(-1px); }
     .send-btn:disabled { background: #a0aec0; cursor: not-allowed; transform: none; }
     .result-box { display: none; padding: 14px 16px; border-radius: 10px; margin-top: 14px; font-size: 14px; font-weight: 500; }
@@ -145,7 +149,7 @@
     .notice-item { padding: 14px; background: var(--light); border-radius: 10px; margin-bottom: 10px; }
     .notice-item-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
     .notice-item-meta { font-size: 11px; color: var(--gray); display: flex; justify-content: space-between; align-items: center; }
-    .delete-btn { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+    .delete-btn { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; }
     .file-upload { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
     .file-upload:hover { border-color: var(--blue); }
     .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 8px; }
@@ -155,12 +159,12 @@
     .up-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--navy); margin-bottom: 6px; font-weight: 600; }
     .up-bar-track { height: 8px; background: var(--light); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
     .up-bar-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--navy)); transition: width 0.2s ease; border-radius: 6px; }
-    .up-cancel-btn { margin-top: 8px; background: #fff5f5; border: 1.5px solid #fc8181; color: #c53030; padding: 6px 14px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .up-cancel-btn { margin-top: 8px; background: #fff5f5; border: 1.5px solid #fc8181; color: #c53030; padding: 6px 14px; border-radius: 8px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
     .up-cancel-btn:hover { background: #c53030; color: white; }
     .consulting-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
-    .count-badge { background: var(--blue); color: white; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; }
-    .filter-select { background: white; border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--navy); outline: none; cursor: pointer; }
-    .refresh-btn { background: white; border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--navy); cursor: pointer; font-weight: 600; }
+    .count-badge { background: var(--blue); color: white; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 12px; }
+    .filter-select { background: white; border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 14px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 13px; color: var(--navy); outline: none; cursor: pointer; }
+    .refresh-btn { background: white; border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 14px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 13px; color: var(--navy); cursor: pointer; font-weight: 600; }
     .refresh-btn:hover { border-color: var(--blue); color: var(--blue); }
     .consulting-card { background: var(--light); border-radius: 14px; padding: 18px; margin-bottom: 12px; border-left: 4px solid var(--border); transition: transform 0.15s; }
     .consulting-card:hover { transform: translateY(-1px); }
@@ -171,13 +175,13 @@
     .c-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); color: white; font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .c-name { font-size: 15px; font-weight: 800; color: var(--navy); }
     .c-dept { font-size: 12px; color: var(--gray); margin-top: 2px; }
-    .status-toggle { padding: 5px 12px; border-radius: 20px; border: none; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .status-toggle { padding: 5px 12px; border-radius: 12px; border: none; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
     .status-waiting { background: #fef3c7; color: #92400e; }
     .status-done { background: #d1fae5; color: #065f46; }
     .c-content { background: white; border-radius: 8px; padding: 12px; font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 10px; }
     .c-bottom { display: flex; justify-content: space-between; align-items: center; }
     .c-time { font-size: 11px; color: var(--gray); }
-    .c-delete { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 5px 10px; border-radius: 6px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .c-delete { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 5px 10px; border-radius: 6px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
     .c-delete:hover { background: #c53030; color: white; }
     .c-loading { text-align: center; padding: 40px; color: var(--gray); font-size: 14px; }
     /* 페이지네이션 */
@@ -193,7 +197,7 @@
     .page-size-wrap select { padding: 6px 10px; border: 1px solid #e4eaf4; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; font-family: inherit; font-weight: 600; color: var(--gray); }
     .toolbar-with-pagesize { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     /* 상담 채팅 (관리자 답변) */
-    .c-chat-toggle { background: white; border: 1.5px solid var(--border); color: var(--blue); padding: 6px 14px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+    .c-chat-toggle { background: white; border: 1.5px solid var(--border); color: var(--blue); padding: 6px 14px; border-radius: 8px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 8px; }
     .c-chat-toggle:hover { border-color: var(--blue); background: #EEF0F3; }
     .c-chat-toggle.has-new { background: #fff5f5; border-color: #fc8181; color: #c53030; }
     .c-chat-area { display: none; margin-top: 12px; padding: 12px; background: white; border-radius: 12px; border: 1px solid var(--border); }
@@ -208,9 +212,9 @@
     .c-bubble-row.me .c-bubble-meta { order: -1; }
     .c-chat-empty { text-align: center; color: var(--gray); font-size: 12px; padding: 16px; }
     .c-chat-input-row { display: flex; gap: 8px; }
-    .c-chat-input { flex: 1; padding: 9px 12px; background: var(--light); border: 1.5px solid var(--border); border-radius: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: #2d3748; outline: none; resize: none; min-height: 36px; max-height: 80px; line-height: 1.4; }
+    .c-chat-input { flex: 1; padding: 9px 12px; background: var(--light); border: 1.5px solid var(--border); border-radius: 14px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 13px; color: #2d3748; outline: none; resize: none; min-height: 36px; max-height: 80px; line-height: 1.4; }
     .c-chat-input:focus { border-color: var(--blue); background: white; }
-    .c-chat-send { padding: 9px 14px; background: var(--blue); color: white; border: none; border-radius: 14px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .c-chat-send { padding: 9px 14px; background: var(--blue); color: white; border: none; border-radius: 14px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
     .c-chat-send:hover { background: var(--navy); }
     .c-chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
     .cal-event-item { padding: 14px; background: var(--light); border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--blue); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
@@ -225,7 +229,7 @@
     .doc-kind-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     @media (max-width: 560px) { .doc-kind-tabs { grid-template-columns: 1fr 1fr; } }
     .doc-kind { padding: 11px 8px; border: 2px solid var(--border); border-radius: 11px; background: white;
-                font-family: 'Noto Sans KR', sans-serif; font-size: 13px; font-weight: 700; color: #4a5568;
+                font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 13px; font-weight: 700; color: #4a5568;
                 cursor: pointer; transition: all 0.15s; white-space: nowrap; }
     .doc-kind:hover { border-color: var(--blue); color: var(--blue); }
     .doc-kind.active { border-color: var(--blue); background: var(--blue); color: white; }
@@ -233,7 +237,7 @@
                 font-weight: 700; padding: 1px 6px; border-radius: 9px; vertical-align: middle; }
     .dk-badge.on { display: inline-block; }
     .doc-kind.active .dk-badge { background: white; color: #dc2626; }
-    .notice-target-btn { flex:1; padding:10px 8px; border:2px solid var(--border); border-radius:10px; background:white; font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:600; cursor:pointer; color:#4a5568; transition:all 0.2s; }
+    .notice-target-btn { flex:1; padding:10px 8px; border:2px solid var(--border); border-radius:10px; background:white; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:600; cursor:pointer; color:#4a5568; transition:all 0.2s; }
     .notice-target-btn.selected { border-color:var(--blue); background:var(--blue); color:white; }
     .subt-chip { display:inline-flex; align-items:center; gap:5px; padding:6px 11px; background:white; border:1.5px solid var(--border); border-radius:8px; font-size:12px; font-weight:500; color:#4a5568; cursor:pointer; transition:all 0.15s; }
     .subt-chip input { margin:0; cursor:pointer; }
@@ -248,32 +252,32 @@
     /* 가입자 편집 모달 */
     .member-modal-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.7); backdrop-filter: blur(4px); z-index: 500; display: none !important; align-items: center; justify-content: center; padding: 20px; pointer-events: none; }
     .member-modal-overlay.show { display: flex !important; pointer-events: auto; }
-    .member-modal { background: white; border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+    .member-modal { background: white; border-radius: 12px; padding: 28px 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
     .member-modal h3 { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--light); }
     .member-modal-label { font-size: 11px; font-weight: 700; color: #718096; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
-    .member-modal-input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; color: #2d3748; outline: none; margin-bottom: 16px; background: var(--light); }
+    .member-modal-input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 14px; color: #2d3748; outline: none; margin-bottom: 16px; background: var(--light); }
     .member-modal-input:focus { border-color: var(--blue); background: white; }
-    .member-modal-select { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; color: #2d3748; outline: none; cursor: pointer; margin-bottom: 16px; background: var(--light); -webkit-appearance: none; }
+    .member-modal-select { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 14px; color: #2d3748; outline: none; cursor: pointer; margin-bottom: 16px; background: var(--light); -webkit-appearance: none; }
     .member-modal-btns { display: flex; gap: 10px; margin-top: 8px; }
-    .member-modal-save { flex: 1; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 12px; font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .member-modal-save { flex: 1; padding: 14px; background: var(--blue); color: white; border: none; border-radius: 12px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; }
     .member-modal-save:hover { background: var(--navy); }
-    .member-modal-cancel { padding: 14px 20px; background: var(--light); color: #718096; border: none; border-radius: 12px; font-family: 'Noto Sans KR', sans-serif; font-size: 15px; cursor: pointer; }
-    .member-edit-btn { background: #EEF0F3; border: 1px solid #90caf9; color: var(--blue); padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+    .member-modal-cancel { padding: 14px 20px; background: var(--light); color: #718096; border: none; border-radius: 12px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 15px; cursor: pointer; }
+    .member-edit-btn { background: #EEF0F3; border: 1px solid #90caf9; color: var(--blue); padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; }
     .member-edit-btn:hover { background: var(--blue); color: white; }
-    .member-delete-btn { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+    .member-delete-btn { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; }
     .member-delete-btn:hover { background: #c53030; color: white; }
-    .edit-cat-btn { flex:1; padding: 10px 6px; border: 2px solid var(--border); border-radius: 10px; background: white; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; color: #718096; transition: all 0.2s; }
+    .edit-cat-btn { flex:1; padding: 10px 6px; border: 2px solid var(--border); border-radius: 10px; background: white; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; color: #718096; transition: all 0.2s; }
     .edit-cat-btn.selected { border-color: var(--blue); background: var(--blue); color: white; }
     .edit-cat-btn:hover:not(.selected) { border-color: var(--blue); color: var(--blue); }
     /* ── 커스텀 확인 모달 ── */
     .cc-overlay { position: fixed; inset: 0; background: rgba(15,30,60,0.7); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
     .cc-overlay.show { display: flex; }
-    .cc-box { background: white; border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: ccPop 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+    .cc-box { background: white; border-radius: 12px; padding: 28px 24px; width: 100%; max-width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: ccPop 0.2s cubic-bezier(0.34,1.56,0.64,1); }
     @keyframes ccPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .cc-title { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
     .cc-message { font-size: 14px; color: #4a5568; line-height: 1.6; margin-bottom: 22px; word-break: keep-all; }
     .cc-btns { display: flex; gap: 10px; }
-    .cc-btn-cancel, .cc-btn-confirm { flex: 1; padding: 12px; border: none; border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .cc-btn-cancel, .cc-btn-confirm { flex: 1; padding: 12px; border: none; border-radius: 10px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
     .cc-btn-cancel { background: var(--light); color: #4a5568; }
     .cc-btn-cancel:hover { background: var(--border); }
     .cc-btn-confirm { background: var(--blue); color: white; }
@@ -281,25 +285,25 @@
     .cc-btn-confirm.cc-danger { background: #e74c3c; }
     .cc-btn-confirm.cc-danger:hover { background: #c0392b; }
     /* ── 가입자 검색/정렬 UI ── */
-    .member-search { width: 100%; padding: 10px 14px; background: white; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--navy); outline: none; margin-bottom: 10px; box-sizing: border-box; }
+    .member-search { width: 100%; padding: 10px 14px; background: white; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 13px; color: var(--navy); outline: none; margin-bottom: 10px; box-sizing: border-box; }
     .member-search:focus { border-color: var(--blue); }
-    .csv-btn { background: #f0fff4; border: 1.5px solid #68d391; color: #276749; padding: 8px 14px; border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; cursor: pointer; font-weight: 700; }
+    .csv-btn { background: #f0fff4; border: 1.5px solid #68d391; color: #276749; padding: 8px 14px; border-radius: 10px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 13px; cursor: pointer; font-weight: 700; }
     .csv-btn:hover { background: #276749; color: white; }
     /* ── 알림 템플릿 ── */
     .tpl-row { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tpl-chip { display: inline-flex; align-items: center; gap: 4px; background: #EEF0F3; border: 1px solid #90caf9; border-radius: 20px; padding: 4px 4px 4px 12px; }
+    .tpl-chip { display: inline-flex; align-items: center; gap: 4px; background: #EEF0F3; border: 1px solid #90caf9; border-radius: 12px; padding: 4px 4px 4px 12px; }
     .tpl-chip-name { font-size: 12px; color: #4B5765; font-weight: 600; cursor: pointer; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .tpl-chip-del { background: none; border: none; padding: 2px 6px; font-size: 13px; color: #c62828; cursor: pointer; line-height: 1; }
     .tpl-chip-del:hover { color: #7b1616; }
     .tpl-empty { font-size: 12px; color: #8a9ab5; padding: 4px 0; }
-    .tpl-save-btn { background: #fffbf0; border: 1.5px solid #f6c453; color: #7c5c00; padding: 6px 12px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .tpl-save-btn { background: #fffbf0; border: 1.5px solid #f6c453; color: #7c5c00; padding: 6px 12px; border-radius: 8px; font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
     .tpl-save-btn:hover { background: #f6c453; color: white; }
     /* ═══════════════════════════════════════
        관리자 로그인 게이트
        ═══════════════════════════════════════ */
     .auth-overlay { position: fixed; inset: 0; background: #F2F4F6; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif; }
-    .auth-box { background: #FFFFFF; border: 1px solid #E5E8EB; border-radius: 24px; padding: 36px 28px; width: 100%; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
-    .auth-icon { width: 56px; height: 56px; border-radius: 16px; background: #E8F2FF; color: #3182F6; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 18px; }
+    .auth-box { background: #FFFFFF; border: 1px solid #E5E8EB; border-radius: 12px; padding: 36px 28px; width: 100%; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+    .auth-icon { width: 56px; height: 56px; border-radius: 12px; background: #E8F2FF; color: #3182F6; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 18px; }
     .auth-title { text-align: center; font-size: 20px; font-weight: 700; color: #191F28; margin-bottom: 8px; letter-spacing: -0.5px; }
     .auth-sub { text-align: center; font-size: 13px; color: #4E5968; margin-bottom: 24px; line-height: 1.5; }
     .auth-field { margin-bottom: 14px; }
@@ -673,8 +677,8 @@
 </div>
 
 <div class="header">
-  <div class="header-badge">관리자</div>
-  <h1>AU 일학습병행 관리자</h1>
+  <img class="au-logo" src="assets/logo-au-white.png" alt="안산대학교" width="613" height="128">
+  <h1>일학습병행 관리자</h1>
   <button class="fold-all-btn" id="foldAllBtn" onclick="toggleFoldAll()">⇅ 전체 접기</button>
 </div>
 <div class="tab-nav">
@@ -6699,7 +6703,7 @@
       const app = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
       const db = getFirestore(app);
       const statuses = await Promise.all(SURVEY_LIST.map(s => getDoc(doc(db,'surveyConfig',s.id))));
-      list.innerHTML = SURVEY_LIST.map((s,i) => { const isOpen = statuses[i].exists() ? statuses[i].data().open : false; return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f0f0f0"><div><div style="font-weight:700;font-size:14px">${s.name}</div><div style="font-size:12px;color:#718096;margin-top:2px">${s.desc}</div></div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:12px;font-weight:700;color:${isOpen?'#38a169':'#a0aec0'}">${isOpen?'● 진행중':'● 준비중'}</span><button onclick="toggleSurvey('${s.id}',${!isOpen})" style="padding:8px 18px;border-radius:8px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;background:${isOpen?'#fff5f5':'#f0fff4'};color:${isOpen?'#c53030':'#276749'}">${isOpen?'닫기':'열기'}</button></div></div>`; }).join('');
+      list.innerHTML = SURVEY_LIST.map((s,i) => { const isOpen = statuses[i].exists() ? statuses[i].data().open : false; return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f0f0f0"><div><div style="font-weight:700;font-size:14px">${s.name}</div><div style="font-size:12px;color:#718096;margin-top:2px">${s.desc}</div></div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:12px;font-weight:700;color:${isOpen?'#38a169':'#a0aec0'}">${isOpen?'● 진행중':'● 준비중'}</span><button onclick="toggleSurvey('${s.id}',${!isOpen})" style="padding:8px 18px;border-radius:8px;border:none;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;font-weight:700;cursor:pointer;background:${isOpen?'#fff5f5':'#f0fff4'};color:${isOpen?'#c53030':'#276749'}">${isOpen?'닫기':'열기'}</button></div></div>`; }).join('');
       window._surveyDb = db; window._surveyDoc = doc; window._surveySetDoc = setDoc;
     } catch(e) { list.innerHTML = '<div style="color:#e53e3e;padding:12px">오류: ' + e.message + '</div>'; }
   }

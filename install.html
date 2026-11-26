@@ -8,14 +8,14 @@
 <script src="inapp-redirect.js"></script>
 <script src="dark-mode.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
   :root {
-    --navy: #1976d2; --blue: #2196f3; --blue-light: #64b5f6;
+    --navy: #1F2D4A; --blue: #1A6FB3; --blue-light: #64b5f6;
     --bg: #f4f6fb; --white: #fff; --text: #1a2a3a; --text2: #5a7090;
     --border: #e4eaf4; --success: #10b981; --warning: #f59e0b;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(180deg,#e3f2fd 0%,var(--bg) 300px); min-height: 100vh; padding-bottom: 80px; color: var(--text); }
+  body { font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; background: linear-gradient(180deg,#e3f2fd 0%,var(--bg) 300px); min-height: 100vh; padding-bottom: 80px; color: var(--text); }
   .hero { padding: 50px 20px 30px; text-align: center; }
   .hero-emoji { font-size: 72px; margin-bottom: 12px; }
   .hero-title { font-size: 26px; font-weight: 900; margin-bottom: 6px; }
@@ -27,7 +27,7 @@
   .device-title { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
   .device-desc { font-size: 12px; color: var(--text2); }
   .install-options { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
-  .option-card { background: white; border-radius: 16px; padding: 22px; box-shadow: 0 4px 16px rgba(33,150,243,0.1); border: 2px solid transparent; transition: all 0.2s; }
+  .option-card { background: white; border-radius:12px; padding: 22px; box-shadow: 0 4px 16px rgba(33,150,243,0.1); border: 2px solid transparent; transition: all 0.2s; }
   .option-card.recommended { border-color: var(--blue); position: relative; }
   .option-card.recommended::before { content: '✨ 추천'; position: absolute; top: -10px; left: 16px; background: var(--blue); color: white; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
   .option-icon { font-size: 36px; margin-bottom: 10px; }
@@ -54,7 +54,7 @@
   .browser-warning.show { display: block; }
   .browser-warning strong { color: #92400e; }
   .copy-btn { display: block; background: #92400e; color: white; padding: 10px 16px; border-radius: 8px; margin-top: 10px; text-align: center; font-weight: 700; cursor: pointer; border: none; width: 100%; font-family: inherit; font-size: 13px; }
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2a3a; color: white; padding: 12px 20px; border-radius: 24px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 10000; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a2a3a; color: white; padding: 12px 20px; border-radius:12px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 10000; }
   .toast.show { opacity: 1; }
 </style>
 </head>

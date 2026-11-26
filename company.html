@@ -7,37 +7,44 @@
 <meta name="theme-color" content="#1F2D4A">
 <meta name="robots" content="noindex, nofollow">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-  :root { --navy:#1976d2; --blue:#2196f3; --light:#f0f4f8; --gray:#8a9ab5;
-          --line:#e4eaf4; --text:#1a202c; --sub:#4a5568; --ok:#10b981; --warn:#f59e0b; --danger:#ef4444; }
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+  /* 학교 공식 파랑 #1A6FB3 · 앱 바탕 네이비 #1F2D4A
+     예전에는 머티리얼 블루(#1976d2/#2196f3)라 앱의 다른 화면과 톤이 달랐다. */
+  :root { --ink-navy:#1F2D4A; --au-blue:#1A6FB3;
+          --navy:#1F2D4A; --blue:#1A6FB3; --light:#F2F4F6; --gray:#8B95A1;
+          --line:#E5E8EB; --text:#191F28; --sub:#4E5968;
+          --ok:#1F9D6B; --warn:#B8812F; --danger:#B4453C; }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body { font-family:'Noto Sans KR',sans-serif; background:var(--light); color:var(--text); min-height:100vh; }
+  body { font-family:'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; -webkit-font-smoothing:antialiased; letter-spacing:-0.3px; background:var(--light); color:var(--text); min-height:100vh; }
 
   /* ── 로그인 ── */
-  #gate { position:fixed; inset:0; background:#0f2540; z-index:9999; display:flex;
+  #gate { position:fixed; inset:0; background:var(--ink-navy); z-index:9999; display:flex;
           align-items:center; justify-content:center; padding:20px; }
-  .gate-box { background:white; border-radius:18px; padding:32px 26px; width:100%; max-width:390px;
-              box-shadow:0 10px 40px rgba(0,0,0,0.3); }
+  .gate-box { background:white; border-radius:12px; padding:30px 26px; width:100%; max-width:390px;
+              box-shadow:0 10px 40px rgba(0,0,0,0.22); }
   .gate-box h2 { font-size:19px; margin-bottom:6px; }
   .gate-box p { font-size:13px; color:var(--gray); margin-bottom:20px; line-height:1.55; }
-  .gate-box input { width:100%; padding:13px 14px; border:1.5px solid var(--line); border-radius:10px;
+  .gate-box input { width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:9px;
                     font-size:15px; font-family:inherit; margin-bottom:10px; }
-  .gate-box button { width:100%; padding:14px; background:var(--navy); color:white; border:none;
+  .gate-box button { width:100%; padding:14px; background:var(--ink-navy); color:white; border:none;
                      border-radius:10px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
   .gate-box button:disabled { background:var(--gray); }
   .gate-err { color:var(--danger); font-size:13px; margin-bottom:10px; display:none; line-height:1.5; }
 
   /* ── 헤더 ── */
-  .header { background:var(--navy); padding:14px 16px; display:flex; align-items:center; gap:10px;
+  .header { background:var(--ink-navy); padding:12px 16px; display:flex; align-items:center; gap:11px;
             position:sticky; top:0; z-index:50; }
-  .header h1 { color:white; font-size:16px; font-weight:700; }
-  .header .sub { color:rgba(255,255,255,0.8); font-size:11px; }
+  .header .au-logo { height:19px; width:auto; flex-shrink:0; }
+  .header h1 { color:white; font-size:15px; font-weight:600; letter-spacing:-0.4px; }
+  .header .sub { color:#A9B6CC; font-size:11px; margin-top:1px; }
   .hdr-right { margin-left:auto; display:flex; gap:6px; }
-  .hdr-btn { background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.35); color:white;
+  .hdr-btn { background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.22); color:#DCE4EF;
              font-size:11px; padding:6px 10px; border-radius:7px; cursor:pointer; font-family:inherit; }
 
+  .tile-ico { width:26px; height:26px; stroke:var(--ink-navy); stroke-width:1.6; fill:none;
+              stroke-linecap:round; stroke-linejoin:round; }
   .container { max-width:760px; margin:0 auto; padding:16px 14px 60px; }
-  .card { background:white; border-radius:14px; padding:18px; margin-bottom:14px;
+  .card { background:white; border-radius:12px; padding:18px; margin-bottom:14px;
           box-shadow:0 2px 8px rgba(33,150,243,0.07); }
   .card-title { font-size:15px; font-weight:700; margin-bottom:14px; display:flex;
                 align-items:center; gap:8px; flex-wrap:wrap; }
@@ -117,7 +124,7 @@
   .pick-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:520px; margin:0 auto;}
   .pick{display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:6px; text-align:center; background:white; border:2px solid var(--line);
-    border-radius:18px; padding:30px 16px; font-family:inherit; cursor:pointer;
+    border-radius:12px; padding:30px 16px; font-family:inherit; cursor:pointer;
     box-shadow:0 2px 10px rgba(20,40,80,0.05); transition:border-color .12s, box-shadow .12s;}
   .pick .ico{font-size:40px; line-height:1.1;}
   .pick .ttl{font-size:17px; font-weight:800; color:var(--text); margin-top:4px;}
@@ -137,7 +144,7 @@
   .modal-bg { position:fixed; inset:0; background:rgba(15,30,60,0.6); z-index:600; display:none;
               align-items:center; justify-content:center; padding:20px; }
   .modal-bg.show { display:flex; }
-  .modal { background:white; border-radius:16px; padding:24px; width:100%; max-width:380px; }
+  .modal { background:white; border-radius:12px; padding:24px; width:100%; max-width:380px; }
   .modal h3 { font-size:16px; margin-bottom:14px; }
   .modal input { width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:10px;
                  font-size:14px; font-family:inherit; margin-bottom:10px; }
@@ -147,7 +154,7 @@
   .btn-cancel { background:var(--light); color:var(--sub); }
   .btn-ok { background:var(--navy); color:white; }
   .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:#1a202c;
-           color:white; padding:12px 22px; border-radius:24px; font-size:13.5px; z-index:900;
+           color:white; padding:12px 22px; border-radius:12px; font-size:13.5px; z-index:900;
            opacity:0; pointer-events:none; transition:opacity .2s; }
   .toast.show { opacity:1; }
 
@@ -265,7 +272,7 @@
 <!-- ══════ 로그인 ══════ -->
 <div id="gate">
   <div class="gate-box">
-    <h2>🏢 학습기업 학습일지 관리</h2>
+    <h2>학습기업 학습일지 관리</h2>
     <p>AU 일학습병행 공동훈련센터<br>센터에서 받으신 아이디로 로그인해주세요.</p>
     <div style="background:#f8fafc;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;
                 font-size:12.5px;color:var(--sub);line-height:1.6;margin-bottom:14px;">
@@ -281,6 +288,7 @@
 </div>
 
 <div class="header">
+  <img class="au-logo" src="assets/logo-au-white.png" alt="안산대학교" width="613" height="128">
   <div>
     <h1 id="hdrCompany">학습기업 학습일지 관리</h1>
     <div class="sub" id="hdrEmail">-</div>
@@ -303,7 +311,7 @@
   <div id="homeView">
     <div class="card" id="noticeCard" style="padding-bottom:14px;">
       <div class="nt-head" id="ntHead">
-        <span style="font-size:15px;font-weight:700;">📣 센터 알림</span>
+        <span style="font-size:15px;font-weight:700;">센터 알림</span>
         <span class="st-badge" id="ntBadge" style="display:none;"></span>
         <span class="nt-peek" id="ntPeek"></span>
         <span class="nt-arrow" id="ntArrow">▾</span>
@@ -318,12 +326,12 @@
       <div class="pick-h">무엇을 하시겠어요?</div>
       <div class="pick-grid">
         <button class="pick" id="goTraining">
-          <div class="ico">🗓️</div>
+          <div class="ico"><svg viewBox="0 0 24 24" class="tile-ico"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
           <div class="ttl">훈련운영</div>
           <div class="sub">일별 훈련 기록<br>현장교사 의견 · 월 마감</div>
         </button>
         <button class="pick" id="goDocs">
-          <div class="ico">📋</div>
+          <div class="ico"><svg viewBox="0 0 24 24" class="tile-ico"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h4"/></svg></div>
           <div class="ttl">학습관리</div>
           <div class="sub">의견서 · 면담일지<br>월별 확인서 · 내부평가지</div>
         </button>
@@ -335,7 +343,7 @@
   <div id="courseView" style="display:none;">
     <button class="back-btn" id="courseBack">← 처음으로</button>
     <div class="card">
-      <div class="card-title" id="courseTitle">📘 훈련과정 <span class="hint" id="courseCount"></span></div>
+      <div class="card-title" id="courseTitle">훈련과정 <span class="hint" id="courseCount"></span></div>
       <div class="info-box" id="courseIntro">
         관리하실 훈련과정을 선택하세요.
       </div>
@@ -347,15 +355,15 @@
   <div id="docsView" style="display:none;">
     <button class="back-btn" id="docsBack">← 과정 목록</button>
     <div class="card">
-      <div class="card-title">📋 학습관리</div>
+      <div class="card-title">학습관리</div>
       <div id="docsMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
     </div>
     <div class="card">
-      <div class="card-title">👷 학습근로자 <span class="hint" id="workerCount"></span></div>
+      <div class="card-title">학습근로자 <span class="hint" id="workerCount"></span></div>
       <div id="workerList"><div class="empty">불러오는 중...</div></div>
     </div>
     <div class="card">
-      <div class="card-title">📝 기업현장교사 의견서
+      <div class="card-title">기업현장교사 의견서
         <select class="sel-mini" id="periodSel"></select>
       </div>
       <div class="info-box" data-guide="opinion_intro">
@@ -366,7 +374,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title">🗣️ 학습근로자 면담일지
+      <div class="card-title">학습근로자 면담일지
         <span class="hint" id="cnCount"></span>
       </div>
       <div class="info-box" data-guide="counsel_intro">
@@ -377,7 +385,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title">✅ 월별 체크리스트
+      <div class="card-title">월별 체크리스트
         <span class="st-badge" id="ckBadge" style="margin-left:auto;">-</span>
       </div>
       <div class="info-box" data-guide="checklist_intro">
@@ -388,7 +396,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title">📄 내부평가지
+      <div class="card-title">내부평가지
         <span class="st-badge" id="asBadge" style="margin-left:auto;">-</span>
       </div>
       <div class="info-box" data-guide="assess_intro">
@@ -553,19 +561,19 @@
     <button class="back-btn" id="trBack">← 과정 목록</button>
 
     <div class="card">
-      <div class="card-title">🗓️ 훈련운영관리
+      <div class="card-title">훈련운영관리
         <select class="sel-mini" id="trPeriodSel"></select>
       </div>
       <div id="trMeta" style="font-size:13px;color:var(--sub);line-height:1.7;"></div>
     </div>
 
     <div class="card">
-      <div class="card-title">🎯 이 달 능력단위</div>
+      <div class="card-title">이 달 능력단위</div>
       <div id="trUnitBox"><div class="empty">불러오는 중...</div></div>
     </div>
 
     <div class="card">
-      <div class="card-title">👷 학습근로자
+      <div class="card-title">학습근로자
         <select class="sel-mini" id="trWorkerSel"></select>
       </div>
       <div class="info-box">
@@ -579,7 +587,7 @@
     <div id="trCloseBox"></div>
 
     <div class="card">
-      <div class="card-title">📖 작성 안내</div>
+      <div class="card-title">작성 안내</div>
       <div class="hint" style="font-size:12.5px;line-height:1.75;">
         · <b>훈련내용</b>은 학습근로자가 쓴 학습활동서를 가져온 것입니다. 사실과 다르면 고쳐주세요.<br>
         · 비어 있는 날은 학생이 아직 쓰지 않은 것이니 직접 적어주세요.<br>
@@ -639,7 +647,7 @@
 <!-- 비밀번호 변경 -->
 <div class="modal-bg" id="pwModal">
   <div class="modal">
-    <h3>🔑 비밀번호 변경</h3>
+    <h3>비밀번호 변경</h3>
     <input type="password" id="pwNew" placeholder="새 비밀번호 (8자 이상)" autocomplete="new-password">
     <input type="password" id="pwNew2" placeholder="새 비밀번호 확인" autocomplete="new-password">
     <div class="gate-err" id="pwErr"></div>
@@ -783,7 +791,7 @@ async function loadFirmNotices() {
   } catch(e) {
     // 조용히 숨기면 "기능이 없는 건지 비어 있는 건지" 알 수 없다. 이유를 보여준다.
     $('ntPeek').textContent = '불러오지 못했습니다';
-    $('ntList').innerHTML = `<div class="empty">⚠️ ${esc(e.message || '')}</div>`;
+    $('ntList').innerHTML = `<div class="empty">${esc(e.message || '')}</div>`;
     return;
   }
   // 안 읽은 게 있을 때만 펼친 채로 시작한다.
@@ -952,7 +960,7 @@ async function loadCourses() {
       .sort((a, b) => (a.type || '').localeCompare(b.type || '', 'ko') || (a.site || '').localeCompare(b.site || '', 'ko'));
     $('courseCount').textContent = myCourses.length ? `${myCourses.length}개` : '';
     if (myCourses.length === 0) {
-      el.innerHTML = '<div class="empty">📭 등록된 훈련과정이 없습니다.<br>센터에 문의해주세요.</div>';
+      el.innerHTML = '<div class="empty">등록된 훈련과정이 없습니다.<br>센터에 문의해주세요.</div>';
       return;
     }
     el.innerHTML = myCourses.map(c => `
@@ -968,7 +976,7 @@ async function loadCourses() {
       card.onclick = () => openCourse(card.dataset.course);
     });
   } catch(e) {
-    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + (e.message || '') + '</small></div>';
+    el.innerHTML = '<div class="empty">불러오지 못했습니다.<br><small>' + (e.message || '') + '</small></div>';
   }
 }
 
@@ -991,7 +999,7 @@ $('trBack').onclick     = navBack;
 function goMode(mode) {
   coMode = mode;
   const t = $('courseTitle'), i = $('courseIntro');
-  if (t) t.innerHTML = (mode === 'training' ? '🗓️ 훈련운영' : '📋 학습관리')
+  if (t) t.innerHTML = (mode === 'training' ? '훈련운영' : '학습관리')
     + ' <span class="hint" id="courseCount"></span>';
   if (i) i.textContent = mode === 'training'
     ? '일별 훈련 기록을 작성할 훈련과정을 선택하세요.'
@@ -1045,7 +1053,7 @@ async function loadWorkers(course) {
     loadAssessment();
     $('workerCount').textContent = `${list.length}명`;
     if (list.length === 0) {
-      el.innerHTML = '<div class="empty">📭 이 과정에 등록된 학습근로자가 없습니다.<br>센터에 문의해주세요.</div>';
+      el.innerHTML = '<div class="empty">이 과정에 등록된 학습근로자가 없습니다.<br>센터에 문의해주세요.</div>';
       return;
     }
     el.innerHTML = list.map(w => `
@@ -1058,7 +1066,7 @@ async function loadWorkers(course) {
       </div>`).join('');
   } catch(e) {
     curWorkers = [];
-    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + (e.message || '') + '</small></div>';
+    el.innerHTML = '<div class="empty">불러오지 못했습니다.<br><small>' + (e.message || '') + '</small></div>';
     $('opinionList').innerHTML = '<div class="empty">학습근로자를 불러오지 못해 의견서를 표시할 수 없습니다.</div>';
   }
 }
@@ -1167,7 +1175,7 @@ function openPrint(title, bodyHtml) {
   if (!w) { alert('팝업이 차단되었습니다. 브라우저 주소창의 팝업 허용을 켜주세요.'); return null; }
   w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
     <title>${esc(title)}</title><style>${PRINT_CSS}</style></head><body>
-    <div class="bar"><button onclick="window.print()">🖨️ 인쇄 · PDF로 저장</button></div>
+    <div class="bar"><button onclick="window.print()">인쇄 · PDF로 저장</button></div>
     ${bodyHtml}</body></html>`);
   w.document.close();
   return w;
@@ -1245,7 +1253,7 @@ async function loadOpinions() {
       if (o.period === period && o.courseId === curCourse.id) opinions[o.workerId] = { id: d.id, ...o };
     });
   } catch(e) {
-    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    el.innerHTML = '<div class="empty">불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
     return;
   }
   if (!curWorkers.length) {
@@ -1328,7 +1336,7 @@ function createSignPad(padId, tipId, clearId, showId) {
     pad.onpointerdown = e => {
       drawing = true; pad.setPointerCapture(e.pointerId);
       const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y);
-      drawn = true; $(tipId).textContent = '✍️ 서명이 입력되었습니다.';
+      drawn = true; $(tipId).textContent = '서명이 입력되었습니다.';
     };
     pad.onpointermove = e => { if (!drawing) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); };
     pad.onpointerup = pad.onpointercancel = () => { drawing = false; };
@@ -1362,7 +1370,7 @@ function openOpinion(workerId) {
   const locked = st === 'signed' || st === 'confirmed';
 
   navTo('opinion');
-  $('opTitle').textContent = `📝 ${w.round ? w.round + '_' : ''}${w.name || ''}`;
+  $('opTitle').textContent = `${w.round ? w.round + '_' : ''}${w.name || ''}`;
   $('opMeta').innerHTML =
     `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
     `<b>훈련과정</b> ${esc(curCourse.type || '')} · ${esc(curCourse.site || '')}<br>` +
@@ -1374,9 +1382,9 @@ function openOpinion(workerId) {
   let bar = `<div class="card"><div class="step-bar">${OP_STEPS.map(([k, label], i) =>
     `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}" style="font-size:10.5px;">${label}</div>`).join('')}</div>`;
   if (st === 'confirmed') {
-    bar += `<div class="lock-bar conf" style="margin-bottom:0;">✅ <b>센터 확인 완료</b>. 더 손대실 것이 없습니다.</div>`;
+    bar += `<div class="lock-bar conf" style="margin-bottom:0;"><b>센터 확인 완료</b>. 더 손대실 것이 없습니다.</div>`;
   } else if (st === 'signed') {
-    bar += `<div class="lock-bar" style="margin-bottom:0;">✅ <b>서명이 끝났습니다.</b> 센터 확인을 기다리는 중입니다.<br>
+    bar += `<div class="lock-bar" style="margin-bottom:0;"><b>서명이 끝났습니다.</b> 센터 확인을 기다리는 중입니다.<br>
       <span style="font-size:12px;">필요하시면 아래에서 인쇄해 보관하실 수 있습니다.<br>
       내용을 고쳐야 하면 센터에 잠금 해제를 요청해주세요.</span></div>`;
   } else {
@@ -1414,7 +1422,7 @@ function renderOpRows(locked) {
         <span style="color:var(--gray);">~</span>
         <input type="date" class="rf" data-k="to" value="${esc(r.to || '')}" ${locked ? 'disabled' : ''}
                style="flex:1;min-width:0;padding:8px 9px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px;">
-        ${locked ? '' : `<button type="button" class="op-btn ghost" data-del="${i}" style="padding:6px 10px;">✕</button>`}
+        ${locked ? '' : `<button type="button" class="op-btn ghost" data-del="${i}" style="padding:6px 10px;"></button>`}
       </div>
       <textarea class="rf" data-k="text" placeholder="이 기간에 무엇을 어떻게 가르쳤는지 적어주세요."
         ${locked ? 'disabled' : ''} style="width:100%;min-height:88px;padding:11px 12px;border:1.5px solid var(--line);
@@ -1451,11 +1459,11 @@ function renderOpActions(st) {
   const bar = $('opActions');
   if (st === 'ready') {
     bar.innerHTML = `<button class="act-save" id="opSave">임시저장</button>` +
-                    `<button class="act-sub" id="opSign">✍️ 확인하고 서명</button>`;
+                    `<button class="act-sub" id="opSign">확인하고 서명</button>`;
     $('opSave').onclick = () => saveOpinion(false);
     $('opSign').onclick = () => saveOpinion(true);
   } else {
-    bar.innerHTML = `<button class="act-print" id="opPrint">🖨️ 인쇄 · PDF 저장</button>`;
+    bar.innerHTML = `<button class="act-print" id="opPrint">인쇄 · PDF 저장</button>`;
     $('opPrint').onclick = printOpinion;
   }
 }
@@ -1615,7 +1623,7 @@ async function loadCounsels() {
       .filter(x => x.period === period && x.courseId === curCourse.id)
       .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
   } catch(e) {
-    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    el.innerHTML = '<div class="empty">불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
     return;
   }
   if (!curWorkers.length) { el.innerHTML = '<div class="empty">학습근로자가 없습니다.</div>'; return; }
@@ -1645,7 +1653,7 @@ async function loadCounsels() {
           <button class="op-btn ghost" data-cnopen="${esc(d.id)}" style="padding:6px 11px;">열기</button>
           ${st === 'confirmed' ? '' :
             `<button class="op-btn ghost" data-cndel="${esc(d.id)}" title="삭제"
-                     style="padding:6px 10px;color:#b91c1c;border-color:#fecaca;">🗑️</button>`}
+                     style="padding:6px 10px;color:#b91c1c;border-color:#fecaca;"></button>`}
         </div>`;
       }).join('')}
     </div>`;
@@ -1686,7 +1694,7 @@ function openCounsel(docId, workerId) {
   const period = $('periodSel').value;
 
   navTo('counsel');
-  $('cnTitle').textContent = `🗣️ ${w.name || ''} 면담일지`;
+  $('cnTitle').textContent = `${w.name || ''} 면담일지`;
   $('cnMeta').innerHTML =
     (d ? `<b>문서번호</b> No. ${esc(cnNo(d, cnDocs))}<br>` : `<b>문서번호</b> 저장하면 자동으로 부여됩니다<br>`) +
     `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
@@ -1697,9 +1705,9 @@ function openCounsel(docId, workerId) {
   const idx = Math.max(0, CN_ORDER.indexOf(st));
   let bar = `<div class="card"><div class="step-bar" style="grid-template-columns:repeat(3,1fr);">${CN_STEPS.map(([k, label], i) =>
     `<div class="step ${i < idx ? 'done' : (i === idx ? 'now' : '')}" style="font-size:10.5px;">${label}</div>`).join('')}</div>`;
-  if (st === 'confirmed') bar += `<div class="lock-bar conf" style="margin-bottom:0;">✅ <b>센터 확인 완료</b>.</div>`;
-  else if (st === 'signed') bar += `<div class="lock-bar" style="margin-bottom:0;">✅ <b>서명이 끝났습니다.</b> 센터 확인을 기다리는 중입니다.<br>
-    <span style="font-size:12px;">인쇄해 보관하실 수 있고, 고칠 내용이 있으면 아래 <b>✏️ 수정하기</b>를 누르세요.</span></div>`;
+  if (st === 'confirmed') bar += `<div class="lock-bar conf" style="margin-bottom:0;"><b>센터 확인 완료</b>.</div>`;
+  else if (st === 'signed') bar += `<div class="lock-bar" style="margin-bottom:0;"><b>서명이 끝났습니다.</b> 센터 확인을 기다리는 중입니다.<br>
+    <span style="font-size:12px;">인쇄해 보관하실 수 있고, 고칠 내용이 있으면 아래 <b>수정하기</b>를 누르세요.</span></div>`;
   else bar += `<div class="info-box" data-guide="counsel_form" style="margin-bottom:0;">
     면담에서 나온 이야기를 항목별로 적어주세요.<br>
     해당 없는 항목은 비워두셔도 됩니다. <b>임시저장</b>으로 나중에 이어 쓸 수 있습니다.</div>`;
@@ -1731,14 +1739,14 @@ function renderCnActions(st) {
   const bar = $('cnActions');
   if (st === 'draft') {
     bar.innerHTML = `<button class="act-save" id="cnSave">임시저장</button>` +
-                    `<button class="act-sub" id="cnSignBtn">✍️ 서명하고 확정</button>`;
+                    `<button class="act-sub" id="cnSignBtn">서명하고 확정</button>`;
     $('cnSave').onclick = () => saveCounsel(false);
     $('cnSignBtn').onclick = () => saveCounsel(true);
   } else {
-    bar.innerHTML = `<button class="act-print" id="cnPrint">🖨️ 인쇄 · PDF 저장</button>`
+    bar.innerHTML = `<button class="act-print" id="cnPrint">인쇄 · PDF 저장</button>`
       // 센터가 확인하기 전까지는 기업이 스스로 다시 열 수 있다.
       // (확인을 마친 뒤에는 센터에 요청해야 한다 — 보안규칙에서도 막힌다)
-      + (st === 'signed' ? `<button class="act-save" id="cnReopen">✏️ 수정하기</button>` : '');
+      + (st === 'signed' ? `<button class="act-save" id="cnReopen">수정하기</button>` : '');
     $('cnPrint').onclick = printCounsel;
     if ($('cnReopen')) $('cnReopen').onclick = reopenCounsel;
   }
@@ -1759,10 +1767,10 @@ function renderCnEvalHint() {
   box.innerHTML = same
     ? `<div style="font-size:12px;color:#166534;background:#F0FDF4;border:1px solid #86EFAC;
          border-radius:8px;padding:7px 10px;line-height:1.5;">
-         ✅ 이 달 <b>내부평가일</b>과 같습니다 — ${esc(evalDateLabel(ev))}</div>`
+         이 달 <b>내부평가일</b>과 같습니다 — ${esc(evalDateLabel(ev))}</div>`
     : `<div style="font-size:12px;color:#7C2D12;background:#FFF7ED;border:1px solid #FDBA74;
          border-radius:8px;padding:8px 10px;line-height:1.6;">
-         📅 이 달 <b>내부평가일</b>은 <b>${esc(evalDateLabel(ev))}</b> 입니다.<br>
+         이 달 <b>내부평가일</b>은 <b>${esc(evalDateLabel(ev))}</b> 입니다.<br>
          면담일지 날짜는 평가일과 같아야 합니다.
          <button type="button" id="cnUseEval" class="op-btn ghost"
            style="margin-top:6px;padding:5px 10px;font-size:11.5px;">평가일로 맞추기</button></div>`;
@@ -1942,12 +1950,12 @@ function printCounsel() {
 //    고용24 조회·비용 신청처럼 앱이 검증할 수 없는 것은 넣지 않는다.
 //    확인할 수 없는 걸 체크받으면 증빙이 아니라 허위 기재 위험이 된다.
 const CK_GROUPS = [
-  ['실시', '📝 훈련 실시 확인', [
+  ['실시', '훈련 실시 확인', [
     ['doc1', '능력단위에 맞게 훈련을 진행하였다'],
     ['doc2', '학습근로자와 면담을 실시하였다'],
     ['doc3', '내부평가를 실시하였다']
   ]],
-  ['총괄', '✅ 최종 확인', [
+  ['총괄', '최종 확인', [
     ['final', '위 내용에 사실과 다른 부분이 없다']
   ]]
 ];
@@ -1977,7 +1985,7 @@ async function loadChecklist() {
     const wanted = ckId(curCourse.id, period);
     snap.docs.forEach(d => { if (d.id === wanted) curChecklist = { id: d.id, ...d.data() }; });
   } catch(e) {
-    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    el.innerHTML = '<div class="empty">불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
     return;
   }
   const st = curChecklist ? (curChecklist.status || 'draft') : 'none';
@@ -2004,7 +2012,7 @@ function openChecklist() {
   const status = curChecklist?.status || 'none';
 
   navTo('checklist');
-  $('ckTitle').textContent = `✅ ${ymLabel(period)} 체크리스트`;
+  $('ckTitle').textContent = `${ymLabel(period)} 체크리스트`;
   $('ckMeta').innerHTML =
     `<b>기업</b> ${esc(myAccount.companyName || '')}<br>` +
     `<b>훈련과정</b> ${esc(curCourse.type || '')} · ${esc(curCourse.site || '')}<br>` +
@@ -2012,9 +2020,9 @@ function openChecklist() {
 
   const bar = $('ckLockBar');
   if (curChecklist?.status === 'confirmed') {
-    bar.innerHTML = `<div class="lock-bar conf">✅ <b>센터에서 확인을 마친 체크리스트</b>입니다. 수정할 수 없습니다.</div>`;
+    bar.innerHTML = `<div class="lock-bar conf"><b>센터에서 확인을 마친 체크리스트</b>입니다. 수정할 수 없습니다.</div>`;
   } else if (locked) {
-    bar.innerHTML = `<div class="lock-bar">🔒 <b>서명 제출이 끝난 체크리스트</b>입니다. 수정할 수 없습니다.
+    bar.innerHTML = `<div class="lock-bar"><b>서명 제출이 끝난 체크리스트</b>입니다. 수정할 수 없습니다.
       ${curChecklist.signedAt ? '<br><span style="font-size:12px;">제출일 ' + esc(curChecklist.signedAt.slice(0,10)) + '</span>' : ''}
       <br><span style="font-size:12px;">고쳐야 할 내용이 있으면 센터에 잠금 해제를 요청해주세요.</span></div>`;
   } else {
@@ -2073,16 +2081,16 @@ function renderCkGroups(locked) {
 function renderCkActions(locked) {
   const bar = $('ckActions');
   if (locked) {
-    bar.innerHTML = `<button class="act-print" id="ckPrint">🖨️ 인쇄 · PDF 저장</button>`;
+    bar.innerHTML = `<button class="act-print" id="ckPrint">인쇄 · PDF 저장</button>`;
     $('ckPrint').onclick = printChecklist;
     return;
   }
   bar.innerHTML =
     `<button class="act-save" id="ckSave">임시저장</button>` +
-    `<button class="act-sub" id="ckSubmit">✍️ 서명하고 제출</button>` +
+    `<button class="act-sub" id="ckSubmit">서명하고 제출</button>` +
     // 이미 저장된 작성 중 문서가 있을 때만 삭제를 보여준다 (빈 화면에 삭제 버튼은 혼란스럽다)
     (curChecklist ? `<button class="act-save" id="ckDel"
-        style="background:#fee2e2;color:#b91c1c;">🗑️ 삭제</button>` : '');
+        style="background:#fee2e2;color:#b91c1c;">삭제</button>` : '');
   $('ckSave').onclick = () => saveChecklist(false);
   $('ckSubmit').onclick = () => saveChecklist(true);
   if ($('ckDel')) $('ckDel').onclick = deleteChecklistDoc;
@@ -2214,7 +2222,7 @@ function renderCkScans(status) {
     </div>`).join('') +
     (locked ? '' : `
     <div class="drop" id="ckDrop">
-      <div class="big">📷</div>
+      <div class="big">+</div>
       <div class="t">자필 서명본 올리기</div>
       <div class="s">출력물에 서명한 뒤 사진을 찍어 올려주세요.<br>한 개당 20MB까지</div>
       <input type="file" id="ckScanFile" multiple accept="image/*,.pdf" style="display:none;">
@@ -2264,7 +2272,7 @@ async function uploadCkScans(files) {
     toast(`✅ ${added.length}개 올렸습니다`);
     renderCkScans(curChecklist.status);
   } catch(e) {
-    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
+    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">올리기 실패: ${esc(e.message || '')}</div>`;
   }
 }
 
@@ -2376,7 +2384,7 @@ async function loadAssessment() {
     const wanted = asId(curCourse.id, period);
     snap.docs.forEach(d => { if (d.id === wanted) curAssess = { id: d.id, ...d.data() }; });
   } catch(e) {
-    el.innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    el.innerHTML = '<div class="empty">불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
     return;
   }
   renderAssessment();
@@ -2396,7 +2404,7 @@ function evalNotice(a) {
 
   return `<div style="border:1.5px solid #FDBA74;background:#FFF7ED;border-radius:11px;
        padding:12px 14px;margin-bottom:12px;">
-    ${date ? `<div style="font-size:12px;font-weight:700;color:#9A3412;">📅 평가일</div>
+    ${date ? `<div style="font-size:12px;font-weight:700;color:#9A3412;">평가일</div>
       <div style="font-size:17px;font-weight:800;color:#7C2D12;margin-top:3px;letter-spacing:-0.3px;">
         ${esc(evalDateLabel(date))}</div>` : ''}
     ${note ? `<div style="font-size:12.5px;color:#7C2D12;margin-top:${date ? '8' : '0'}px;
@@ -2445,13 +2453,13 @@ function renderAssessment() {
 
   const locked = status === 'confirmed';
   el.innerHTML = steps + exam + `
-    ${sheets.length ? `<div style="font-size:13px;font-weight:700;margin:4px 0 8px;">📥 평가지 내려받기</div>` : ''}
+    ${sheets.length ? `<div style="font-size:13px;font-weight:700;margin:4px 0 8px;">평가지 내려받기</div>` : ''}
     ${sheets.map(f => `<div class="file-row">
       <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
       <a href="${esc(f.url)}" target="_blank" rel="noopener" download>내려받기 ↓</a>
     </div>`).join('')}
 
-    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;">📤 작성 완료본 올리기
+    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;">작성 완료본 올리기
       <span class="hint">${dones.length ? dones.length + '개 올림' : '아직 없음'}</span></div>
     ${dones.map((f, i) => `<div class="file-row">
       <div style="flex:1;min-width:0;"><div class="fn">${esc(f.name)}</div><div class="fs">${fileSize(f.size)}</div></div>
@@ -2459,9 +2467,9 @@ function renderAssessment() {
       ${locked ? '' : `<button class="op-btn ghost" data-rm="${i}" style="padding:6px 10px;">삭제</button>`}
     </div>`).join('')}
 
-    ${locked ? `<div class="lock-bar conf" style="margin-top:10px;">✅ 센터에서 확인을 마쳤습니다. 더 올리거나 지울 수 없습니다.</div>` : `
+    ${locked ? `<div class="lock-bar conf" style="margin-top:10px;">센터에서 확인을 마쳤습니다. 더 올리거나 지울 수 없습니다.</div>` : `
     <div class="drop" id="asDrop">
-      <div class="big">📎</div>
+      <div class="big">+</div>
       <div class="t">여기를 눌러 파일 선택</div>
       <div class="s">작성한 평가지를 사진으로 찍거나 스캔해서 올려주세요.<br>
         여러 장 한 번에 선택할 수 있습니다 · 한 개당 20MB까지</div>
@@ -2469,7 +2477,7 @@ function renderAssessment() {
     </div>
     <div id="asProgress"></div>
     ${dones.length ? `<div class="act-bar" style="margin-top:12px;">
-      <button class="act-sub" id="asSubmit">${status === 'submitted' ? '✅ 제출됨 — 다시 알리기' : '📨 제출하기'}</button>
+      <button class="act-sub" id="asSubmit">${status === 'submitted' ? '제출됨 — 다시 알리기' : '제출하기'}</button>
     </div>` : ''}
     ${status === 'submitted' ? `<div style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.55;">
       제출된 상태입니다. 센터가 확인하기 전까지는 파일을 더 올리거나 지울 수 있습니다.</div>` : ''}`}`;
@@ -2536,7 +2544,7 @@ async function uploadDoneFiles(files) {
     toast(`✅ ${added.length}개 올렸습니다`);
     renderAssessment();
   } catch(e) {
-    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">❌ 올리기 실패: ${esc(e.message || '')}</div>`;
+    prog.innerHTML = `<div style="font-size:12.5px;color:var(--danger);margin-top:10px;">올리기 실패: ${esc(e.message || '')}</div>`;
   }
   asUploading = false;
 }
@@ -2573,7 +2581,7 @@ async function submitAssessment() {
     renderAssessment();
   } catch(e) {
     console.error('[submit]', e); alert(saveFailMsg(e, '제출'));
-    if (btn) { btn.disabled = false; btn.textContent = '📨 제출하기'; }
+    if (btn) { btn.disabled = false; btn.textContent = '제출하기'; }
   }
 }
 
@@ -2629,7 +2637,7 @@ async function loadTraining(){
       .filter(l => l.courseId === curCourse.id);
     trMonthDoc = mSnap.exists() ? { id: mSnap.id, ...mSnap.data() } : null;
   } catch(e) {
-    $('trUnitBox').innerHTML = '<div class="empty">⚠️ 불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
+    $('trUnitBox').innerHTML = '<div class="empty">불러오지 못했습니다.<br><small>' + esc(e.message || '') + '</small></div>';
     return;
   }
   // 학습근로자 선택지 — 기록이 있는 사람 우선, 없으면 과정 명단
@@ -2708,24 +2716,24 @@ function renderTrDay(){
   const [,mm,dd] = trDay.split('-');
   const locked = trClosed();
   box.innerHTML = `<div class="card">
-    <div class="card-title">✏️ ${Number(mm)}월 ${Number(dd)}일 훈련 기록
+    <div class="card-title">${Number(mm)}월 ${Number(dd)}일 훈련 기록
       <span class="st-badge ${r.teacher?'st-conf':'st-draft'}" style="margin-left:auto;">${r.teacher?'작성 완료':'의견 미작성'}</span>
     </div>
     <div style="font-size:12.5px;color:var(--gray);background:#F8FAFC;border-radius:9px;padding:9px 11px;margin-bottom:12px;">
       능력단위 <b>${esc((trMonthDoc&&trMonthDoc.unitName)||'-')}</b> · 훈련시간 <b>${r.hours||0}시간</b>${r.beacon?` · 비콘 <b>${esc(r.beacon)}</b>`:''}
     </div>
-    ${locked ? `<div class="lock-bar" style="margin:0;">🔒 ${trConfirmed()?'센터 확인이 끝나':'마감되어'} 고칠 수 없습니다.</div>
+    ${locked ? `<div class="lock-bar" style="margin:0;">${trConfirmed()?'센터 확인이 끝나':'마감되어'} 고칠 수 없습니다.</div>
       <div class="sect stu" style="margin-top:12px;">
-        <div class="sect-h">👷 학습근로자가 쓴 내용</div>
+        <div class="sect-h">학습근로자가 쓴 내용</div>
         <div class="sect-b">${r.content?esc(r.content):'<span style="color:var(--gray);">작성 없음</span>'}</div>
       </div>
       <div class="sect tea">
-        <div class="sect-h">🧑‍🏫 기업현장교사 의견</div>
+        <div class="sect-h">기업현장교사 의견</div>
         <div class="sect-b">${r.teacher?esc(r.teacher):'<span style="color:var(--gray);">작성 없음</span>'}</div>
       </div>` : `
     <!-- 누가 쓴 글인지 한눈에 갈리도록 두 구역을 색으로 나눈다 -->
     <div class="sect stu">
-      <div class="sect-h">👷 학습근로자가 쓴 내용
+      <div class="sect-h">학습근로자가 쓴 내용
         ${r.source==='beacon'&&r.content?'<span class="badge" style="margin-left:5px;">학습활동서</span>':''}</div>
       ${!r.content?`<div style="font-size:12.5px;color:#7C2D12;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.55;">
         학생이 학습활동서를 아직 쓰지 않았습니다. 직접 적어주세요.</div>`:''}
@@ -2733,7 +2741,7 @@ function renderTrDay(){
     </div>
 
     <div class="sect tea">
-      <div class="sect-h">🧑‍🏫 기업현장교사 의견 <span style="font-weight:400;color:var(--gray);font-size:11.5px;">— 현장교사가 직접 작성</span></div>
+      <div class="sect-h">기업현장교사 의견 <span style="font-weight:400;color:var(--gray);font-size:11.5px;">— 현장교사가 직접 작성</span></div>
       <div class="guide">
         <b>이런 내용을 적어주세요</b>
         <div class="g-row"><span class="g-n">1</span> 오늘 무엇을 <b>어느 정도까지</b> 해냈는지</div>
@@ -2753,7 +2761,7 @@ function renderTrDay(){
       <textarea id="trTeacher" style="min-height:112px;" placeholder="위 안내를 참고해 적어주세요.">${esc(r.teacher||'')}</textarea>
     </div>
     <div class="act-bar">
-      <button class="act-sub" id="trSave">💾 저장</button>
+      <button class="act-sub" id="trSave">저장</button>
       <button class="act-save" id="trCancel">닫기</button>
     </div>`}
   </div>`;
@@ -2800,7 +2808,7 @@ function renderTrClose(){
   const canClose = ojt.length > 0 && left === 0;
 
   $('trCloseBox').innerHTML = `<div class="card">
-    <div class="card-title">✅ ${esc(ymLabel(trPeriod()))} 마감
+    <div class="card-title">${esc(ymLabel(trPeriod()))} 마감
       <span class="st-badge ${st==='confirmed'?'st-conf':st==='closed'?'st-sub':'st-none'}" style="margin-left:auto;">
         ${st==='confirmed'?'센터 확인 완료':st==='closed'?'센터 확인 대기':'작성 중'}</span></div>
     <div class="info-box">훈련 기록을 <b>기업현장교사</b>가 확인하고 서명해 마감합니다.<br>
@@ -2830,11 +2838,11 @@ function renderTrClose(){
 
     <div class="act-bar" style="margin-top:14px;">
       ${st==='open'
-        ? `<button class="act-sub" id="trClose" ${canClose?'':'disabled'}>✍️ 서명하고 마감</button>`
+        ? `<button class="act-sub" id="trClose" ${canClose?'':'disabled'}>서명하고 마감</button>`
         : st==='closed'
-          ? `<button class="act-save" id="trReopen">✏️ 마감 취소하고 고치기</button>`
+          ? `<button class="act-save" id="trReopen">마감 취소하고 고치기</button>`
           : ''}
-      <button class="act-print" id="trPrint">🖨️ 인쇄 · PDF 저장</button>
+      <button class="act-print" id="trPrint">인쇄 · PDF 저장</button>
     </div>
     ${st==='open' && !ojt.length ? `<div class="hint" style="margin-top:8px;color:var(--gray);">훈련 기록이 있어야 마감할 수 있습니다.</div>`
       : st==='open' && left ? `<div class="hint" style="margin-top:8px;color:#B3542F;">현장교사 의견을 모두 쓰셔야 마감할 수 있습니다.</div>` : ''}

@@ -9,7 +9,7 @@
 <script src="dark-mode.js"></script>
 <link rel="manifest" href="manifest.json"/>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root {
   --bg:#F2F4F6; --card:#FFFFFF; --border:#E5E8EB;
@@ -44,7 +44,7 @@ body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-syste
 .dept-arrow{color:var(--text3);font-size:18px}
 
 /* 메뉴 카드 */
-.menu-card{background:var(--card);border-radius:18px;padding:20px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;border:1px solid var(--border);transition:all 0.15s;margin-bottom:10px;position:relative;overflow:hidden}
+.menu-card{background:var(--card);border-radius:12px;padding:20px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;border:1px solid var(--border);transition:all 0.15s;margin-bottom:10px;position:relative;overflow:hidden}
 .menu-card::after{content:'';position:absolute;top:0;right:0;bottom:0;width:4px}
 .menu-card.written::after{background:var(--blue)}
 .menu-card.interview::after{background:var(--purple)}
@@ -100,7 +100,7 @@ body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-syste
 .progress-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
 .progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width 0.4s ease}
 .progress-text{font-size:12px;color:var(--text2);white-space:nowrap}
-.q-card{background:var(--card);border-radius:18px;padding:22px 20px;margin-bottom:14px;border:1px solid var(--border)}
+.q-card{background:var(--card);border-radius:12px;padding:22px 20px;margin-bottom:14px;border:1px solid var(--border)}
 .q-type-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;background:var(--tk-primary-soft);color:var(--blue);display:inline-block;margin-bottom:8px;letter-spacing:-0.2px}
 .q-num{font-size:11px;color:var(--blue);font-weight:700;margin-bottom:6px}
 .q-text{font-size:15px;font-weight:500;line-height:1.7;color:var(--text);word-break:keep-all}
@@ -130,7 +130,7 @@ body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-syste
 
 /* 네비 버튼 */
 .nav-btns{display:flex;gap:10px;margin-top:auto;padding-top:8px}
-.nav-btn{flex:1;padding:14px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:'Noto Sans KR',sans-serif}
+.nav-btn{flex:1;padding:14px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif}
 .btn-confirm{background:var(--blue);color:white}
 .btn-confirm:disabled{background:var(--border);color:var(--text3);cursor:default}
 .btn-next{background:var(--blue);color:white}
@@ -163,8 +163,8 @@ body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-syste
 .review-ans.right{color:var(--green)}
 .review-exp{font-size:12px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);line-height:1.5}
 .result-btns{width:100%;display:flex;gap:10px;margin-top:16px}
-.btn-retry{background:var(--bg);color:var(--text);border:1.5px solid var(--border);flex:1;padding:14px;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
-.btn-home{background:var(--blue);color:white;flex:1;padding:14px;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none}
+.btn-retry{background:var(--bg);color:var(--text);border:1.5px solid var(--border);flex:1;padding:14px;border-radius:12px;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.btn-home{background:var(--blue);color:white;flex:1;padding:14px;border-radius:12px;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none}
 
 /* 면접 시험 화면 */
 .interview-wrap{padding:16px;max-width:600px;margin:0 auto}
@@ -174,10 +174,10 @@ body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-syste
 .q-interview-card{background:var(--card);border-radius:var(--radius);padding:22px 20px;margin-bottom:14px;border:1.5px solid var(--border);box-shadow:var(--shadow)}
 .interview-q-label{font-size:11px;font-weight:700;color:var(--purple);background:#f3e8ff;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:10px}
 .interview-q-text{font-size:15px;font-weight:600;color:var(--text);line-height:1.7;word-break:keep-all}
-.answer-textarea{width:100%;padding:14px 16px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--text);outline:none;resize:vertical;min-height:140px;transition:border-color 0.2s;margin-bottom:12px}
+.answer-textarea{width:100%;padding:14px 16px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;color:var(--text);outline:none;resize:vertical;min-height:140px;transition:border-color 0.2s;margin-bottom:12px}
 .answer-textarea:focus{border-color:var(--purple);background:white}
 .answer-textarea::placeholder{color:var(--text3)}
-.submit-answer-btn{width:100%;padding:14px;background:var(--purple);color:white;border:none;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.submit-answer-btn{width:100%;padding:14px;background:var(--purple);color:white;border:none;border-radius:12px;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s}
 .submit-answer-btn:disabled{background:var(--border);color:var(--text3);cursor:default}
 
 /* AI 피드백 카드 */
@@ -192,7 +192,7 @@ body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-syste
 .feedback-text{font-size:13px;color:var(--text);line-height:1.7;background:var(--bg);border-radius:8px;padding:12px}
 .feedback-strong{color:var(--green);font-weight:700}
 .feedback-weak{color:var(--red);font-weight:700}
-.next-q-btn{width:100%;padding:14px;background:var(--purple);color:white;border:none;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.next-q-btn{width:100%;padding:14px;background:var(--purple);color:white;border:none;border-radius:12px;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s}
 
 /* 면접 결과 */
 .interview-result{padding:20px 16px;max-width:600px;margin:0 auto}
@@ -206,7 +206,7 @@ body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-syste
 .error-box{text-align:center;padding:40px 20px}
 .error-icon{font-size:48px;margin-bottom:16px}
 .error-msg{font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5}
-.error-retry{padding:14px 32px;border-radius:12px;border:none;background:var(--blue);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif}
+.error-retry{padding:14px 32px;border-radius:12px;border:none;background:var(--blue);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .fade-in{animation:fadeIn 0.35s ease both}
