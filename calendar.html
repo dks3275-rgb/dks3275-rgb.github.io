@@ -14,21 +14,24 @@
   --blue:#3182F6; --navy:#1B64DA; --bg:#F2F4F6;
   --card:#FFFFFF; --border:#E5E8EB; --text:#191F28;
   --text2:#4E5968; --text3:#8B95A1;
-  --shadow:0 2px 8px rgba(0,0,0,0.06); --radius:14px;
+  --ink-navy:#1F2D4A; --au-blue:#1A6FB3;
+  /* 반경을 줄이고 그림자를 없앤다 — 말랑한 느낌의 원인 */
+  --shadow:none; --radius:10px;
   --tk-primary-soft:#E8F2FF; --tk-border-strong:#D1D6DB;
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body { font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; letter-spacing:-0.2px; }
 
-.header { background:var(--card); padding:14px 16px 0; border-bottom:1px solid var(--border); }
+.header { background:var(--ink-navy); padding:13px 16px 0; border-bottom:0; }
+.header .au-logo { height:20px; width:auto; margin-left:2px; }
 .header-top { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
 .back-btn { background:var(--bg); border:none; color:var(--text); width:36px; height:36px; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; flex-shrink:0; font-weight:600; transition:background 0.15s; }
 .back-btn:hover { background:var(--border); }
-.header-badge { background:var(--tk-primary-soft); color:var(--blue); font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; letter-spacing:-0.2px; }
-.header h1 { color:var(--text); font-size:16px; font-weight:700; letter-spacing:-0.4px; }
+.header-badge { display:none; background:var(--tk-primary-soft); color:var(--blue); font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; letter-spacing:-0.2px; }
+.header h1 { color:#fff; font-size:16px; font-weight:700; letter-spacing:-0.4px; }
 .view-tabs { display:flex; }
-.view-tab { flex:1; padding:12px; border:none; background:none; color:var(--text3); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.15s; letter-spacing:-0.2px; }
-.view-tab.active { color:var(--blue); border-bottom-color:var(--blue); font-weight:700; }
+.view-tab { flex:1; padding:12px; border:none; background:none; color:#8E9DB8; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.15s; letter-spacing:-0.2px; }
+.view-tab.active { color:#fff; border-bottom-color:#fff; font-weight:700; }
 
 .month-nav { background:var(--card); padding:14px 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
 .month-btn { width:36px; height:36px; border:1px solid var(--border); border-radius:10px; background:var(--card); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; color:var(--text); transition:all 0.15s; }
@@ -123,12 +126,12 @@ body { font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-sys
 <div class="header">
   <div class="header-top">
     <a href="index.html" class="back-btn">←</a>
-    <span class="header-badge">일정</span>
-    <h1>캘린더</h1>
+    <img class="au-logo" src="assets/logo-au-white.png" alt="안산대학교" width="613" height="128">
+    <h1>학사 일정</h1>
   </div>
   <div class="view-tabs">
-    <button class="view-tab active" onclick="switchView('calendar', this)">📅 달력</button>
-    <button class="view-tab" onclick="switchView('list', this)">📋 목록</button>
+    <button class="view-tab active" onclick="switchView('calendar', this)">달력</button>
+    <button class="view-tab" onclick="switchView('list', this)">목록</button>
   </div>
 </div>
 
@@ -192,16 +195,16 @@ const app = getApps().find(a=>a.name==='calendar') || initializeApp(firebaseConf
 const db = getFirestore(app);
 
 const CATEGORIES = {
-  '학교일정':   {color:'#2196f3',icon:'📅'},
-  '시험/평가':  {color:'#e74c3c',icon:'📝'},
-  '보강':       {color:'#27ae60',icon:'🔧'},
-  '휴강/공휴일':{color:'#9b59b6',icon:'🏖️'},
-  '과제/제출':  {color:'#f39c12',icon:'📋'},
-  '현장훈련':   {color:'#16a085',icon:'🏢'},
-  '외부평가':   {color:'#2980b9',icon:'🎓'},
-  '공지/안내':  {color:'#7f8c8d',icon:'📢'},
-  '긴급공지':   {color:'#c0392b',icon:'⚡'},
-  '행사/이벤트':{color:'#e91e63',icon:'🎉'},
+  '학교일정':   {color:'#1F2D4A'},
+  '시험/평가':  {color:'#B4453C'},
+  '보강':       {color:'#2F7D5B'},
+  '휴강/공휴일':{color:'#6B5B95'},
+  '과제/제출':  {color:'#B8812F'},
+  '현장훈련':   {color:'#1A6FB3'},
+  '외부평가':   {color:'#2C5F8A'},
+  '공지/안내':  {color:'#6B7480'},
+  '긴급공지':   {color:'#9B2C2C'},
+  '행사/이벤트':{color:'#9D4C6E'},
 };
 
 let currentYear = new Date().getFullYear();
@@ -328,7 +331,7 @@ function renderCalendar() {
       // 단일 이벤트 점
       const dayDots = singleEvents.filter(e => normalizeEvent(e).startDate === dateStr)
         .slice(0,3).map(e => {
-          const cat = CATEGORIES[e.category]||{color:'#2196f3'};
+          const cat = CATEGORIES[e.category]||{color:'#6B7480'};
           return `<div style="width:5px;height:5px;border-radius:50%;background:${cat.color};flex-shrink:0;"></div>`;
         }).join('');
 
@@ -360,7 +363,7 @@ function renderCalendar() {
       html += `<div style="position:absolute;bottom:0;left:0;right:0;pointer-events:none;">`;
       weekLanes.forEach(({event, lane}) => {
         const ne = normalizeEvent(event);
-        const cat = CATEGORIES[event.category]||{color:'#2196f3'};
+        const cat = CATEGORIES[event.category]||{color:'#6B7480'};
 
         // 이 주에서 시작/끝 컬럼 계산
         const curDays = week.map((c,i)=>({...c,col:i})).filter(c=>c.cur);
@@ -435,7 +438,7 @@ function renderSelectedDay(date) {
 
   const el = document.getElementById('selectedDayEvents');
   if (dayEvents.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">이 날 일정이 없어요</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">—</div><div class="empty-text">이 날 일정이 없어요</div></div>';
     return;
   }
   el.innerHTML = dayEvents.map(e => renderEventCard(e)).join('');
@@ -445,7 +448,7 @@ function renderListView() {
   const monthEvs = allEvents.filter(e => eventInMonth(e, currentYear, currentMonth));
   const el = document.getElementById('listEvents');
   if (monthEvs.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">이번 달 일정이 없어요</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">—</div><div class="empty-text">이번 달 일정이 없어요</div></div>';
     return;
   }
 
@@ -479,20 +482,20 @@ function renderListView() {
 
 function renderEventCard(e) {
   const ne = normalizeEvent(e);
-  const cat = CATEGORIES[e.category]||{color:'#2196f3',icon:'📅'};
+  const cat = CATEGORIES[e.category]||{color:'#6B7480'};
   const multi = ne.startDate !== ne.endDate;
   const sd = parseDate(ne.startDate), ed = parseDate(ne.endDate);
   const rangeTxt = multi ? `${sd.getMonth()+1}/${sd.getDate()} ~ ${ed.getMonth()+1}/${ed.getDate()}` : '';
 
   return `<div class="event-card" style="--cat:${cat.color};border-left-color:${cat.color}" onclick="openEvent('${e.id}')">
     <div class="event-top">
-      <span class="event-cat">${cat.icon} ${e.category||'일정'}</span>
-      ${multi ? `<span class="event-range-badge">📅 ${rangeTxt}</span>` : ''}
-      ${e.time ? `<span class="event-time">🕐 ${e.time}</span>` : ''}
+      <span class="event-cat">${e.category||'일정'}</span>
+      ${multi ? `<span class="event-range-badge">${rangeTxt}</span>` : ''}
+      ${e.time ? `<span class="event-time">${e.time}</span>` : ''}
     </div>
     <div class="event-title">${e.title}</div>
     ${e.description ? `<div class="event-desc">${e.description.substring(0,60)}${e.description.length>60?'...':''}</div>` : ''}
-    <div class="event-footer"><span class="comment-count">💬 댓글 ${e.commentCount||0}</span></div>
+    <div class="event-footer"><span class="comment-count">댓글 ${e.commentCount||0}</span></div>
   </div>`;
 }
 
@@ -500,21 +503,21 @@ window.openEvent = async function(eventId) {
   const event = allEvents.find(e=>e.id===eventId);
   if (!event) return;
   const ne = normalizeEvent(event);
-  const cat = CATEGORIES[event.category]||{color:'#2196f3',icon:'📅'};
+  const cat = CATEGORIES[event.category]||{color:'#6B7480'};
   const multi = ne.startDate !== ne.endDate;
   const sd = parseDate(ne.startDate), ed = parseDate(ne.endDate);
   const days = ['일','월','화','수','목','금','토'];
 
   let dateLine = multi
-    ? `📅 ${sd.getFullYear()}년 ${sd.getMonth()+1}월 ${sd.getDate()}일 (${days[sd.getDay()]}) ~ ${ed.getMonth()+1}월 ${ed.getDate()}일 (${days[ed.getDay()]})`
-    : `📅 ${sd.getFullYear()}년 ${sd.getMonth()+1}월 ${sd.getDate()}일 (${days[sd.getDay()]})${event.time ? ' &nbsp; 🕐 '+event.time : ''}`;
+    ? `${sd.getFullYear()}년 ${sd.getMonth()+1}월 ${sd.getDate()}일 (${days[sd.getDay()]}) ~ ${ed.getMonth()+1}월 ${ed.getDate()}일 (${days[ed.getDay()]})`
+    : `${sd.getFullYear()}년 ${sd.getMonth()+1}월 ${sd.getDate()}일 (${days[sd.getDay()]})${event.time ? ' &nbsp;  '+event.time : ''}`;
 
   document.getElementById('modalContent').innerHTML = `
-    <span class="modal-cat" style="color:${cat.color};background:${cat.color}22">${cat.icon} ${event.category}</span>
+    <span class="modal-cat" style="color:${cat.color};background:${cat.color}22">${event.category}</span>
     <div class="modal-title">${event.title}</div>
     <div class="modal-date">${dateLine}</div>
     ${event.description ? `<div class="modal-desc">${event.description}</div>` : ''}
-    <div class="comments-title">💬 댓글 <span id="commentCount">${event.commentCount||0}</span></div>
+    <div class="comments-title">댓글 <span id="commentCount">${event.commentCount||0}</span></div>
     <div id="commentList"><div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">불러오는 중...</div></div>
     <div class="comment-input-wrap">
       <textarea class="comment-input" id="commentInput" placeholder="댓글을 입력하세요..." rows="1" oninput="autoResize(this)"></textarea>
@@ -597,7 +600,7 @@ window.switchView = function(view,btn) {
 
 // 범례
 document.getElementById('legendWrap').innerHTML = Object.entries(CATEGORIES).map(([name,info])=>
-  `<div class="legend-item"><div class="legend-dot" style="background:${info.color}"></div>${info.icon} ${name}</div>`
+  `<div class="legend-item"><div class="legend-dot" style="background:${info.color}"></div>${name}</div>`
 ).join('');
 
 // 초기화

@@ -8,33 +8,37 @@
 <script src="device-check.js" data-auto-block></script>
 <script src="dark-mode.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-  :root { --navy:#1976d2; --blue:#2196f3; --accent:#e8a020; --light:#f0f4f8; --gray:#8a9ab5; --green:#10b981; --red:#ef4444; }
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+  :root { --ink-navy:#1F2D4A; --au-blue:#1A6FB3;
+          --navy:#1F2D4A; --blue:#1A6FB3; --accent:#B8812F; --light:#F2F4F6;
+          --gray:#8B95A1; --green:#1F9D6B; --red:#B4453C; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Noto Sans KR', sans-serif; background:var(--light); min-height:100vh; }
-  .header { background:var(--blue); padding:20px 24px; display:flex; align-items:center; gap:12px; }
+  body { font-family:'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; -webkit-font-smoothing:antialiased; letter-spacing:-0.3px; background:var(--light); min-height:100vh; }
+  .header { background:var(--ink-navy); padding:13px 16px; display:flex; align-items:center; gap:11px; }
+  .header .au-logo { height:20px; width:auto; margin-left:2px; }
   .back-btn { background:rgba(255,255,255,0.2); color:white; width:36px; height:36px; border-radius:10px; font-size:18px; display:flex; align-items:center; justify-content:center; text-decoration:none; flex-shrink:0; }
-  .header-badge { background:var(--accent); color:white; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
-  .header h1 { color:white; font-size:18px; font-weight:700; }
+  .header-badge { display:none; background:var(--accent); color:white; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
+  .header h1 { color:white; font-size:16px; font-weight:700; letter-spacing:-0.4px; }
   .container { max-width:700px; margin:0 auto; padding:20px 16px 80px; }
 
   /* 가장 가까운 시험 하이라이트 */
-  .next-hero { background:linear-gradient(135deg,#1976d2,#42a5f5); border-radius:16px; padding:20px; color:white; margin-bottom:18px; box-shadow:0 6px 18px rgba(25,118,210,0.28); }
+  /* 예전에는 파랑 그라데이션 + 큰 그림자였다. 네이비 단색으로 */
+  .next-hero { background:var(--ink-navy); border-radius:12px; padding:17px 18px; color:white; margin-bottom:16px; }
   .next-hero .cap { font-size:11px; font-weight:700; opacity:0.85; letter-spacing:0.5px; }
   .next-hero .ttl { font-size:19px; font-weight:700; margin:6px 0 4px; }
   .next-hero .meta { font-size:13px; opacity:0.92; }
   .next-hero .dday { font-size:32px; font-weight:700; line-height:1.1; margin-top:10px; }
 
   .toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-  .filter-chip { padding:8px 14px; border:1.5px solid #e4eaf4; border-radius:20px; font-size:13px; background:white; font-family:inherit; font-weight:600; color:#64748b; cursor:pointer; }
-  .filter-chip.active { background:var(--blue); border-color:var(--blue); color:white; }
+  .filter-chip { padding:7px 13px; border:1px solid #E2E6EB; border-radius:8px; font-size:13px; background:white; font-family:inherit; font-weight:600; color:#64748b; cursor:pointer; }
+  .filter-chip.active { background:var(--ink-navy); border-color:var(--ink-navy); color:white; }
 
   .exam-card { background:white; border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(33,150,243,0.08); margin-bottom:12px; border-left:4px solid var(--blue); }
   .exam-card.soon { border-left-color:var(--red); }
   .exam-card.done { opacity:0.55; border-left-color:var(--gray); }
   .exam-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
   .type-badge { font-size:11px; padding:3px 9px; border-radius:6px; font-weight:700; }
-  .dday-badge { margin-left:auto; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#475569; }
+  .dday-badge { margin-left:auto; font-size:12px; font-weight:700; padding:3px 9px; border-radius:7px; background:#f1f5f9; color:#475569; }
   .dday-badge.urgent { background:#fee2e2; color:#991b1b; }
   .dday-badge.today { background:var(--red); color:white; }
   .dday-badge.ing { background:#d1fae5; color:#065f46; }
@@ -53,12 +57,12 @@
 <body>
 <div class="header">
   <a href="index.html" class="back-btn" aria-label="홈으로">←</a>
-  <div class="header-badge">D-day</div>
-  <h1>주요 일정</h1>
+  <img class="au-logo" src="assets/logo-au-white.png" alt="안산대학교" width="613" height="128">
+  <h1>다가오는 일정</h1>
 </div>
 <div class="container">
   <div class="info-box">
-    🗓️ 개강·시험·외부평가·행사까지, 챙겨야 할 일정을 D-day로 확인할 수 있어요.
+    개강·시험·외부평가·행사까지, 챙겨야 할 일정을 D-day로 확인할 수 있어요.
   </div>
   <div id="hero"></div>
   <div class="toolbar" id="filterBar"></div>
@@ -74,17 +78,19 @@
   const db = getFirestore(app);
 
   // 일정 유형 정의 (admin.html의 EXAM_TYPE_COLORS·select 옵션과 동일하게 유지할 것)
+  // 유형별 색 — 예전에는 이모지 + 높은 채도의 파스텔이었다.
+  // 아이콘을 빼고 색을 한 단계 낮춰 칩이 서로 싸우지 않게 했다.
   const TYPES = {
-    '개강':            { icon:'🌱', bg:'#dcfce7', fg:'#166534' },
-    '중간고사':        { icon:'📖', bg:'#e3f2fd', fg:'#1565c0' },
-    '기말고사':        { icon:'📚', bg:'#ede9fe', fg:'#5b21b6' },
-    '외부평가':        { icon:'🎓', bg:'#fef3c7', fg:'#92400e' },
-    '학습활동서 마무리': { icon:'📋', bg:'#d1fae5', fg:'#065f46' },
-    '제출 마감':       { icon:'⏰', bg:'#fee2e2', fg:'#991b1b' },
-    '행사':            { icon:'🎉', bg:'#fce7f3', fg:'#9d174d' },
-    '특강·보충':       { icon:'💡', bg:'#e0f2fe', fg:'#075985' },
-    '종강':            { icon:'🏁', bg:'#f1f5f9', fg:'#334155' },
-    '기타':            { icon:'📌', bg:'#f5f3ff', fg:'#4c1d95' }
+    '개강':            { bg:'#E9F2EC', fg:'#2F7D5B' },
+    '중간고사':        { bg:'#E9EEF5', fg:'#2C5F8A' },
+    '기말고사':        { bg:'#EDEBF4', fg:'#574B7D' },
+    '외부평가':        { bg:'#F4EFE4', fg:'#8A6A24' },
+    '학습활동서 마무리': { bg:'#E7F0EC', fg:'#2A6B53' },
+    '제출 마감':       { bg:'#F6EAE9', fg:'#9B2C2C' },
+    '행사':            { bg:'#F3EBEF', fg:'#8A4463' },
+    '특강·보충':       { bg:'#E8EEF3', fg:'#2C5F7D' },
+    '종강':            { bg:'#EEF0F3', fg:'#3F4A57' },
+    '기타':            { bg:'#EFEEF4', fg:'#4C4B6B' }
   };
 
   let allExams = [];
@@ -142,14 +148,14 @@
       render();
     } catch(e) {
       document.getElementById('list').innerHTML =
-        '<div class="empty">⚠️ 불러오기 실패: ' + e.message + '</div>';
+        '<div class="empty">불러오기 실패: ' + e.message + '</div>';
     }
   }
 
   function renderFilters() {
     const used = ['all', ...Object.keys(TYPES).filter(t => allExams.some(e => e.type === t))];
     document.getElementById('filterBar').innerHTML = used.map(t => {
-      const label = t === 'all' ? '전체' : `${TYPES[t].icon} ${t}`;
+      const label = t === 'all' ? '전체' : t;
       return `<button class="filter-chip ${activeFilter === t ? 'active' : ''}" data-t="${t}">${label}</button>`;
     }).join('');
     document.querySelectorAll('.filter-chip').forEach(btn => {
@@ -159,7 +165,7 @@
 
   function card(e) {
     const st = getStatus(e);
-    const ty = TYPES[e.type] || { icon:'📌', bg:'#f1f5f9', fg:'#475569' };
+    const ty = TYPES[e.type] || { bg:'#EEF0F3', fg:'#3F4A57' };
     const ddayCls = st.kind === 'done' ? '' : st.kind === 'today' ? 'today'
                   : st.kind === 'ing' ? 'ing' : (st.days <= 7 ? 'urgent' : '');
     const cardCls = st.kind === 'done' ? 'done' : (st.kind !== 'upcoming' || st.days <= 7 ? 'soon' : '');
@@ -170,7 +176,7 @@
       : '';
     return `<div class="exam-card ${cardCls}">
       <div class="exam-top">
-        <span class="type-badge" style="background:${ty.bg};color:${ty.fg};">${ty.icon} ${e.type || '일정'}</span>
+        <span class="type-badge" style="background:${ty.bg};color:${ty.fg};">${e.type || '일정'}</span>
         <span class="dday-badge ${ddayCls}">${st.label}</span>
       </div>
       <div class="exam-title">${e.title || '-'}</div>
@@ -197,10 +203,9 @@
     const nextAll = allExams.filter(e => getStatus(e).kind !== 'done')[0];
     if (nextAll) {
       const st = getStatus(nextAll);
-      const ty = TYPES[nextAll.type] || { icon:'📝' };
       heroEl.innerHTML = `<div class="next-hero">
         <div class="cap">가장 가까운 일정</div>
-        <div class="ttl">${ty.icon} ${nextAll.title || '-'}</div>
+        <div class="ttl">${nextAll.title || '-'}</div>
         <div class="meta">${nextAll.type || ''} · ${fmt(nextAll.startDate)}${nextAll.location ? ' · ' + nextAll.location : ''}</div>
         <div class="dday">${st.kind === 'today' ? '오늘' : st.kind === 'ing' ? '진행 중' : st.label}</div>
       </div>`;
@@ -210,7 +215,7 @@
 
     listEl.innerHTML = upcoming.length
       ? upcoming.map(card).join('')
-      : '<div class="empty">📭 예정된 일정이 없어요</div>';
+      : '<div class="empty">예정된 일정이 없어요</div>';
 
     if (past.length === 0) { pastEl.innerHTML = ''; return; }
     pastEl.innerHTML = showPast
