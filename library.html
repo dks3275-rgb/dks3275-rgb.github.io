@@ -18,9 +18,11 @@
     --tk-border: #E5E8EB; --tk-border-strong: #D1D6DB;
     --tk-primary: #3182F6; --tk-primary-dark: #1B64DA; --tk-primary-soft: #E8F2FF;
     --tk-success: #00C896; --tk-warning: #FF9F1C; --tk-danger: #F04452;
-    --tk-radius: 14px; --tk-radius-lg: 20px;
-    --tk-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-    --tk-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --au-blue: #1A6FB3; --ink-navy: #1F2D4A;
+    /* 반경을 줄이고 그림자를 없앤다 — 말랑한 느낌의 원인이었다 */
+    --tk-radius: 10px; --tk-radius-lg: 12px;
+    --tk-shadow-sm: none;
+    --tk-shadow: none;
     /* 카테고리 색상 (유지) */
     --cat-student: #3182F6; --cat-graduate: #FF9F1C; --cat-prospect: #00C896;
     --cat-company: #7C5CFA;
@@ -30,12 +32,13 @@
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--tk-bg); min-height: 100vh; color: var(--tk-text); -webkit-font-smoothing: antialiased; letter-spacing: -0.2px; }
-  .header { background: var(--tk-surface); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--tk-border); }
+  .header { background: var(--ink-navy); padding: 13px 16px; display: flex; align-items: center; gap: 11px; border-bottom: 0; }
+  .header .au-logo { height: 20px; width: auto; margin-left: 2px; }
   .home-btn { background: var(--tk-bg); color: var(--tk-text); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; transition: background 0.15s; font-weight: 600; }
   .home-btn:hover { background: var(--tk-border); }
   .home-btn:active { transform: scale(0.95); }
-  .header-badge { background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: -0.2px; }
-  .header h1 { color: var(--tk-text); font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
+  .header-badge { display: none; background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: -0.2px; }
+  .header h1 { color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
   .retry-btn { margin-top: 16px; background: var(--tk-primary); color: white; border: none; border-radius: var(--tk-radius); padding: 12px 22px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.3px; }
   .retry-btn:hover { background: var(--tk-primary-dark); }
   .container { max-width: 700px; margin: 0 auto; padding: 20px 16px 40px; }
@@ -44,14 +47,25 @@
   .back-btn.visible { display: flex; }
   .section-title { font-size: 17px; font-weight: 700; color: var(--tk-text); margin-bottom: 14px; letter-spacing: -0.4px; }
   .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .category-card { background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 24px 18px; cursor: pointer; transition: all 0.15s; border: 1px solid var(--tk-border); text-align: center; }
-  .category-card:hover { border-color: var(--tk-border-strong); transform: translateY(-1px); box-shadow: var(--tk-shadow); }
-  .category-card:active { transform: translateY(0); }
+  .category-card { background: var(--tk-surface); border-radius: var(--tk-radius-lg); padding: 16px 15px; cursor: pointer; transition: all 0.15s; border: 1px solid var(--tk-border); text-align: left; }
+  .category-card:hover { border-color: var(--tk-border-strong); }
+  .category-card:active { background: var(--tk-surface-alt); }
   .category-card.category-all { grid-column: 1 / -1; background: var(--tk-primary-soft); border-color: transparent; }
   .category-card.category-all:hover { background: #D6E8FF; border-color: transparent; }
   .category-card.category-all .category-name { color: var(--tk-primary); }
   .category-card.category-all .category-count { color: var(--tk-primary-dark); }
+  /* 학습내용 요약 배너 — 예전에는 파랑→보라 그라데이션에 반짝임·맥박 애니메이션이 있었다.
+     눈에 띄지만 광고 배너처럼 읽혀 전체 톤을 끌어내려서 네이비 단색으로 바꾸고 움직임을 없앴다.
+     (CSS 를 목록 그릴 때마다 <style> 로 다시 심던 것도 본문으로 옮겨 한 번만 정의한다) */
+  .summary-banner { grid-column: 1 / -1; text-decoration: none; display: block; }
+  .summary-banner-card { background: var(--ink-navy); border-radius: var(--tk-radius-lg);
+    padding: 16px 17px; display: flex; align-items: center; gap: 13px; border: none; }
+  .summary-banner-card .ico { stroke: #fff; width: 22px; height: 22px; margin-bottom: 0; }
   .category-icon { font-size: 32px; margin-bottom: 10px; }
+  .fico { width: 18px; height: 18px; stroke: var(--tk-text-sub); stroke-width: 1.6; fill: none;
+          stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: -3px; }
+  .ico { width: 21px; height: 21px; stroke: var(--ink-navy); stroke-width: 1.6; fill: none;
+         stroke-linecap: round; stroke-linejoin: round; display: block; margin-bottom: 11px; }
   .category-name { font-size: 14px; font-weight: 700; color: var(--tk-text); margin-bottom: 4px; letter-spacing: -0.3px; }
   .category-count { font-size: 11.5px; color: var(--tk-text-muted); }
   .file-list { display: flex; flex-direction: column; gap: 10px; }
@@ -82,15 +96,34 @@
 </style>
 </head>
 <body>
+<!-- 아이콘 모음 (선형 단색) — 이모지는 기기마다 다르게 그려져 통제가 안 되고 캐주얼하게 읽힌다 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M12 4 2 9l10 5 10-5-10-5Z"/><path d="M6 11.5V17c0 1.4 2.7 3 6 3s6-1.6 6-3v-5.5"/><path d="M22 9v6"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 21h18"/><rect x="5" y="11" width="4" height="7" rx="1"/><rect x="11" y="6" width="4" height="12" rx="1"/><rect x="17" y="14" width="4" height="4" rx="1"/></symbol>
+  <symbol id="i-cook" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6"/><path d="M19 5 21.5 2.5"/></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0"/></symbol>
+  <symbol id="i-hotel" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V4h14v17"/><path d="M9 8h2M13 8h2M9 12h2M13 12h2M10 21v-4h4v4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.3 2.9 7.8 7 9 4.1-1.2 7-4.7 7-9V6l-7-3Z"/><path d="m9.5 12 1.8 1.8 3.4-3.6"/></symbol>
+  <symbol id="i-notice" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8.5a4 4 0 0 1 0 7"/><path d="M19 6a7.5 7.5 0 0 1 0 12"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/><path d="m9 14 2 2 4-4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v13"/><path d="M12 7c-1.6-1.7-3.6-2.5-6-2.5H4v13h2c2.4 0 4.4.8 6 2.5 1.6-1.7 3.6-2.5 6-2.5h2v-13h-2c-2.4 0-4.4.8-6 2.5Z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></symbol>
+  <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/><path d="M9 16v-3h1.2a1.1 1.1 0 0 1 0 2.2H9"/><path d="M13.5 16v-3h1a1.5 1.5 0 0 1 0 3h-1Z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/><circle cx="12" cy="12" r="2.6"/></symbol>
+</defs></svg>
 <div class="header">
   <a href="index.html" class="home-btn" aria-label="홈으로">←</a>
-  <div class="header-badge">자료실</div>
-  <h1 id="pageTitle">AU 일학습병행 자료실</h1>
+  <img class="au-logo" src="assets/logo-au-white.png" alt="안산대학교" width="613" height="128">
+  <h1 id="pageTitle">자료실</h1>
 </div>
 <div class="container">
   <button class="back-btn" id="backBtn" onclick="goStepBack()">← 카테고리로 돌아가기</button>
   <div class="section-title" id="sectionTitle">카테고리 선택</div>
-  <input type="text" id="resourceSearch" placeholder="🔍 자료명 검색..." class="resource-search-input" oninput="filterResources()">
+  <input type="text" id="resourceSearch" placeholder="자료명 검색" class="resource-search-input" oninput="filterResources()">
   <div class="category-grid" id="categoryGrid"></div>
   <div class="file-list" id="fileList" style="display:none;"></div>
 </div>
@@ -108,45 +141,62 @@
 
   // 카테고리 정의
   const STUDENT_CATEGORIES = [
-    { name: 'P-TECH 1학년', icon: '🎓' }, { name: 'P-TECH 2학년', icon: '🎓' },
-    { name: '전문대 마케팅경영학과', icon: '📚' }, { name: '전문대 호텔조리학과', icon: '🍳' },
-    { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
-    { name: '산업안전보건', icon: '🛡️' },
-    { name: '공통', icon: '📢' },
+    { name: 'P-TECH 1학년' }, { name: 'P-TECH 2학년' },
+    { name: '전문대 마케팅경영학과' }, { name: '전문대 호텔조리학과' },
+    { name: '전문대 회계세무학과' }, { name: '전문대 호텔관광학과' },
+    { name: '산업안전보건' },
+    { name: '공통' },
   ];
   // 졸업생은 P-TECH 1/2학년 구분 없이 단일 P-TECH 카테고리 사용
   const GRADUATE_CATEGORIES = [
-    { name: 'P-TECH', icon: '🎓' },
-    { name: '전문대 마케팅경영학과', icon: '📚' }, { name: '전문대 호텔조리학과', icon: '🍳' },
-    { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
-    { name: '공통', icon: '📢' },
+    { name: 'P-TECH' },
+    { name: '전문대 마케팅경영학과' }, { name: '전문대 호텔조리학과' },
+    { name: '전문대 회계세무학과' }, { name: '전문대 호텔관광학과' },
+    { name: '공통' },
   ];
   // 서브 카테고리 (학과 안의 분류)
   const SUB_CATEGORIES = [
-    { name: '학습안내서', icon: '📘', desc: '학습 가이드' },
-    { name: 'NCS 모듈', icon: '🎯', desc: '국가직무능력표준 자료' },
-    { name: '기타 자료', icon: '📁', desc: '그 외 자료' }
+    { name: '학습안내서', desc: '학습 가이드' },
+    { name: 'NCS 모듈', desc: '국가직무능력표준 자료' },
+    { name: '기타 자료', desc: '그 외 자료' }
   ];
   // 교·강사: 수업 운영에 필요한 안내 + 학과별 자료
   const TEACHER_CATEGORIES = [
-    { name: '교·강사 안내', icon: '📋' },
-    { name: '평가 · 시험', icon: '📝' },
-    { name: 'P-TECH 1학년', icon: '🎓' }, { name: 'P-TECH 2학년', icon: '🎓' },
-    { name: '전문대 마케팅경영학과', icon: '📚' }, { name: '전문대 호텔조리학과', icon: '🍳' },
-    { name: '전문대 회계세무학과', icon: '📊' }, { name: '전문대 호텔관광학과', icon: '🏨' },
-    { name: '공통', icon: '📢' },
+    { name: '교·강사 안내' },
+    { name: '평가 · 시험' },
+    { name: 'P-TECH 1학년' }, { name: 'P-TECH 2학년' },
+    { name: '전문대 마케팅경영학과' }, { name: '전문대 호텔조리학과' },
+    { name: '전문대 회계세무학과' }, { name: '전문대 호텔관광학과' },
+    { name: '공통' },
   ];
   const COMPANY_CATEGORIES = [
-    { name: '훈련 운영 서식', icon: '📋' },
-    { name: '가이드 · 매뉴얼', icon: '📘' },
-    { name: '공지 · 안내', icon: '📢' },
-    { name: '산업안전보건', icon: '🛡️' },
+    { name: '훈련 운영 서식' },
+    { name: '가이드 · 매뉴얼' },
+    { name: '공지 · 안내' },
+    { name: '산업안전보건' },
   ];
   // 카테고리 선택: 전담인력 / 졸업생 / 재학생 (기본)
   const CATEGORIES = userCategory === 'company' ? COMPANY_CATEGORIES
                    : userCategory === 'graduate' ? GRADUATE_CATEGORIES
                    : userCategory === 'teacher' ? TEACHER_CATEGORIES
                    : STUDENT_CATEGORIES;
+
+  // 카테고리 이름 → 아이콘 id. 목록에 없으면 기본 아이콘(i-folder)을 쓴다.
+  const CAT_ICON = {
+    'P-TECH': 'i-cap', 'P-TECH 1학년': 'i-cap', 'P-TECH 2학년': 'i-cap',
+    '전문대 마케팅경영학과': 'i-chart', '전문대 호텔조리학과': 'i-cook',
+    '전문대 회계세무학과': 'i-calc', '전문대 호텔관광학과': 'i-hotel',
+    '산업안전보건': 'i-shield', '공통': 'i-notice',
+    '교·강사 안내': 'i-clip', '평가 · 시험': 'i-check',
+    '훈련 운영 서식': 'i-clip', '가이드 · 매뉴얼': 'i-book', '공지 · 안내': 'i-notice',
+    '학습안내서': 'i-book', 'NCS 모듈': 'i-layers', '기타 자료': 'i-folder'
+  };
+  // 파일 종류 아이콘 — 이미지 / PDF / 그 외
+  const fileIco = (isImage, isPdf) =>
+    isImage ? '<svg class="fico"><use href="#i-img"/></svg>'
+    : isPdf ? '<svg class="fico"><use href="#i-pdf"/></svg>'
+            : '<svg class="fico"><use href="#i-file"/></svg>';
+  const catIco = n => `<svg class="ico"><use href="#${CAT_ICON[n] || 'i-folder'}"/></svg>`;
 
   let allResources = [];
 
@@ -211,18 +261,18 @@
       }
     } catch(e) {
       console.error('자료실 로드 실패:', e);
-      document.getElementById('categoryGrid').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div>자료를 불러올 수 없어요</div><button class="retry-btn" onclick="location.reload()">🔄 다시 시도</button></div>';
+      document.getElementById('categoryGrid').innerHTML = '<div class="empty"><div class="empty-icon">!</div><div>자료를 불러올 수 없어요</div><button class="retry-btn" onclick="location.reload()">다시 시도</button></div>';
     }
   }
 
   // 졸업생/예비신입생 전용: 카테고리 없이 모든 자료 평면 목록
   function showFlatList() {
-    document.getElementById('sectionTitle').textContent = '📚 자료 목록';
+    document.getElementById('sectionTitle').textContent = '자료 목록';
     document.getElementById('categoryGrid').style.display = 'none';
     const list = document.getElementById('fileList');
     list.style.display = 'flex';
     if (allResources.length === 0) {
-      list.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div>등록된 자료가 없어요</div></div>';
+      list.innerHTML = '<div class="empty"><div class="empty-icon"><svg class="ico" style="width:30px;height:30px;margin:0 auto 4px;stroke:#C4CAD2"><use href="#i-folder"/></svg></div><div>등록된 자료가 없어요</div></div>';
       return;
     }
     renderFileList(allResources);
@@ -235,7 +285,7 @@
       const isImage = r.fileType && r.fileType.startsWith('image/');
       const isPdf = (r.fileType && r.fileType.includes('pdf')) || (r.fileName && r.fileName.toLowerCase().endsWith('.pdf'));
       const iconClass = isImage ? 'image' : isPdf ? '' : 'doc';
-      const icon = isImage ? '🖼️' : isPdf ? '📄' : '📁';
+      const icon = fileIco(isImage, isPdf);
       const sizeMB = r.fileSize ? (r.fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';
       const date = r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('ko-KR') : '-';
       const viewerUrl = isPdf
@@ -243,10 +293,10 @@
         : r.fileUrl;
       let actions = '';
       if (isPdf) {
-        actions = '<a href="' + viewerUrl + '" target="_blank" class="btn-view">👁️ 보기</a>'
+        actions = '<a href="' + viewerUrl + '" target="_blank" class="btn-view">보기</a>'
                 + '<a href="' + r.fileUrl + '" download="' + (r.fileName || '파일') + '" target="_blank" class="btn-download">⬇️ 저장</a>';
       } else if (isImage) {
-        actions = '<a href="' + r.fileUrl + '" target="_blank" class="btn-view">👁️ 보기</a>';
+        actions = '<a href="' + r.fileUrl + '" target="_blank" class="btn-view">보기</a>';
       } else {
         actions = '<a href="' + r.fileUrl + '" download="' + (r.fileName || '파일') + '" target="_blank" class="btn-download">⬇️ 다운로드</a>';
       }
@@ -304,58 +354,22 @@
     window._currentSubCategory = null;
     // 재학생에게만 상단에 "학습요약 AI" 진입 배너 노출
     const summaryBanner = (userCategory === 'student')
-      ? `<style>
-           @keyframes summaryShine {
-             0% { background-position: -200% 0; }
-             100% { background-position: 200% 0; }
-           }
-           @keyframes summaryPulse {
-             0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(49,130,246,0.25); }
-             50% { transform: scale(1.02); box-shadow: 0 6px 22px rgba(49,130,246,0.35); }
-           }
-           .summary-banner {
-             grid-column: 1 / -1;
-             text-decoration: none;
-             display: block;
-             position: relative;
-             animation: summaryPulse 2.5s ease-in-out infinite;
-           }
-           .summary-banner-card {
-             background: linear-gradient(135deg,#3182F6 0%,#5D5FEF 50%,#8B5CF6 100%);
-             border-radius: 20px;
-             padding: 22px 22px;
-             display: flex;
-             align-items: center;
-             gap: 16px;
-             position: relative;
-             overflow: hidden;
-             border: none;
-           }
-           .summary-banner-card::before {
-             content: '';
-             position: absolute;
-             top: 0; left: 0; right: 0; bottom: 0;
-             background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
-             background-size: 200% 100%;
-             animation: summaryShine 3s ease-in-out infinite;
-             pointer-events: none;
-           }
-         </style>
+      ? `
          <a href="learning-summary.html" class="summary-banner">
            <div class="summary-banner-card">
-             <div style="width:52px; height:52px; border-radius:14px; background:rgba(255,255,255,0.25); backdrop-filter: blur(8px); display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0; position:relative; z-index:1;">📖</div>
-             <div style="flex:1; min-width:0; position:relative; z-index:1;">
-               <div style="font-size:16px; font-weight:800; color:#FFFFFF; margin-bottom:4px; letter-spacing:-0.3px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">학습내용 요약 AI</div>
-               <div style="font-size:12.5px; color:rgba(255,255,255,0.92); letter-spacing:-0.2px; line-height:1.4;">능력단위별 학습 내용을 짧은 문장으로 살펴보기</div>
+             <svg class="ico"><use href="#i-spark"/></svg>
+             <div style="flex:1; min-width:0;">
+               <div style="font-size:14.5px; font-weight:600; color:#fff; letter-spacing:-0.3px;">학습내용 요약</div>
+               <div style="font-size:12px; color:#C7D2E4; letter-spacing:-0.2px; margin-top:2px;">능력단위별 학습 내용을 짧은 문장으로</div>
              </div>
-             <div style="color:#FFFFFF; font-size:24px; flex-shrink:0; font-weight:600; position:relative; z-index:1;">›</div>
+             <div style="color:#8E9DB8; font-size:19px; flex-shrink:0;">›</div>
            </div>
          </a>`
       : '';
     document.getElementById('categoryGrid').innerHTML = summaryBanner + CATEGORIES.map(cat => {
       const count = allResources.filter(r => r.category === cat.name).length;
       return `<div class="category-card" onclick="showSubCategories('${cat.name}')">
-        <div class="category-icon">${cat.icon}</div>
+        ${catIco(cat.name)}
         <div class="category-name">${cat.name}</div>
         <div class="category-count">자료 ${count}개</div>
       </div>`;
@@ -392,12 +406,12 @@
     document.getElementById('categoryGrid').innerHTML = SUB_CATEGORIES.map(sub => {
       const count = categoryResources.filter(r => getSubCategory(r) === sub.name).length;
       return `<div class="category-card" onclick="showFiles('${categoryName}', '${sub.name}')">
-        <div class="category-icon">${sub.icon}</div>
+        ${catIco(sub.name)}
         <div class="category-name">${sub.name}</div>
         <div class="category-count">${sub.desc} · ${count}개</div>
       </div>`;
     }).join('') + `<div class="category-card category-all" onclick="showFiles('${categoryName}', 'ALL')">
-        <div class="category-icon">📂</div>
+        <svg class="ico"><use href="#i-folder"/></svg>
         <div class="category-name">전체 보기</div>
         <div class="category-count">모든 자료 (${categoryResources.length}개)</div>
       </div>`;
@@ -447,8 +461,8 @@
     const list = document.getElementById('fileList');
 
     if (filtered.length === 0) {
-      const msg = searchTerm ? `🔍 "${searchTerm}" 검색 결과 없음` : '등록된 자료가 없어요';
-      list.innerHTML = `<div class="empty"><div class="empty-icon">📂</div><div>${msg}</div></div>`;
+      const msg = searchTerm ? `"${searchTerm}" 검색 결과 없음` : '등록된 자료가 없어요';
+      list.innerHTML = `<div class="empty"><div class="empty-icon"><svg class="ico" style="width:30px;height:30px;margin:0 auto 4px;stroke:#C4CAD2"><use href="#i-folder"/></svg></div><div>${msg}</div></div>`;
       return;
     }
 
@@ -456,13 +470,13 @@
       const isImage = r.fileType?.startsWith('image/');
       const isPdf = r.fileType?.includes('pdf') || r.fileName?.toLowerCase().endsWith('.pdf');
       const iconClass = isImage ? 'image' : isPdf ? '' : 'doc';
-      const icon = isImage ? '🖼️' : isPdf ? '📄' : '📁';
+      const icon = fileIco(isImage, isPdf);
       const sizeMB = r.fileSize ? (r.fileSize / 1024 / 1024).toFixed(2) + 'MB' : '';
       const date = r.updatedAt ? new Date(r.updatedAt).toLocaleDateString('ko-KR') : '-';
       const targetBadge = r.target === 'company'
         ? '<span class="target-badge company">전담인력</span>'
         : r.target === 'student' ? '<span class="target-badge student">재학생</span>'
-        : r.target === 'all' ? '<span class="target-badge shared">🛡️ 공유</span>' : '';
+        : r.target === 'all' ? '<span class="target-badge shared">공유</span>' : '';
 
       return `<div class="resource-card">
         <div class="file-icon ${iconClass}">${icon}</div>
@@ -479,10 +493,10 @@
               ? 'https://drive.google.com/viewerng/viewer?embedded=true&url=' + encodeURIComponent(r.fileUrl)
               : r.fileUrl;
             if (isPdf) {
-              return '<a href="' + viewerUrl + '" target="_blank" class="btn-view">👁️ 보기</a>' +
+              return '<a href="' + viewerUrl + '" target="_blank" class="btn-view">보기</a>' +
                      '<a href="' + r.fileUrl + '" download="' + (r.fileName || '파일') + '" target="_blank" class="btn-download">⬇️ 저장</a>';
             } else if (isImage) {
-              return '<a href="' + r.fileUrl + '" target="_blank" class="btn-view">👁️ 보기</a>';
+              return '<a href="' + r.fileUrl + '" target="_blank" class="btn-view">보기</a>';
             } else {
               return '<a href="' + r.fileUrl + '" download="' + (r.fileName || '파일') + '" target="_blank" class="btn-download">⬇️ 다운로드</a>';
             }
