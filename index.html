@@ -47,17 +47,17 @@
       --tk-text-muted: #8B95A1;
       --tk-border: #E5E8EB;
       --tk-border-strong: #D1D6DB;
-      --tk-primary: #3182F6;
-      --tk-primary-dark: #1B64DA;
-      --tk-primary-soft: #E8F2FF;
-      --tk-success: #00C896;
-      --tk-warning: #FF9F1C;
+      --tk-primary: #1A6FB3;
+      --tk-primary-dark: #15537F;
+      --tk-primary-soft: #E9F1F8;
+      --tk-success: #2F7D5B;
+      --tk-warning: #8A6A24;
       --tk-danger: #F04452;
       /* 카테고리 식별 색 (유지) */
-      --cat-student: #3182F6;
-      --cat-graduate: #FF9F1C;
-      --cat-prospect: #00C896;
-      --cat-company: #7C5CFA;
+      --cat-student: #1A6FB3;
+      --cat-graduate: #8A6A24;
+      --cat-prospect: #2F7D5B;
+      --cat-company: #574B7D;
       /* 학교 공식 색 — AU_signatures.ai 원본에서 뽑은 값 */
       --au-blue: #1A6FB3;
       --ink-navy: #1F2D4A;
@@ -131,7 +131,7 @@
     .user-name { font-size: 14px; font-weight: 600; color: var(--tk-text); letter-spacing: -0.3px; }
     .user-grade { font-size: 12px; color: var(--tk-text-sub); margin-top: 2px; font-weight: 500; }
     .user-category-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; margin-right: 5px; vertical-align: middle; letter-spacing: -0.2px; }
-    .badge-student { background: #E8F2FF; color: var(--cat-student); }
+    .badge-student { background: #E9F1F8; color: var(--cat-student); }
     .badge-graduate { background: #FFF4E6; color: #B36500; }
     .badge-prospect { background: #DEFCEF; color: #007A5C; }
     .badge-company { background: #EFE9FE; color: #5A3FCE; }
@@ -210,10 +210,6 @@
     .info-card .label { font-size: 13.5px; color: var(--tk-text); margin-bottom: 4px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.35; }
     .info-card .value { font-size: 11.5px; font-weight: 500; color: var(--tk-text-muted); }
     .info-card.full { grid-column: 1 / -1; }
-    .info-card.survey-card { background: var(--tk-surface); }
-    .info-card.survey-card .icon { color: var(--cat-graduate); }
-    .info-card.consulting-card { background: var(--tk-surface); }
-    .info-card.consulting-card .icon { color: var(--tk-success); }
     .info-card.calendar-card { background: var(--tk-surface); }
     .info-card.calendar-card .icon { color: var(--tk-primary); }
     .info-card.exam-card { background: var(--tk-surface); }
@@ -223,32 +219,13 @@
     /* 다가오는 시험 D-day 배지 (JS가 값을 채움) */
     .dday-pill { position: absolute; top: 12px; right: 12px; font-size: 12px; font-weight: 800;
       padding: 4px 10px; border-radius: 20px; background: var(--tk-primary-soft, #e3f2fd);
-      color: var(--tk-primary, #1976d2); letter-spacing: -0.3px; }
+      color: var(--tk-primary, #15537F); letter-spacing: -0.3px; }
     .dday-pill.urgent { background: #fee2e2; color: #b91c1c; }
     .dday-pill.today { background: #ef4444; color: #fff; animation: ddayBlink 1.6s ease-in-out infinite; }
     @keyframes ddayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.62; } }
-    .info-card.dept-card { background: var(--tk-surface); }
-    .info-card.dept-card .icon { color: var(--cat-graduate); }
     /* 익명 의견함 (옐로우 액센트) */
-    .info-card.feedback-card { background: #FFF8E6; border-color: #FFE7A8; }
-    .info-card.feedback-card:hover { background: #FFEFC2; border-color: #FFD978; }
-    .info-card.apply-card { background: linear-gradient(135deg, #E8F2FF, #C9DFFF); border-color: #3182F6; }
-    .info-card.apply-card:hover { background: linear-gradient(135deg, #D6E8FF, #A3CDFF); border-color: #1B64DA; }
-    .info-card.apply-card .icon { color: #1B64DA; }
-    .info-card.apply-card .label { color: #0D4A9C; font-weight: 600; }
-    .info-card.apply-card .value { color: #1B64DA; font-weight: 700; }
     /* e-book 카드 (책 톤 — 따뜻한 베이지/갈색) */
     /* 학습기업 학습일지 관리 — 전담인력이 실제 업무를 보는 곳이라 가장 눈에 띄게 */
-    .info-card.docs-card { background: linear-gradient(135deg, #E8EDF3, #CFD8E3); border-color: #3F4A57; }
-    .info-card.docs-card:hover { background: linear-gradient(135deg, #DCE3EB, #BCC7D6); border-color: #2C3641; }
-    .info-card.docs-card .icon { color: #3F4A57; }
-    .info-card.docs-card .label { color: #2C3641; font-weight: 600; }
-    .info-card.docs-card .value { color: #3F4A57; font-weight: 700; }
-    .info-card.ebook-card { background: linear-gradient(135deg, #FFF4E0, #FFE0B2); border-color: #FF9F1C; }
-    .info-card.ebook-card:hover { background: linear-gradient(135deg, #FFE7B2, #FFCC80); border-color: #E68A00; }
-    .info-card.ebook-card .icon { color: #B36500; }
-    .info-card.ebook-card .label { color: #6B3D00; font-weight: 600; }
-    .info-card.ebook-card .value { color: #B36500; font-weight: 700; }
     .btn-main { width: 100%; padding: 17px; border: none; border-radius: var(--tk-radius); font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; margin: 8px 0; letter-spacing: -0.3px; }
     .btn-subscribe { background: var(--tk-primary); color: white; }
     .btn-subscribe:hover { background: var(--tk-primary-dark); }
@@ -328,7 +305,6 @@
     .install-banner-text small { display: block; font-size: 11.5px; color: rgba(255,255,255,0.85); }
     .install-banner-arrow { font-size: 20px; color: rgba(255,255,255,0.85); }
     /* 학교 홈페이지 칩 버튼 */
-    .school-pill-wrap {
       display: flex;
       justify-content: center;
       grid-column: 1 / -1;
@@ -336,7 +312,6 @@
       gap: 6px;
       flex-wrap: wrap;
     }
-    .school-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -351,15 +326,11 @@
       transition: all 0.15s;
       letter-spacing: -0.2px;
     }
-    .school-pill:hover {
       background: var(--tk-bg);
       border-color: var(--tk-border-strong);
       color: var(--tk-text);
     }
-    .school-pill:active { transform: scale(0.98); }
     /* 알림 진단 칩 (옐로우 액센트) */
-    .school-pill.diag-pill { background: #FFF8E6; border-color: #FFE7A8; color: #8F5C00; }
-    .school-pill.diag-pill:hover { background: #FFEFC2; border-color: #FFD978; color: #6B4500; }
   </style>
 </head>
 <body>
@@ -530,7 +501,7 @@
     <!-- 안드로이드: APK 옵션 (추천) -->
     <div id="installAndroidApk" style="display:none;">
       <a href="apk/AU일학습병행.apk" download
-         style="display:block;background:#00C896;color:white;padding:16px 18px;border-radius:14px;text-decoration:none;margin-bottom:10px;text-align:center;position:relative;">
+         style="display:block;background:#2F7D5B;color:white;padding:16px 18px;border-radius:14px;text-decoration:none;margin-bottom:10px;text-align:center;position:relative;">
         <span style="position:absolute;top:-8px;left:14px;background:var(--cat-graduate);color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;letter-spacing:-0.2px;">⭐ 추천</span>
         <div style="font-size:24px;margin-bottom:4px;">📦</div>
         <div style="font-size:15px;font-weight:800;">APK 직접 설치 (1초)</div>
@@ -541,7 +512,7 @@
 
     <!-- 안드로이드: PWA 옵션 -->
     <div class="install-steps" id="installStepsAndroid" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:#1976d2;margin-bottom:8px;">🌐 웹앱으로 설치 (홈 화면 추가)</div>
+      <div style="font-size:12px;font-weight:700;color:#15537F;margin-bottom:8px;">🌐 웹앱으로 설치 (홈 화면 추가)</div>
       <div class="install-step"><div class="install-step-num">1</div><div class="install-step-text">오른쪽 위 <span class="install-icon-inline">⋮</span> 메뉴를 눌러주세요</div></div>
       <div class="install-step"><div class="install-step-num">2</div><div class="install-step-text"><span class="hl">'홈 화면에 추가'</span> 또는 <span class="hl">'앱 설치'</span>를 선택해주세요</div></div>
       <div class="install-step"><div class="install-step-num">3</div><div class="install-step-text"><span class="hl">'추가'</span> 또는 <span class="hl">'설치'</span> 버튼을 눌러주세요</div></div>
@@ -549,7 +520,7 @@
 
     <!-- iOS: PWA 옵션만 (APK 불가) -->
     <div class="install-steps" id="installStepsIOS" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:#1976d2;margin-bottom:8px;">🌐 Safari에서 홈 화면에 추가</div>
+      <div style="font-size:12px;font-weight:700;color:#15537F;margin-bottom:8px;">🌐 Safari에서 홈 화면에 추가</div>
       <div class="install-step"><div class="install-step-num">1</div><div class="install-step-text">하단 <span class="install-icon-inline">⬆️ 공유</span> 버튼을 눌러주세요</div></div>
       <div class="install-step"><div class="install-step-num">2</div><div class="install-step-text"><span class="hl">'홈 화면에 추가'</span>를 선택해주세요</div></div>
       <div class="install-step"><div class="install-step-num">3</div><div class="install-step-text">오른쪽 위 <span class="hl">'추가'</span> 버튼을 눌러주세요</div></div>
@@ -563,7 +534,7 @@
       💡 <strong>APK 설치 시</strong>: "출처 불명 앱 허용" 메시지가 뜨면 허용해주세요. 안전한 학교 공식 앱입니다.
     </div>
 
-    <a href="install.html" style="display:block;text-align:center;font-size:12px;color:#1976d2;margin-top:12px;text-decoration:none;font-weight:600;">
+    <a href="install.html" style="display:block;text-align:center;font-size:12px;color:#15537F;margin-top:12px;text-decoration:none;font-weight:600;">
       🛠️ 자세한 설치 가이드 보기 →
     </a>
 
@@ -1148,7 +1119,7 @@
         <div style="font-size:44px;margin-bottom:8px;">🔔</div>
         <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:12px;letter-spacing:-0.3px;">알림을 켜주세요!</div>
         ${bodyHtml}
-        <button id="prospectNotifyPrimary" style="width:100%;margin-top:18px;padding:14px;background:#3182F6;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">
+        <button id="prospectNotifyPrimary" style="width:100%;margin-top:18px;padding:14px;background:#1A6FB3;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">
           ${(device !== 'other' && !installed) ? '📱 설치 방법 보기' : '🔔 알림 켜기'}
         </button>
         <button id="prospectNotifyLater" style="width:100%;margin-top:8px;padding:11px;background:transparent;color:#94a3b8;border:none;font-size:13px;cursor:pointer;font-family:inherit;">나중에 할게요</button>
@@ -1524,7 +1495,7 @@
     if (apkSection) apkSection.style.display = 'none';
     if (device === 'ios') {
       stepsIOS.style.display = 'block'; tipIOS.style.display = 'block';
-      subText.innerHTML = '홈 화면에 추가하면<br><strong style="color:#1976d2">정식 앱처럼</strong> 사용할 수 있어요';
+      subText.innerHTML = '홈 화면에 추가하면<br><strong style="color:#15537F">정식 앱처럼</strong> 사용할 수 있어요';
     } else if (device === 'android') {
       // 안드로이드: APK 추천 + PWA 옵션
       if (apkSection) apkSection.style.display = 'block';

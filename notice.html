@@ -14,8 +14,8 @@
     --tk-bg: #F2F4F6; --tk-surface: #FFFFFF; --tk-surface-alt: #F9FAFB;
     --tk-text: #191F28; --tk-text-sub: #4E5968; --tk-text-muted: #8B95A1;
     --tk-border: #E5E8EB; --tk-border-strong: #D1D6DB;
-    --tk-primary: #3182F6; --tk-primary-dark: #1B64DA; --tk-primary-soft: #E8F2FF;
-    --tk-success: #00C896; --tk-warning: #FF9F1C; --tk-danger: #F04452;
+    --tk-primary: #1A6FB3; --tk-primary-dark: #15537F; --tk-primary-soft: #E9F1F8;
+    --tk-success: #2F7D5B; --tk-warning: #8A6A24; --tk-danger: #F04452;
     --tk-radius: 14px; --tk-radius-lg: 20px;
     --tk-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
     --tk-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -25,12 +25,12 @@
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--tk-bg); min-height: 100vh; color: var(--tk-text); -webkit-font-smoothing: antialiased; letter-spacing: -0.2px; }
-  .header { background: var(--tk-surface); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--tk-border); }
+  .header { background: var(--ink-navy, #1F2D4A); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--tk-border); }
   .back-btn { background: var(--tk-bg); color: var(--tk-text); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; transition: background 0.15s; font-weight: 600; }
   .back-btn:hover { background: var(--tk-border); }
   .back-btn:active { transform: scale(0.95); }
-  .header-badge { background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: -0.2px; }
-  .header h1 { color: var(--tk-text); font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
+  .header-badge { display:none; background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: -0.2px; }
+  .header h1 { color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
   .retry-btn { margin-top: 16px; background: var(--tk-primary); color: white; border: none; border-radius: var(--tk-radius); padding: 12px 22px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.3px; }
   .retry-btn:hover { background: var(--tk-primary-dark); }
   .container { max-width: 700px; margin: 0 auto; padding: 20px 16px 40px; }
@@ -205,7 +205,7 @@
         : d.target === 'teacher' ? '<span style="font-size:10px;background:#e7f9f1;color:#0e8a5f;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">교·강사</span>' : '';
       const pinnedBadge = d.pinned ? '<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:5px;margin-left:4px;font-weight:700;">📌 고정</span>' : '';
       // 안 읽은 공지 표시
-      const unreadBadge = localRead.includes(d.id) ? '' : `<span id="unread-${d.id}" style="font-size:10px;background:#2196f3;color:white;padding:2px 7px;border-radius:5px;margin-left:4px;font-weight:700;">안 읽음</span>`;
+      const unreadBadge = localRead.includes(d.id) ? '' : `<span id="unread-${d.id}" style="font-size:10px;background:#1A6FB3;color:white;padding:2px 7px;border-radius:5px;margin-left:4px;font-weight:700;">안 읽음</span>`;
       const isFav = favs.includes(d.id);
       const favStar = `<span onclick="toggleFavorite('${d.id}', event)" style="cursor:pointer;font-size:18px;margin-left:auto;user-select:none;color:${isFav ? '#f59e0b' : '#cbd5e0'};" title="${isFav ? '즐겨찾기 해제' : '즐겨찾기'}">${isFav ? '⭐' : '☆'}</span>`;
       // 반응 (이모지 카운터)
@@ -216,7 +216,7 @@
         ${reactionEmojis.map(em => {
           const count = reactions[em] || 0;
           const active = myReact === em;
-          return `<button onclick="reactNotice('${d.id}', '${em}', event)" style="cursor:pointer;background:${active ? '#e3f2fd' : 'white'};border:1.5px solid ${active ? '#2196f3' : '#e4eaf4'};border-radius:12px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;gap:4px;font-family:inherit;">${em} <span style="font-weight:600;color:#718096;font-size:12px;">${count}</span></button>`;
+          return `<button onclick="reactNotice('${d.id}', '${em}', event)" style="cursor:pointer;background:${active ? '#e3f2fd' : 'white'};border:1.5px solid ${active ? '#1A6FB3' : '#e4eaf4'};border-radius:12px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;gap:4px;font-family:inherit;">${em} <span style="font-weight:600;color:#718096;font-size:12px;">${count}</span></button>`;
         }).join('')}
       </div>`;
       const card = document.createElement('div');

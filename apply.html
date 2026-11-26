@@ -12,23 +12,23 @@
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root {
-  --blue:#3182F6; --navy:#1B64DA; --bg:#F2F4F6;
+  --blue:#1A6FB3; --navy:#15537F; --bg:#F2F4F6;
   --card:#FFFFFF; --border:#E5E8EB; --text:#191F28;
   --text2:#4E5968; --text3:#8B95A1;
   --shadow:0 2px 8px rgba(0,0,0,0.06); --radius:14px;
-  --tk-primary-soft:#E8F2FF; --tk-border-strong:#D1D6DB;
-  --green:#00C896; --red:#F04452;
+  --tk-primary-soft:#E9F1F8; --tk-border-strong:#D1D6DB;
+  --green:#2F7D5B; --red:#F04452;
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body { font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; letter-spacing:-0.2px; padding-bottom:60px; }
 
-.header { background:var(--card); padding:14px 16px 0; border-bottom:1px solid var(--border); }
+.header { background:var(--ink-navy, #1F2D4A); padding:14px 16px 0; border-bottom:1px solid var(--border); }
 .header-top { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
 .back-btn { background:var(--bg); border:none; color:var(--text); width:36px; height:36px; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; flex-shrink:0; font-weight:600; transition:background 0.15s; }
 .back-btn:hover { background:var(--border); }
-.header-badge { background:var(--tk-primary-soft); color:var(--blue); font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; letter-spacing:-0.2px; }
-.header h1 { color:var(--text); font-size:16px; font-weight:700; letter-spacing:-0.4px; }
-.header-sub { font-size:12px; color:var(--text2); padding-bottom:12px; line-height:1.5; }
+.header-badge { display:none; background:var(--tk-primary-soft); color:var(--blue); font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; letter-spacing:-0.2px; }
+.header h1 { color:#fff; font-size:16px; font-weight:700; letter-spacing:-0.4px; }
+.header-sub { font-size:12px; color:#C7D2E4; padding-bottom:12px; line-height:1.5; }
 
 .container { max-width:600px; margin:0 auto; padding:16px; }
 .card { background:var(--card); border-radius:var(--radius); padding:18px; margin-bottom:14px; border:1px solid var(--border); box-shadow:var(--shadow); }
@@ -105,7 +105,7 @@ body { font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-sys
 .consent-checkbox-row input[type="checkbox"] { width:18px; height:18px; margin-top:1px; flex-shrink:0; accent-color:var(--blue); cursor:pointer; }
 .consent-label { flex:1; font-size:13px; color:var(--text); line-height:1.45; cursor:pointer; letter-spacing:-0.2px; }
 .consent-label .tag-req { display:inline-block; background:#FFE5E5; color:var(--red); font-size:10.5px; font-weight:700; padding:2px 6px; border-radius:4px; margin-right:4px; }
-.consent-label .tag-opt { display:inline-block; background:#E8F2FF; color:var(--blue); font-size:10.5px; font-weight:700; padding:2px 6px; border-radius:4px; margin-right:4px; }
+.consent-label .tag-opt { display:inline-block; background:#E9F1F8; color:var(--blue); font-size:10.5px; font-weight:700; padding:2px 6px; border-radius:4px; margin-right:4px; }
 .consent-toggle { background:none; border:none; color:var(--text2); font-size:11.5px; padding:4px 0; cursor:pointer; margin-left:26px; margin-top:2px; font-family:inherit; }
 .consent-toggle:hover { color:var(--blue); }
 .consent-details { display:none; margin-left:26px; margin-top:8px; padding:12px; background:white; border-radius:8px; border:1px solid #E5E8EB; font-size:12px; color:var(--text2); line-height:1.6; }

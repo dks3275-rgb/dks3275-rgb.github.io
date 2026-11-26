@@ -7,10 +7,10 @@
 <meta name="theme-color" content="#1F2D4A">
 <style>
   @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
-  :root { --navy: #1976d2; --blue: #2196f3; --bg: #f4f6fb; --text: #1a2a3a; --text2: #5a7090; --border: #e4eaf4; }
+  :root { --navy: #15537F; --blue: #1A6FB3; --bg: #f4f6fb; --text: #1a2a3a; --text2: #5a7090; --border: #e4eaf4; }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'Pretendard Variable','Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
-  .header { background: var(--blue); padding: 24px 20px; display: flex; align-items: center; gap: 12px; }
+  .header { background: var(--ink-navy, #1F2D4A); padding: 24px 20px; display: flex; align-items: center; gap: 12px; }
   .header a.back-btn { background: rgba(255,255,255,0.2); color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; }
   .header h1 { color: white; font-size: 20px; font-weight: 800; }
   .container { max-width: 760px; margin: 0 auto; padding: 24px 20px 80px; }
@@ -44,7 +44,7 @@
   <strong>AU 일학습병행 공동훈련센터 앱</strong><br>
   본 개인정보 처리방침은 안산대학교 일학습병행 공동훈련센터에서 운영하는 PWA/모바일 앱
   ("AU 일학습병행", 이하 "앱")에 적용됩니다.<br>
-  <strong>최종 개정일:</strong> 2026년 11월 18일
+  <strong>최종 개정일:</strong> 2026년 11월 26일
 </div>
 
 <h2>1. 수집하는 개인정보 항목</h2>
@@ -151,9 +151,13 @@
 
 <h2>6. 개인정보의 파기 절차 및 방법</h2>
 <ul>
-  <li>전자 정보: Firestore 및 OneSignal에서 즉시 영구 삭제 (deleteDoc / removeUser)</li>
-  <li>디바이스 측 정보(localStorage): 앱 삭제 시 자동 삭제</li>
+  <li>데이터베이스 정보: Firestore 및 OneSignal에서 영구 삭제</li>
+  <li><strong>업로드 파일</strong>: Firebase Storage에서 파일 자체를 삭제</li>
+  <li><strong>전자서명 이미지</strong>: 해당 서류를 지울 때 서명 정보도 함께 지워집니다</li>
+  <li>기기에 저장된 정보(localStorage): 앱 삭제 시 자동 삭제</li>
 </ul>
+<p>휴지통(소프트 삭제)에 들어간 자료는 센터가 복구할 수 있는 상태로 일정 기간 보관되며,
+영구 삭제를 원하시면 아래 연락처로 알려주세요.</p>
 
 <h2>7. 사용자의 권리 및 행사 방법</h2>
 <p>사용자는 언제든지 다음 권리를 행사할 수 있습니다.</p>
@@ -161,13 +165,26 @@
   <li>본인 정보 열람·수정 — 앱 메인 화면의 "수정" 버튼</li>
   <li>알림 수신 거부 — 앱 내 "알림 끄기" 또는 OS 설정</li>
   <li>회원 탈퇴 및 삭제 요청 — 1:1 상담 기능 또는 아래 연락처로 요청</li>
+  <li><strong>학습근로자 본인</strong> — 명단·훈련 서류에 적힌 내 정보의 열람·정정은
+      소속 학습기업 담당자 또는 센터로 요청하실 수 있습니다
+      (이 정보는 본인이 앱에 입력하는 것이 아니라 센터가 등록합니다)</li>
+  <li><strong>학습기업 담당자</strong> — 계정 정보 수정·중지는 센터로 요청</li>
 </ul>
+<div class="highlight">
+  훈련 서류와 전자서명은 <strong>훈련을 실제로 실시했음을 증명하는 자료</strong>입니다.
+  보존기간 동안은 삭제 요청이 있어도 보관할 수 있으며, 이 점은 관련 법령에서 정한 범위를 따릅니다.
+</div>
 
 <h2>8. 개인정보 보호 조치</h2>
 <ul>
   <li>HTTPS 암호화 통신</li>
   <li>Firebase 자체 보안 인프라 사용</li>
-  <li>관리자 권한은 OneSignal 태그 기반 인증으로 제한</li>
+  <li><strong>접근 권한 분리</strong> — 학습기업 담당자는 보안 규칙에 따라
+      <strong>자기 기업의 자료만</strong> 조회·수정할 수 있습니다. 다른 기업의 자료는 목록에도 나오지 않습니다</li>
+  <li><strong>관리자 권한</strong>은 센터가 지정한 계정으로만 제한됩니다</li>
+  <li><strong>업로드 파일</strong>은 기업별 폴더로 분리 저장되며, 한 개 20MB·허용 형식으로 제한됩니다</li>
+  <li><strong>변경 기록</strong> — 누가 언제 무엇을 바꿨는지 활동 로그로 남깁니다</li>
+  <li>데이터베이스는 <strong>매일 자동 백업</strong>됩니다</li>
   <li>최소 필요 정보만 수집</li>
 </ul>
 
@@ -207,7 +224,7 @@
 
 <div class="footer">
 © 2026 AU 일학습병행 공동훈련센터<br>
-시행일: 2026년 5월 1일
+시행일: 2026년 11월 26일 (최초 시행 2026년 5월 1일)
 </div>
 
 </div>

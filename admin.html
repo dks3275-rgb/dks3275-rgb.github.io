@@ -307,17 +307,17 @@
        ═══════════════════════════════════════ */
     .auth-overlay { position: fixed; inset: 0; background: #F2F4F6; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif; }
     .auth-box { background: #FFFFFF; border: 1px solid #E5E8EB; border-radius: 12px; padding: 36px 28px; width: 100%; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
-    .auth-icon { width: 56px; height: 56px; border-radius: 12px; background: #E8F2FF; color: #3182F6; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 18px; }
+    .auth-icon { width: 56px; height: 56px; border-radius: 12px; background: #E9F1F8; color: #1A6FB3; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 18px; }
     .auth-title { text-align: center; font-size: 20px; font-weight: 700; color: #191F28; margin-bottom: 8px; letter-spacing: -0.5px; }
     .auth-sub { text-align: center; font-size: 13px; color: #4E5968; margin-bottom: 24px; line-height: 1.5; }
     .auth-field { margin-bottom: 14px; }
     .auth-label { font-size: 12px; font-weight: 600; color: #191F28; margin-bottom: 6px; display: block; letter-spacing: -0.2px; }
     .auth-input { width: 100%; padding: 13px 14px; background: #F2F4F6; border: 1px solid #F2F4F6; border-radius: 12px; color: #191F28; font-family: inherit; font-size: 15px; outline: none; transition: all 0.15s; box-sizing: border-box; letter-spacing: -0.2px; }
-    .auth-input:focus { border-color: #3182F6; background: #FFFFFF; box-shadow: 0 0 0 3px rgba(49,130,246,0.12); }
+    .auth-input:focus { border-color: #1A6FB3; background: #FFFFFF; box-shadow: 0 0 0 3px rgba(49,130,246,0.12); }
     .auth-error { background: #FEE6E8; color: #C7242E; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; margin-bottom: 12px; display: none; }
     .auth-error.show { display: block; }
-    .auth-submit { width: 100%; padding: 14px; background: #3182F6; color: white; border: none; border-radius: 14px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s; letter-spacing: -0.3px; }
-    .auth-submit:hover:not(:disabled) { background: #1B64DA; }
+    .auth-submit { width: 100%; padding: 14px; background: #1A6FB3; color: white; border: none; border-radius: 14px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s; letter-spacing: -0.3px; }
+    .auth-submit:hover:not(:disabled) { background: #15537F; }
     .auth-submit:active:not(:disabled) { transform: scale(0.99); }
     .auth-submit:disabled { background: #C8CED5; cursor: not-allowed; }
     .auth-hint { text-align: center; font-size: 11px; color: #8B95A1; margin-top: 16px; line-height: 1.5; }
@@ -9999,7 +9999,7 @@
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
           <div>
             <div style="font-size:14px;font-weight:700;color:#191F28;">${escapeHtmlSafe(a.name || '-')}</div>
-            <div style="font-size:11.5px;color:#1B64DA;margin-top:2px;">${track} ${escapeHtmlSafe(dept)}</div>
+            <div style="font-size:11.5px;color:#15537F;margin-top:2px;">${track} ${escapeHtmlSafe(dept)}</div>
           </div>
           <div style="font-size:11px;color:#999;text-align:right;">${dt}</div>
         </div>

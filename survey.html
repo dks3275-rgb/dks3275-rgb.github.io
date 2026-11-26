@@ -14,30 +14,30 @@
     --navy:#F2F4F6;
     --card:#FFFFFF;
     --card2:#F9FAFB;
-    --accent:#FF9F1C;
+    --accent:#8A6A24;
     --accent2:#FFB444;
-    --blue:#3182F6;
+    --blue:#1A6FB3;
     --blue2:#5C9FFF;
-    --green:#00C896;
+    --green:#2F7D5B;
     --red:#F04452;
     --text1:#191F28;
     --text2:#4E5968;
     --text3:#8B95A1;
     --border:#E5E8EB;
     --border-strong:#D1D6DB;
-    --primary-soft:#E8F2FF;
+    --primary-soft:#E9F1F8;
     --radius:18px;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{background:var(--navy);color:var(--text1);font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;padding-bottom:40px;-webkit-font-smoothing:antialiased;letter-spacing:-0.2px}
 
   /* 헤더 */
-  .header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:10px}
+  .header{background:var(--ink-navy, #1F2D4A);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:10px}
   .back-btn{width:36px;height:36px;border-radius:10px;background:var(--navy);border:none;color:var(--text1);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;display:none;font-weight:600}
   .back-btn.visible{display:flex}
   .home-btn{width:36px;height:36px;border-radius:10px;background:var(--navy);color:var(--text1);font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;font-weight:600;transition:background 0.15s}
   .home-btn:hover{background:var(--border)}
-  .header-title{font-size:16px;font-weight:700;flex:1;letter-spacing:-0.4px}
+  .header-title{font-size:16px;font-weight:700;flex:1;letter-spacing:-0.4px;color:#fff}
 
   /* 메인 */
   .main{padding:20px 16px}
@@ -85,9 +85,9 @@
   .scale-btn.selected{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
   .scale-btn[data-val="1"].selected{background:#F04452;border-color:#F04452}
   .scale-btn[data-val="2"].selected{background:#FF7A45;border-color:#FF7A45}
-  .scale-btn[data-val="3"].selected{background:#FF9F1C;border-color:#FF9F1C}
-  .scale-btn[data-val="4"].selected{background:#3182F6;border-color:#3182F6}
-  .scale-btn[data-val="5"].selected{background:#00C896;border-color:#00C896}
+  .scale-btn[data-val="3"].selected{background:#8A6A24;border-color:#8A6A24}
+  .scale-btn[data-val="4"].selected{background:#1A6FB3;border-color:#1A6FB3}
+  .scale-btn[data-val="5"].selected{background:#2F7D5B;border-color:#2F7D5B}
 
   /* 다중선택 */
   .multi-wrap{display:flex;flex-direction:column;gap:8px}
@@ -124,7 +124,7 @@
   /* 제출 버튼 */
   .submit-wrap{padding:20px}
   .submit-btn{width:100%;padding:16px;background:var(--blue);color:white;border:none;border-radius:14px;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;transition:background .15s;letter-spacing:-0.3px}
-  .submit-btn:hover:not(:disabled){background:#1B64DA}
+  .submit-btn:hover:not(:disabled){background:#15537F}
   .submit-btn:active:not(:disabled){transform:scale(.99)}
   .submit-btn:disabled{background:var(--border);color:var(--text3);cursor:default}
 

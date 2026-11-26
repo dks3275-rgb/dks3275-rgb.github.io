@@ -13,18 +13,18 @@
   :root {
     --tk-bg: #F2F4F6; --tk-surface: #FFFFFF; --tk-text: #191F28; --tk-text-sub: #4E5968; --tk-text-muted: #8B95A1;
     --tk-border: #E5E8EB; --tk-border-strong: #D1D6DB;
-    --tk-primary: #3182F6; --tk-primary-dark: #1B64DA; --tk-primary-soft: #E8F2FF;
-    --tk-success: #00C896; --tk-danger: #F04452;
+    --tk-primary: #1A6FB3; --tk-primary-dark: #15537F; --tk-primary-soft: #E9F1F8;
+    --tk-success: #2F7D5B; --tk-danger: #F04452;
     --tk-radius: 14px; --tk-radius-lg: 20px;
-    --navy: var(--tk-primary-dark); --blue: var(--tk-primary); --accent: #FF9F1C; --light: var(--tk-bg); --gray: var(--tk-text-muted);
+    --navy: var(--tk-primary-dark); --blue: var(--tk-primary); --accent: #8A6A24; --light: var(--tk-bg); --gray: var(--tk-text-muted);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--tk-bg); min-height: 100vh; color: var(--tk-text); -webkit-font-smoothing: antialiased; letter-spacing: -0.2px; }
-  .header { background: var(--tk-surface); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--tk-border); }
+  .header { background: var(--ink-navy, #1F2D4A); padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--tk-border); }
   .back-btn { background: var(--tk-bg); color: var(--tk-text); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; font-weight: 600; transition: background 0.15s; }
   .back-btn:hover { background: var(--tk-border); }
-  .header-badge { background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: -0.2px; }
-  .header h1 { color: var(--tk-text); font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
+  .header-badge { display:none; background: var(--tk-primary-soft); color: var(--tk-primary); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 100px; letter-spacing: -0.2px; }
+  .header h1 { color: #fff; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
   .container { max-width: 600px; margin: 0 auto; padding: 20px 16px 80px; }
   .info-box { background: var(--tk-primary-soft); padding: 14px 18px; border-radius: var(--tk-radius); margin-bottom: 16px; font-size: 13px; line-height: 1.6; color: var(--tk-primary-dark); }
   .info-box strong { display: block; margin-bottom: 4px; }

@@ -13,22 +13,22 @@
 <style>
 :root {
   --bg:#F2F4F6; --card:#FFFFFF; --border:#E5E8EB;
-  --blue:#3182F6; --navy:#1B64DA;
+  --blue:#1A6FB3; --navy:#15537F;
   --text:#191F28; --text2:#4E5968; --text3:#8B95A1;
-  --green:#00C896; --red:#F04452; --yellow:#FF9F1C; --purple:#7C5CFA;
+  --green:#2F7D5B; --red:#F04452; --yellow:#8A6A24; --purple:#574B7D;
   --shadow:0 2px 8px rgba(0,0,0,0.06);
-  --radius:14px; --tk-primary-soft:#E8F2FF; --tk-border-strong:#D1D6DB;
+  --radius:14px; --tk-primary-soft:#E9F1F8; --tk-border-strong:#D1D6DB;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'Pretendard Variable', 'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;letter-spacing:-0.2px}
 
 /* 헤더 */
-.header{background:var(--card);padding:14px 16px 0;border-bottom:1px solid var(--border)}
+.header{background:var(--ink-navy, #1F2D4A);padding:14px 16px 0;border-bottom:1px solid var(--border)}
 .header-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .back-btn{background:var(--bg);border:none;color:var(--text);width:36px;height:36px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;font-weight:600;transition:background 0.15s}
 .back-btn:hover{background:var(--border)}
-.header-badge{background:var(--tk-primary-soft);color:var(--blue);font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;letter-spacing:-0.2px}
-.header h1{color:var(--text);font-size:17px;font-weight:700;letter-spacing:-0.4px}
+.header-badge { display:none;background:var(--tk-primary-soft);color:var(--blue);font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;letter-spacing:-0.2px}
+.header h1{color:#fff;font-size:17px;font-weight:700;letter-spacing:-0.4px}
 .view-tabs{display:flex}
 .view-tab{flex:1;padding:11px;border:none;background:none;color:var(--text3);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;letter-spacing:-0.2px}
 .view-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
