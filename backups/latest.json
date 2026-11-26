@@ -1,8 +1,8 @@
 {
-  "lastBackup": "2026-11-25T01:52:57.764Z",
-  "totalDocs": 950,
-  "sizeKB": 1834.5,
-  "file": "backup-2026-11-25.json",
+  "lastBackup": "2026-11-26T01:30:14.168Z",
+  "totalDocs": 998,
+  "sizeKB": 1850.5,
+  "file": "backup-2026-11-26.json",
   "note": "전체 백업은 Actions → 해당 실행 → Artifacts 에서 90일간 받을 수 있습니다. 매월 1일 것은 backups/ 폴더에 남습니다.",
   "collections": [
     {
@@ -23,11 +23,11 @@
     },
     {
       "name": "calendar_events",
-      "count": 20
+      "count": 54
     },
     {
       "name": "exam_schedules",
-      "count": 2
+      "count": 14
     },
     {
       "name": "surveyConfig",
@@ -35,7 +35,7 @@
     },
     {
       "name": "audit_logs",
-      "count": 331
+      "count": 333
     },
     {
       "name": "scheduled_notifications",
