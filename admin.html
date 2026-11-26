@@ -1365,6 +1365,30 @@
       <button class="send-btn" onclick="cancelExamEdit()" id="examCancelBtn"
         style="display:none;background:#94a3b8;margin-top:8px;">취소 (새 일정 등록으로)</button>
       <div class="result-box" id="examResult"></div>
+
+      <!-- ══════ 엑셀에서 한 번에 붙여넣기 ══════ 캘린더 쪽과 같은 방식 -->
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4eaf4;">
+        <label class="form-label">📋 엑셀에서 붙여넣기
+          <span style="font-weight:400;color:#718096;font-size:11px;">(유형 · 제목 · 시작일 · 종료일 · 장소 · 안내사항 순 · 탭으로 구분)</span></label>
+        <div style="background:#EEF0F3;border-radius:10px;padding:10px 13px;margin:8px 0;font-size:12.5px;color:#37404B;line-height:1.6;">
+          한 줄에 일정 하나. <b>종료일을 비우면 하루짜리</b>로 들어갑니다. 장소·안내사항은 없어도 됩니다.<br>
+          날짜는 <code>2026-12-07</code> · <code>2026.12.07</code> · <code>12/07</code> 중 아무 형식이나 됩니다.<br>
+          <b style="color:#b45309;">일괄 등록은 알림을 보내지 않습니다.</b> 같은 제목·같은 날짜가 이미 있으면 건너뜁니다.<br>
+          <span style="color:#64748b;">쓸 수 있는 유형: 개강 · 중간고사 · 기말고사 · 외부평가 · 학습활동서 마무리 ·
+          제출 마감 · 행사 · 특강·보충 · 종강 · 기타</span>
+        </div>
+        <div class="form-group" style="max-width:200px;">
+          <label class="form-label">기준 연도</label>
+          <input type="number" class="form-input" id="exam-bulk-year" min="2020" max="2100">
+        </div>
+        <textarea class="form-input" id="exam-bulk" style="min-height:120px;font-family:monospace;font-size:12px;"
+          placeholder="기말고사	2026-2학기 기말평가	2026-12-07	2026-12-13&#10;종강	2026-2학기 종강	2026-12-20&#10;행사	2026학년도 학위수여식	2027-02-12"></textarea>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <button class="send-btn" onclick="previewExamBulk()" style="background:#3F4A57;margin:0;">👀 미리보기</button>
+          <button class="send-btn" onclick="bulkAddExams()" id="examBulkBtn" style="background:#059669;margin:0;" disabled>📥 일괄 등록</button>
+        </div>
+        <div id="examBulkPreview" style="margin-top:12px;"></div>
+      </div>
     </div>
 
     <div class="card wide-card">
@@ -6714,8 +6738,11 @@
       document.getElementById('cal-enddate').value = today;
     }
     // 일괄 등록의 기준 연도 — 연도를 안 적은 날짜("12.07.")를 해석할 때 쓴다
-    const by = document.getElementById('cal-bulk-year');
-    if (by && !by.value) by.value = new Date().getFullYear();
+    const thisYear = new Date().getFullYear();
+    ['cal-bulk-year', 'exam-bulk-year'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = thisYear;
+    });
   }
 
   // ══════════════════════════════════════════
@@ -7040,6 +7067,133 @@
     clearExamForm();
   }
 
+  // ══════════════════════════════════════════
+  //  📋 D-day 일괄 등록 — 캘린더 쪽(calParseBulk)과 같은 방식
+  //
+  //  캘린더와 D-day는 저장하는 곳이 다르다 (calendar_events / exam_schedules).
+  //  캘린더에 넣어도 메인 화면 D-day에는 뜨지 않으므로, 둘 다 넣어야 한다.
+  //  날짜 해석은 calParseDate 를 그대로 쓴다 (형식 규칙을 한 군데서만 관리).
+  // ══════════════════════════════════════════
+  let examBulkRows = [];
+  let examItems = [];   // loadExamSchedules 가 채운다 (중복 검사용)
+
+  function examParseBulk() {
+    const text = document.getElementById('exam-bulk').value;
+    const baseYear = Number(document.getElementById('exam-bulk-year').value) || new Date().getFullYear();
+    const types = Object.keys(EXAM_TYPE_COLORS);
+    const ok = [], skip = [];
+    const seen = new Set();
+
+    text.split('\n').forEach((line, i) => {
+      if (!line.trim()) return;
+      const c = line.split('\t').map(x => x.trim());
+      const cells = c.length > 1 ? c : line.trim().split(/\s{2,}/).map(x => x.trim());
+      const no = i + 1;
+      const [type, title, sd, ed, location, desc] =
+        [cells[0] || '', cells[1] || '', cells[2] || '', cells[3] || '', cells[4] || '', cells[5] || ''];
+
+      if (!types.includes(type)) { skip.push(`${no}행: 유형 "${type}" 를 모르겠습니다`); return; }
+      if (!title) { skip.push(`${no}행: 제목이 없습니다`); return; }
+      const startDate = calParseDate(sd, baseYear);
+      if (!startDate) { skip.push(`${no}행 "${title}": 시작 날짜를 못 읽었습니다 (${sd || '비어있음'})`); return; }
+      let endDate = calParseDate(ed, baseYear) || startDate;
+      if (endDate < startDate) {
+        const ny = calParseDate(ed, baseYear + 1);
+        if (ny && ny > startDate) endDate = ny;
+        else { skip.push(`${no}행 "${title}": 종료일이 시작일보다 빠릅니다`); return; }
+      }
+      const key = title + '|' + startDate;
+      if (seen.has(key)) { skip.push(`${no}행 "${title}": 붙여넣은 내용 안에서 중복`); return; }
+      if (examItems.some(e => (e.title || '') === title && (e.startDate || '') === startDate)) {
+        skip.push(`${no}행 "${title}": 이미 등록되어 있습니다`); return;
+      }
+      seen.add(key);
+      ok.push({ type, title, startDate, endDate, location, description: desc });
+    });
+    return { ok, skip };
+  }
+
+  function previewExamBulk() {
+    const box = document.getElementById('examBulkPreview');
+    const btn = document.getElementById('examBulkBtn');
+    const { ok, skip } = examParseBulk();
+    examBulkRows = ok;
+    btn.disabled = ok.length === 0;
+
+    const W = ['일','월','화','수','목','금','토'];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const wd = iso => W[new Date(iso + 'T00:00:00').getDay()];
+    const dday = iso => Math.round((new Date(iso + 'T00:00:00') - today) / 86400000);
+
+    const rows = ok.map(r => {
+      const d = dday(r.startDate);
+      return `<tr>
+      <td style="padding:6px 8px;border:1px solid #e4eaf4;white-space:nowrap;">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${EXAM_TYPE_COLORS[r.type]};margin-right:5px;"></span>${escapeHtmlSafe(r.type)}</td>
+      <td style="padding:6px 8px;border:1px solid #e4eaf4;font-weight:600;">${escapeHtmlSafe(r.title)}</td>
+      <td style="padding:6px 8px;border:1px solid #e4eaf4;white-space:nowrap;">
+        ${r.startDate}(${wd(r.startDate)})${r.endDate !== r.startDate ? ` ~ ${r.endDate}(${wd(r.endDate)})` : ''}</td>
+      <td style="padding:6px 8px;border:1px solid #e4eaf4;text-align:center;white-space:nowrap;
+          color:${d < 0 ? '#94a3b8' : d <= 7 ? '#b91c1c' : '#334155'};font-weight:700;">
+        ${d < 0 ? '지남' : d === 0 ? 'D-DAY' : 'D-' + d}</td>
+    </tr>`;
+    }).join('');
+
+    const pastN = ok.filter(r => dday(r.endDate) < 0).length;
+    box.innerHTML =
+      (ok.length ? `<div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:6px;">✅ 등록할 일정 ${ok.length}건</div>
+        ${pastN ? `<div style="font-size:12px;color:#b45309;margin-bottom:6px;">⚠️ 이미 지난 일정이 ${pastN}건 섞여 있습니다 — 메인 화면 D-day에는 뜨지 않습니다.</div>` : ''}
+        <div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px;">${rows}</table></div>` : '')
+      + (skip.length ? `<div style="font-size:13px;font-weight:700;color:#b91c1c;margin:10px 0 6px;">⚠️ 건너뛸 ${skip.length}건</div>
+        <div style="font-size:12px;color:#7f1d1d;line-height:1.7;background:#fef2f2;border-radius:8px;padding:9px 12px;">
+        ${skip.map(escapeHtmlSafe).join('<br>')}</div>` : '')
+      + (!ok.length && !skip.length ? '<div class="empty-history">붙여넣은 내용이 없습니다</div>' : '');
+  }
+
+  async function bulkAddExams() {
+    if (!examBulkRows.length) { showExamResult('먼저 미리보기를 눌러주세요', 'error'); return; }
+    if (!await customConfirm({
+      title: 'D-day 일정 일괄 등록',
+      message: `일정 <b>${examBulkRows.length}건</b>을 등록할까요?<br><br>`
+        + `<span style="font-size:12px;color:#64748b;">· 알림은 발송되지 않습니다<br>`
+        + `· 메인 화면에는 가장 가까운 일정 하나만 D-day로 표시됩니다</span>`,
+      confirmText: '📥 등록' })) return;
+
+    const btn = document.getElementById('examBulkBtn');
+    btn.disabled = true; btn.textContent = '등록 중...';
+    let done = 0;
+    try {
+      const { collection, addDoc, serverTimestamp } =
+        await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      for (const r of examBulkRows) {
+        await addDoc(collection(calDb, 'exam_schedules'), {
+          type: r.type,
+          title: r.title,
+          startDate: r.startDate,
+          endDate: r.endDate,
+          time: '',
+          location: r.location || '',
+          applyStart: '',
+          applyEnd: '',
+          description: r.description || '',
+          createdAt: serverTimestamp()
+        });
+        done++;
+      }
+      await writeLog('create', 'exam', '', `D-day 일정 일괄 등록 ${done}건`);
+      showExamResult(`✅ ${done}건을 등록했습니다 (알림은 보내지 않았습니다)`, 'success');
+      document.getElementById('exam-bulk').value = '';
+      document.getElementById('examBulkPreview').innerHTML = '';
+      examBulkRows = [];
+      loadExamSchedules();
+    } catch(e) {
+      showExamResult(`❌ ${done}건까지 등록하고 멈췄습니다: ${e.message || ''}`, 'error');
+      loadExamSchedules();
+    }
+    btn.textContent = '📥 일괄 등록';
+  }
+
   async function saveExamSchedule() {
     const d = readExamForm();
     const editId = document.getElementById('examEditId').value;
@@ -7108,6 +7262,7 @@
       const snap = await getDocs(collection(calDb, 'exam_schedules'));
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+      examItems = items;   // 일괄 등록에서 중복 검사에 쓴다
       if (items.length === 0) { el.innerHTML = '<div class="empty-history">등록된 시험 일정이 없어요</div>'; return; }
 
       const todayStr = localToday();
