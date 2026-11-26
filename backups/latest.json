@@ -1,0 +1,125 @@
+{
+  "lastBackup": "2026-11-25T01:52:57.764Z",
+  "totalDocs": 950,
+  "sizeKB": 1834.5,
+  "file": "backup-2026-11-25.json",
+  "note": "전체 백업은 Actions → 해당 실행 → Artifacts 에서 90일간 받을 수 있습니다. 매월 1일 것은 backups/ 폴더에 남습니다.",
+  "collections": [
+    {
+      "name": "users",
+      "count": 101
+    },
+    {
+      "name": "notices",
+      "count": 7
+    },
+    {
+      "name": "consulting",
+      "count": 12
+    },
+    {
+      "name": "library",
+      "count": 199
+    },
+    {
+      "name": "calendar_events",
+      "count": 20
+    },
+    {
+      "name": "exam_schedules",
+      "count": 2
+    },
+    {
+      "name": "surveyConfig",
+      "count": 4
+    },
+    {
+      "name": "audit_logs",
+      "count": 331
+    },
+    {
+      "name": "scheduled_notifications",
+      "count": 26
+    },
+    {
+      "name": "applications",
+      "count": 6
+    },
+    {
+      "name": "feedback",
+      "count": 0
+    },
+    {
+      "name": "jobs",
+      "count": 0
+    },
+    {
+      "name": "notifications",
+      "count": 41
+    },
+    {
+      "name": "app_config",
+      "count": 2
+    },
+    {
+      "name": "admins",
+      "count": 1
+    },
+    {
+      "name": "companies",
+      "count": 19
+    },
+    {
+      "name": "companyAccounts",
+      "count": 5
+    },
+    {
+      "name": "courses",
+      "count": 29
+    },
+    {
+      "name": "workers",
+      "count": 42
+    },
+    {
+      "name": "dropouts",
+      "count": 6
+    },
+    {
+      "name": "firmNotifications",
+      "count": 2
+    },
+    {
+      "name": "teacherOpinions",
+      "count": 18
+    },
+    {
+      "name": "ojtCounseling",
+      "count": 22
+    },
+    {
+      "name": "checklists",
+      "count": 12
+    },
+    {
+      "name": "assessments",
+      "count": 12
+    },
+    {
+      "name": "counseling",
+      "count": 31
+    },
+    {
+      "name": "trainingUnits",
+      "count": 0
+    },
+    {
+      "name": "trainingMonths",
+      "count": 0
+    },
+    {
+      "name": "trainingLogs",
+      "count": 0
+    }
+  ]
+}
