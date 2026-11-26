@@ -173,6 +173,13 @@
     .menu-row .value { font-size: 11.5px; color: var(--tk-text-muted); margin-top: 1px; }
     .menu-row .chev { margin-left: auto; color: #C4CAD2; font-size: 17px; }
 
+    /* 그 화면에서 제일 중요한 한 가지 — 폭 전체를 쓰고 네이비 테두리로 구분한다 */
+    .info-card.lead-card { grid-column: 1 / -1; border-color: var(--ink-navy); background: var(--tk-surface);
+                           display: flex; align-items: center; gap: 13px; flex-wrap: wrap; margin-bottom: 10px; }
+    .info-card.lead-card .ico { margin-bottom: 0; }
+    .info-card.lead-card .label { flex: 1; min-width: 150px; margin-bottom: 0; }
+    .info-card.lead-card .value { width: 100%; margin-left: 34px; }
+
     /* 선형 아이콘 — 이모지 대신.
        이모지는 기기마다 그림이 달라 통제가 안 되고 채도가 높아 캐주얼하게 읽힌다. */
     .ico { width: 21px; height: 21px; flex-shrink: 0; stroke: var(--ink-navy); stroke-width: 1.6;
@@ -340,6 +347,28 @@
   </style>
 </head>
 <body>
+<!-- ══════ 아이콘 모음 (선형 단색) ══════
+     이모지를 쓰지 않는 이유 — 안드로이드·아이폰·윈도우가 각각 다르게 그려서
+     화면이 통제되지 않고, 3D 광택과 높은 채도 때문에 캐주얼하게 읽힌다.
+     외부 아이콘 라이브러리를 부르면 로딩이 하나 늘어나므로 여기에 직접 둔다.
+     쓰는 법: <svg class="ico"><use href="#i-notice"/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-notice" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8.5a4 4 0 0 1 0 7"/><path d="M19 6a7.5 7.5 0 0 1 0 12"/></symbol>
+  <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H9a2 2 0 0 1 2 2v13a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 1 4 16V5.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H15a2 2 0 0 0-2 2v13a1.5 1.5 0 0 1 1.5-1.5h4A1.5 1.5 0 0 0 20 16V5.5Z"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-exam" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-survey" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h4"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9Z"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5l2-7Z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></symbol>
+  <symbol id="i-school" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-docs" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/><path d="M9.5 13.5l2 2 3.5-4"/></symbol>
+  <symbol id="i-ebook" viewBox="0 0 24 24"><path d="M12 7v13"/><path d="M12 7c-1.6-1.7-3.6-2.5-6-2.5H4v13h2c2.4 0 4.4.8 6 2.5 1.6-1.7 3.6-2.5 6-2.5h2v-13h-2c-2.4 0-4.4.8-6 2.5Z"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M16 9h3a2 2 0 0 1 2 2v10"/><path d="M8 7h2M8 11h2M8 15h2"/></symbol>
+  <symbol id="i-job" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/></symbol>
+  <symbol id="i-dday" viewBox="0 0 24 24"><path d="M21 11V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7"/><path d="M3 10h18M8 3v4M16 3v4"/><circle cx="17.5" cy="17.5" r="4.5"/><path d="M17.5 15.5v2l1.3 1.3"/></symbol>
+  <symbol id="i-apply" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/><path d="M14 3v5h5"/><path d="M19.5 10.5a1.8 1.8 0 0 1 2.5 2.5L17 18l-3 1 1-3 4.5-5.5Z"/></symbol>
+</defs></svg>
 <!-- 가입 모달 -->
 <div class="modal-overlay" id="modalOverlay" style="display:none;">
   <div class="modal" id="modalStep1">
@@ -531,7 +560,7 @@
 <!-- Phase B: 알림 OFF 상태 빨간 배너 (가입자에게만 표시) -->
 <div class="notif-off-banner" id="notifOffBanner" style="display:none;" onclick="handleNotifBannerClick()">
   <div class="notif-off-banner-inner">
-    <span class="notif-off-icon">🔕</span>
+    <svg class="ico" style="stroke:#B45309;width:22px;height:22px;"><use href="#i-bell"/></svg>
     <div class="notif-off-text">
       <strong>알림이 꺼져 있어요</strong>
       <span>학교 공지·일정을 못 받고 있어요 · <u>설정하기</u></span>
@@ -592,110 +621,201 @@
   <div id="menuStudent" style="display:none;">
     <div class="info-grid">
       <a class="info-card" href="notice.html">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8.5a4 4 0 0 1 0 7"/><path d="M19 6a7.5 7.5 0 0 1 0 12"/></svg>
+        <svg class="ico"><use href="#i-notice"/></svg>
         <div class="label">공지사항</div><div class="value">바로가기</div></a>
       <a class="info-card" href="library.html">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H9a2 2 0 0 1 2 2v13a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 1 4 16V5.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H15a2 2 0 0 0-2 2v13a1.5 1.5 0 0 1 1.5-1.5h4A1.5 1.5 0 0 0 20 16V5.5Z"/></svg>
+        <svg class="ico"><use href="#i-library"/></svg>
         <div class="label">자료실</div><div class="value">바로가기</div></a>
       <a class="info-card calendar-card" href="calendar.html">
-        <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <svg class="ico"><use href="#i-calendar"/></svg>
         <div class="label">학사 일정</div><div class="value">캘린더</div></a>
       <a class="info-card exam-card" href="exam.html">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+        <svg class="ico"><use href="#i-exam"/></svg>
         <div class="label">모의시험</div><div class="value">외부평가 대비</div></a>
     </div>
 
     <div class="section-title">참여 · 문의</div>
     <div class="menu-rows">
       <a class="menu-row" href="survey.html">
-        <svg class="ico" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h4"/></svg>
+        <svg class="ico"><use href="#i-survey"/></svg>
         <div><div class="label">훈련 만족도 조사</div><div class="value">설문 참여하기</div></div>
         <span class="chev">›</span></a>
       <a class="menu-row" href="consulting.html">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9Z"/></svg>
+        <svg class="ico"><use href="#i-chat"/></svg>
         <div><div class="label">1:1 상담</div><div class="value">궁금한 점이나 어려운 점을 알려주세요</div></div>
         <span class="chev">›</span></a>
       <a class="menu-row" href="feedback.html">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5l2-7Z"/></svg>
+        <svg class="ico"><use href="#i-inbox"/></svg>
         <div><div class="label">익명 의견함</div><div class="value">이름 없이 의견·건의 보내기</div></div>
         <span class="chev">›</span></a>
       <a class="menu-row" href="notification-check.html">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <svg class="ico"><use href="#i-bell"/></svg>
         <div><div class="label">알림 진단</div><div class="value">알림이 안 올 때</div></div>
         <span class="chev">›</span></a>
       <a class="menu-row" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg>
+        <svg class="ico"><use href="#i-school"/></svg>
         <div><div class="label">안산대학교 홈페이지</div><div class="value">입학 안내</div></div>
         <span class="chev">›</span></a>
     </div>
   </div>
   <!-- 교·강사 메뉴 -->
-  <div class="info-grid" id="menuTeacher" style="display:none;">
-    <a class="info-card full docs-card" href="library.html">
-      <div class="icon">📋</div>
-      <div class="label">수업 운영 · 평가 안내를 확인해주세요</div>
-      <div class="value">교·강사 자료실 ›</div>
-    </a>
-    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
-    <a class="info-card examsched-card" href="exam-schedule.html"><div class="icon">🗓️</div><div class="label">다가오는 일정</div><div class="value" data-exam-sub>D-day 확인하기</div></a>
-    <a class="info-card full calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학사 일정</div><div class="value">캘린더 바로가기</div></a>
-    <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">외부평가 문제 확인</div><div class="value">출제 범위·난이도 보기</div></a>
-    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">수업 운영 중 필요한 사항을 알려주세요</div><div class="value">센터에 문의하기</div></a>
-    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
-    <div class="school-pill-wrap">
-      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
-      <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
+  <div id="menuTeacher" style="display:none;">
+    <a class="info-card full lead-card" href="library.html">
+      <svg class="ico"><use href="#i-docs"/></svg>
+      <div class="label">수업 운영 · 평가 안내</div><div class="value">교·강사 자료실</div></a>
+    <div class="info-grid">
+      <a class="info-card" href="notice.html">
+        <svg class="ico"><use href="#i-notice"/></svg>
+        <div class="label">공지사항</div><div class="value">바로가기</div></a>
+      <a class="info-card" href="calendar.html">
+        <svg class="ico"><use href="#i-calendar"/></svg>
+        <div class="label">학사 일정</div><div class="value">캘린더</div></a>
+      <a class="info-card" href="exam.html">
+        <svg class="ico"><use href="#i-exam"/></svg>
+        <div class="label">외부평가 문제</div><div class="value">출제 범위·난이도</div></a>
+      <a class="info-card examsched-card" href="exam-schedule.html">
+        <svg class="ico"><use href="#i-dday"/></svg>
+        <div class="label">다가오는 일정</div><div class="value">D-day 확인</div></a>
+    </div>
+    <div class="section-title">참여 · 문의</div>
+    <div class="menu-rows">
+      <a class="menu-row" href="consulting.html">
+        <svg class="ico"><use href="#i-chat"/></svg>
+        <div><div class="label">센터에 문의하기</div><div class="value">수업 운영 중 필요한 사항을 알려주세요</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="feedback.html">
+        <svg class="ico"><use href="#i-inbox"/></svg>
+        <div><div class="label">익명 의견함</div><div class="value">이름 없이 의견·건의 보내기</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="notification-check.html">
+        <svg class="ico"><use href="#i-bell"/></svg>
+        <div><div class="label">알림 진단</div><div class="value">알림이 안 올 때</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">
+        <svg class="ico"><use href="#i-school"/></svg>
+        <div><div class="label">안산대학교 홈페이지</div><div class="value">입학 안내</div></div>
+        <span class="chev">›</span></a>
     </div>
   </div>
   <!-- 졸업생 메뉴 -->
-  <div class="info-grid" id="menuGraduate" style="display:none;">
-    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
-    <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
-    <a class="info-card full calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학교일정 · 동문 행사 일정 확인</div><div class="value">캘린더 바로가기</div></a>
-    <a class="info-card full exam-card" href="exam.html"><div class="icon">📝</div><div class="label">외부평가 문제 풀이 · 복습하기</div><div class="value">외부평가 시작하기</div></a>
-    <a class="info-card" href="companies.html"><div class="icon">🏢</div><div class="label">학습기업 디렉토리</div><div class="value">바로가기</div></a>
-    <a class="info-card" href="jobs.html"><div class="icon">💼</div><div class="label">취업 정보</div><div class="value">바로가기</div></a>
-    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이나 어려운 점을 알려주세요</div><div class="value">1:1 상담 신청하기</div></a>
-    <a class="info-card full feedback-card" href="feedback.html"><div class="icon">📨</div><div class="label">익명으로 의견·건의 보내기</div><div class="value">익명 의견함</div></a>
-    <div class="school-pill-wrap">
-      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
-      <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
+  <div id="menuGraduate" style="display:none;">
+    <div class="info-grid">
+      <a class="info-card" href="notice.html">
+        <svg class="ico"><use href="#i-notice"/></svg>
+        <div class="label">공지사항</div><div class="value">바로가기</div></a>
+      <a class="info-card" href="library.html">
+        <svg class="ico"><use href="#i-library"/></svg>
+        <div class="label">자료실</div><div class="value">바로가기</div></a>
+      <a class="info-card" href="calendar.html">
+        <svg class="ico"><use href="#i-calendar"/></svg>
+        <div class="label">학사 일정</div><div class="value">학교·동문 행사</div></a>
+      <a class="info-card" href="exam.html">
+        <svg class="ico"><use href="#i-exam"/></svg>
+        <div class="label">외부평가 문제</div><div class="value">풀이 · 복습하기</div></a>
+      <a class="info-card" href="companies.html">
+        <svg class="ico"><use href="#i-building"/></svg>
+        <div class="label">학습기업</div><div class="value">디렉토리</div></a>
+      <a class="info-card" href="jobs.html">
+        <svg class="ico"><use href="#i-job"/></svg>
+        <div class="label">취업 정보</div><div class="value">바로가기</div></a>
+    </div>
+    <div class="section-title">참여 · 문의</div>
+    <div class="menu-rows">
+      <a class="menu-row" href="consulting.html">
+        <svg class="ico"><use href="#i-chat"/></svg>
+        <div><div class="label">1:1 상담</div><div class="value">궁금한 점이나 어려운 점을 알려주세요</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="feedback.html">
+        <svg class="ico"><use href="#i-inbox"/></svg>
+        <div><div class="label">익명 의견함</div><div class="value">이름 없이 의견·건의 보내기</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="notification-check.html">
+        <svg class="ico"><use href="#i-bell"/></svg>
+        <div><div class="label">알림 진단</div><div class="value">알림이 안 올 때</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">
+        <svg class="ico"><use href="#i-school"/></svg>
+        <div><div class="label">안산대학교 홈페이지</div><div class="value">입학 안내</div></div>
+        <span class="chev">›</span></a>
     </div>
   </div>
   <!-- 예비 신입생 메뉴 -->
-  <div class="info-grid" id="menuProspect" style="display:none;">
-    <a class="info-card full apply-card" href="apply.html"><div class="icon">📝</div><div class="label">일학습병행 참여 신청서를 온라인으로 제출하세요</div><div class="value">신청 접수 바로가기</div></a>
-    <a class="info-card full ebook-card" href="files/ebook/안산대학교_일학습병행_학생용_배포본.html" target="_blank" rel="noopener noreferrer"><div class="icon">📖</div><div class="label">일학습병행이 무엇인지 한눈에 알아보세요</div><div class="value">소개 자료 (e-book)</div></a>
-    <a class="info-card full dept-card" href="departments.html"><div class="icon">🏫</div><div class="label">어떤 학과가 있는지 알아보세요</div><div class="value">학과 소개 보기</div></a>
-    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
-    <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
-    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">궁금한 점이 있으시면 편하게 문의해주세요</div><div class="value">1:1 상담 신청하기</div></a>
-    <div class="school-pill-wrap">
-      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
-      <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
+  <div id="menuProspect" style="display:none;">
+    <a class="info-card full lead-card" href="apply.html">
+      <svg class="ico"><use href="#i-apply"/></svg>
+      <div class="label">일학습병행 참여 신청</div><div class="value">온라인으로 신청서 제출하기</div></a>
+    <div class="info-grid">
+      <a class="info-card" href="files/ebook/안산대학교_일학습병행_학생용_배포본.html">
+        <svg class="ico"><use href="#i-ebook"/></svg>
+        <div class="label">소개 자료</div><div class="value">일학습병행이란</div></a>
+      <a class="info-card" href="departments.html">
+        <svg class="ico"><use href="#i-school"/></svg>
+        <div class="label">학과 소개</div><div class="value">어떤 학과가 있나</div></a>
+      <a class="info-card" href="notice.html">
+        <svg class="ico"><use href="#i-notice"/></svg>
+        <div class="label">공지사항</div><div class="value">바로가기</div></a>
+      <a class="info-card" href="library.html">
+        <svg class="ico"><use href="#i-library"/></svg>
+        <div class="label">자료실</div><div class="value">바로가기</div></a>
+    </div>
+    <div class="section-title">참여 · 문의</div>
+    <div class="menu-rows">
+      <a class="menu-row" href="consulting.html">
+        <svg class="ico"><use href="#i-chat"/></svg>
+        <div><div class="label">1:1 상담</div><div class="value">궁금한 점이 있으면 편하게 문의해주세요</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="notification-check.html">
+        <svg class="ico"><use href="#i-bell"/></svg>
+        <div><div class="label">알림 진단</div><div class="value">알림이 안 올 때</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">
+        <svg class="ico"><use href="#i-school"/></svg>
+        <div><div class="label">안산대학교 홈페이지</div><div class="value">입학 안내</div></div>
+        <span class="chev">›</span></a>
     </div>
   </div>
   <!-- 학습기업 전담인력 메뉴 -->
-  <div class="info-grid" id="menuCompany" style="display:none;">
-    <a class="info-card full docs-card" href="company.html">
-      <div class="icon">📋</div>
-      <div class="label">훈련강사의견 · 면담일지 · 내부평가지 · 체크리스트</div>
-      <div class="value">학습기업 학습일지 관리 ›</div>
-    </a>
-    <a class="info-card full ebook-card" href="files/ebook/안산대학교_일학습병행_기업용_배포본.html" target="_blank" rel="noopener noreferrer"><div class="icon">📖</div><div class="label">학습기업 안내 자료를 한눈에 확인해주세요</div><div class="value">기업용 소개 자료 (e-book)</div></a>
-    <a class="info-card" href="notice.html"><div class="icon">📢</div><div class="label">공지사항</div><div class="value">바로가기</div></a>
-    <a class="info-card" href="library.html"><div class="icon">📚</div><div class="label">자료실</div><div class="value">바로가기</div></a>
-    <a class="info-card examsched-card" href="exam-schedule.html"><div class="icon">🗓️</div><div class="label">다가오는 일정</div><div class="value" data-exam-sub>D-day 확인하기</div></a>
-    <a class="info-card calendar-card" href="calendar.html"><div class="icon">📅</div><div class="label">학사 일정</div><div class="value">캘린더 바로가기</div></a>
-    <a class="info-card full consulting-card" href="consulting.html"><div class="icon">💬</div><div class="label">센터에 궁금한 점을 남겨주세요</div><div class="value">문의사항 남기기</div></a>
-    <div class="school-pill-wrap">
-      <a class="school-pill diag-pill" href="notification-check.html" style="margin-right:6px;">🔔 알림 진단</a>
-      <a class="school-pill" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">🏫 안산대학교 홈페이지 ›</a>
+  <div id="menuCompany" style="display:none;">
+    <a class="info-card full lead-card" href="company.html">
+      <svg class="ico"><use href="#i-docs"/></svg>
+      <div class="label">학습기업 학습일지 관리</div><div class="value">의견서 · 면담일지 · 월별 확인서 · 내부평가지</div></a>
+    <div class="info-grid">
+      <a class="info-card" href="notice.html">
+        <svg class="ico"><use href="#i-notice"/></svg>
+        <div class="label">공지사항</div><div class="value">바로가기</div></a>
+      <a class="info-card" href="library.html">
+        <svg class="ico"><use href="#i-library"/></svg>
+        <div class="label">자료실</div><div class="value">바로가기</div></a>
+      <a class="info-card" href="calendar.html">
+        <svg class="ico"><use href="#i-calendar"/></svg>
+        <div class="label">학사 일정</div><div class="value">캘린더</div></a>
+      <a class="info-card examsched-card" href="exam-schedule.html">
+        <svg class="ico"><use href="#i-dday"/></svg>
+        <div class="label">다가오는 일정</div><div class="value">D-day 확인</div></a>
+    </div>
+    <div class="section-title">안내 · 문의</div>
+    <div class="menu-rows">
+      <a class="menu-row" href="files/ebook/안산대학교_일학습병행_기업용_배포본.html" target="_blank" rel="noopener noreferrer">
+        <svg class="ico"><use href="#i-ebook"/></svg>
+        <div><div class="label">기업용 소개 자료</div><div class="value">학습기업 안내를 한눈에</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="consulting.html">
+        <svg class="ico"><use href="#i-chat"/></svg>
+        <div><div class="label">센터에 문의하기</div><div class="value">궁금한 점을 남겨주세요</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="notification-check.html">
+        <svg class="ico"><use href="#i-bell"/></svg>
+        <div><div class="label">알림 진단</div><div class="value">알림이 안 올 때</div></div>
+        <span class="chev">›</span></a>
+      <a class="menu-row" href="https://iphak.ansan.ac.kr/iphak" target="_blank" rel="noopener noreferrer">
+        <svg class="ico"><use href="#i-school"/></svg>
+        <div><div class="label">안산대학교 홈페이지</div><div class="value">입학 안내</div></div>
+        <span class="chev">›</span></a>
     </div>
   </div>
-  <button class="btn-main btn-subscribe" id="subscribeBtn" onclick="subscribeNotification()">🔔 알림 받기 시작</button>
-  <button class="btn-main btn-unsubscribe" id="unsubscribeBtn" onclick="unsubscribeNotification()" style="display:none;">🔕 알림 끄기</button>
-  <div class="notice"><strong>📌 안내</strong>알림을 허용하면 학교 공지사항 및 안내 사항 알림을 보내드립니다.</div>
+  <button class="btn-main btn-subscribe" id="subscribeBtn" onclick="subscribeNotification()">알림 받기 시작</button>
+  <button class="btn-main btn-unsubscribe" id="unsubscribeBtn" onclick="unsubscribeNotification()" style="display:none;">알림 끄기</button>
+  <div class="notice"><strong>안내</strong>알림을 허용하면 학교 공지사항 및 안내 사항 알림을 보내드립니다.</div>
   <div class="section-title" style="margin-top:20px;">사용 방법</div>
   <div class="steps">
     <div class="step-item"><div class="step-num">1</div><div class="step-text"><strong>알림 받기 시작</strong> 버튼을 누르고 알림을 허용해주세요</div></div>
