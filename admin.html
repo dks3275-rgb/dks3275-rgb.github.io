@@ -2034,6 +2034,29 @@
       <div class="result-box" id="ncsBulkResult"></div>
     </div>
 
+    <!-- ══════ 자료 링크 이전 (GitHub → Firebase Storage) ══════
+         큰 PDF 를 저장소에 두면 GitHub Pages 1GB 한도에 걸린다.
+         파일은 Storage 로 옮기고, 여기서 자료실 링크만 한꺼번에 바꾼다. -->
+    <div class="card">
+      <div class="card-title">🔗 자료 링크를 Storage 로 옮기기</div>
+      <div style="background:#EEF0F3;border-radius:10px;padding:12px 15px;margin-bottom:14px;font-size:13px;color:#37404B;line-height:1.7;">
+        지금 자료 파일은 <b>GitHub 저장소</b>에 들어 있습니다. 용량이 커서 한도(1GB)에 가까워지고 있어
+        <b>Firebase Storage</b> 로 옮기는 중입니다.<br>
+        <b>순서</b> — ① Firebase 콘솔에서 파일 업로드 → ② 아래 <b>미리보기</b>로 확인 → ③ <b>링크 바꾸기</b><br>
+        <small style="opacity:0.9;">파일 자체는 건드리지 않고, 자료실이 가리키는 주소만 바꿉니다.
+        되돌리려면 GitHub 파일을 지우기 전까지는 언제든 가능합니다.</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Storage 안의 상위 폴더</label>
+        <input type="text" class="form-input" id="migPrefix" value="library" placeholder="library">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="send-btn" onclick="previewLibMigrate()" style="background:#3F4A57;margin:0;">👀 미리보기</button>
+        <button class="send-btn" onclick="runLibMigrate()" id="migRunBtn" style="background:#059669;margin:0;" disabled>🔗 링크 바꾸기</button>
+      </div>
+      <div id="migPreview" style="margin-top:12px;"></div>
+    </div>
+
     <!-- 추가 자료 일괄 등록 카드 (산업안전보건 + 전담인력 + 학습근로자) -->
     <div class="card" style="background:linear-gradient(135deg,#FFE8DC,#FFD4BA);border-left:4px solid #D85A30;">
       <div class="card-title">📦 추가 자료 일괄 등록</div>
@@ -7495,6 +7518,104 @@
   }
 
   // ═══════════════════════════════════════════
+
+  // ══════════════════════════════════════════
+  //  🔗 자료 링크 이전 — GitHub → Firebase Storage
+  //
+  //  왜 : 학습자료 PDF 가 452MB 라 GitHub Pages 1GB 한도에 가까워졌다.
+  //       파일은 Storage 로 옮기고 자료실이 가리키는 주소만 바꾼다.
+  //  방식 : library 문서의 fileUrl 이 raw.githubusercontent.com/.../files/… 이면
+  //         같은 경로를 Storage 주소로 바꿔준다. 파일명과 폴더 구조는 그대로 쓴다.
+  //  ⚠️ 파일을 Storage 에 먼저 올려두지 않으면 링크만 바뀌고 열리지 않는다.
+  //     그래서 '미리보기' 에서 실제로 파일이 있는지 하나씩 확인한 뒤에만 바꾸게 했다.
+  // ══════════════════════════════════════════
+  const STORAGE_BUCKET = 'au-ilhaksub.firebasestorage.app';
+  let migRows = [];
+
+  // files/ 뒤쪽 경로만 뽑아낸다 (URL 인코딩이 섞여 있어 디코딩해서 쓴다)
+  function migPathFromUrl(url) {
+    const m = String(url || '').match(/\/main\/files\/(.+)$/);
+    if (!m) return null;
+    try { return decodeURIComponent(m[1]); } catch(_) { return m[1]; }
+  }
+  function migStorageUrl(prefix, relPath) {
+    const full = (prefix ? prefix.replace(/^\/+|\/+$/g,'') + '/' : '') + relPath;
+    return `https://firebasestorage.googleapis.com/v0/b/${STORAGE_BUCKET}/o/${encodeURIComponent(full)}?alt=media`;
+  }
+
+  async function previewLibMigrate() {
+    const box = document.getElementById('migPreview');
+    const prefix = document.getElementById('migPrefix').value.trim();
+    box.innerHTML = '<div class="empty-history">확인하는 중…</div>';
+    document.getElementById('migRunBtn').disabled = true;
+    try {
+      const db = await wkDb();
+      const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDocs(collection(db, 'library'));
+      const cand = [];
+      snap.docs.forEach(d => {
+        const v = d.data();
+        const rel = migPathFromUrl(v.fileUrl);
+        if (rel) cand.push({ id: d.id, title: v.title || '', rel, to: migStorageUrl(prefix, rel) });
+      });
+      if (!cand.length) { box.innerHTML = '<div class="empty-history">바꿀 자료가 없습니다 (이미 옮겼거나 대상 아님)</div>'; return; }
+
+      // Storage 에 실제로 파일이 있는지 확인한다 (HEAD 로 가볍게)
+      let ok = 0, miss = [];
+      await Promise.all(cand.map(async c => {
+        try {
+          const r = await fetch(c.to, { method: 'HEAD' });
+          if (r.ok) { c.exists = true; ok++; } else { c.exists = false; miss.push(c.rel); }
+        } catch(_) { c.exists = false; miss.push(c.rel); }
+      }));
+      migRows = cand.filter(c => c.exists);
+      document.getElementById('migRunBtn').disabled = migRows.length === 0;
+
+      box.innerHTML =
+        `<div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:6px;">
+           ✅ Storage 에서 찾은 자료 ${ok}건 — 이것만 바꿉니다</div>`
+        + (miss.length ? `<div style="font-size:13px;font-weight:700;color:#b91c1c;margin:10px 0 6px;">
+             ⚠️ Storage 에 아직 없는 파일 ${miss.length}건 — 건너뜁니다</div>
+             <div style="font-size:12px;color:#7f1d1d;background:#fef2f2;border-radius:8px;padding:9px 12px;line-height:1.7;max-height:200px;overflow:auto;">
+             ${miss.slice(0,40).map(escapeHtmlSafe).join('<br>')}${miss.length>40?'<br>…':''}</div>` : '')
+        + `<div style="font-size:12px;color:#64748b;margin-top:10px;">예) ${escapeHtmlSafe((migRows[0]||cand[0]).rel)}</div>`;
+    } catch(e) {
+      box.innerHTML = '<div class="empty-history">⚠️ 확인 실패: ' + escapeHtmlSafe(e.message || '') + '</div>';
+    }
+  }
+
+  async function runLibMigrate() {
+    if (!migRows.length) return;
+    if (!await customConfirm({
+      title: '자료 링크 바꾸기',
+      message: `자료 <b>${migRows.length}건</b>의 주소를 Storage 로 바꿀까요?<br><br>`
+        + `<span style="font-size:12px;color:#64748b;">· 파일은 건드리지 않습니다<br>`
+        + `· GitHub 파일을 지우기 전까지는 되돌릴 수 있습니다</span>`,
+      confirmText: '🔗 바꾸기' })) return;
+    const btn = document.getElementById('migRunBtn');
+    btn.disabled = true; btn.textContent = '바꾸는 중…';
+    let done = 0;
+    try {
+      const db = await wkDb();
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      for (const r of migRows) {
+        await updateDoc(doc(db, 'library', r.id), {
+          fileUrl: r.to, resourceType: 'storage', updatedAt: new Date().toISOString()
+        });
+        done++;
+      }
+      await writeLog('update', 'library', '', `자료 링크 Storage 이전 ${done}건`);
+      document.getElementById('migPreview').innerHTML =
+        `<div style="font-size:13px;font-weight:700;color:#166534;">✅ ${done}건을 바꿨습니다. 자료실에서 몇 개 열어보세요.</div>`;
+      migRows = [];
+      loadLibrary();
+    } catch(e) {
+      document.getElementById('migPreview').innerHTML =
+        `<div class="empty-history">❌ ${done}건까지 바꾸고 멈췄습니다: ${escapeHtmlSafe(e.message || '')}</div>`;
+    }
+    btn.textContent = '🔗 링크 바꾸기';
+  }
+
   // ── NCS 모듈 일괄 등록 ──
   // ═══════════════════════════════════════════
   async function bulkRegisterNCS(mode) {

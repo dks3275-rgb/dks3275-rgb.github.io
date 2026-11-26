@@ -73,6 +73,19 @@ service firebase.storage {
         || (isCompany() && companyId == myCompanyId() && kind == 'done');
     }
 
+    // ══════ 자료실 학습자료 ══════
+    //  NCS 모듈 PDF 등. 예전에는 GitHub 저장소에 두고 raw.githubusercontent.com 으로
+    //  받게 했는데, 452MB 라 GitHub Pages 1GB 한도에 가까워져 이쪽으로 옮겼다.
+    //
+    //  ⚠️ 읽기를 모두에게 연 이유 — 원래도 GitHub 공개 주소로 누구나 받을 수 있던 자료다.
+    //     로그인 없이 자료실에서 바로 열려야 하므로 그 동작을 그대로 유지한다.
+    //     (개인정보가 들어간 서류는 위의 docs/ · assessments/ 경로에 있고 그쪽은 막혀 있다)
+    //  올리고 지우는 건 센터만. 올리기는 보통 Firebase 콘솔에서 직접 한다.
+    match /library/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // 나머지 전부 차단
     match /{allPaths=**} {
       allow read, write: if false;
