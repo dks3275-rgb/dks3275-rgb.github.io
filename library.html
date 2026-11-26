@@ -60,6 +60,15 @@
   .summary-banner-card { background: var(--ink-navy); border-radius: var(--tk-radius-lg);
     padding: 16px 17px; display: flex; align-items: center; gap: 13px; border: none; }
   .summary-banner-card .ico { stroke: #fff; width: 22px; height: 22px; margin-bottom: 0; }
+  /* 아이콘 색 타일 — 성격별 5색 (메인 화면과 같은 규칙) */
+  .ibox { width: 34px; height: 34px; border-radius: 9px; display: inline-flex;
+          align-items: center; justify-content: center; margin-bottom: 11px; }
+  .ibox .ico { margin-bottom: 0; width: 19px; height: 19px; }
+  .t-info  { background: #E9F1F8; } .t-info  .ico { stroke: #1A6FB3; }
+  .t-learn { background: #E9F2EC; } .t-learn .ico { stroke: #2F7D5B; }
+  .t-time  { background: #F5F0E5; } .t-time  .ico { stroke: #8A6A24; }
+  .t-eval  { background: #EEECF5; } .t-eval  .ico { stroke: #574B7D; }
+  .t-etc   { background: #EEF0F3; } .t-etc   .ico { stroke: #6B7480; }
   .category-icon { font-size: 32px; margin-bottom: 10px; }
   .fico { width: 18px; height: 18px; stroke: var(--tk-text-sub); stroke-width: 1.6; fill: none;
           stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: -3px; }
@@ -195,7 +204,17 @@
     isImage ? '<svg class="fico"><use href="#i-img"/></svg>'
     : isPdf ? '<svg class="fico"><use href="#i-pdf"/></svg>'
             : '<svg class="fico"><use href="#i-file"/></svg>';
-  const catIco = n => `<svg class="ico"><use href="#${CAT_ICON[n] || 'i-folder'}"/></svg>`;
+  // 아이콘 → 색 묶음. 학과는 학습(초록), 안전·공지는 그 외(회색) 식으로 성격별로만 나눈다.
+  const ICON_TONE = {
+    'i-cap':'t-learn', 'i-chart':'t-learn', 'i-cook':'t-learn', 'i-calc':'t-learn',
+    'i-hotel':'t-learn', 'i-book':'t-learn', 'i-layers':'t-learn',
+    'i-notice':'t-info', 'i-clip':'t-info',
+    'i-check':'t-eval', 'i-shield':'t-etc', 'i-folder':'t-etc'
+  };
+  const catIco = n => {
+    const ic = CAT_ICON[n] || 'i-folder';
+    return `<span class="ibox ${ICON_TONE[ic] || 't-etc'}"><svg class="ico"><use href="#${ic}"/></svg></span>`;
+  };
 
   let allResources = [];
 
