@@ -1,13 +1,13 @@
 {
-  "lastBackup": "2026-11-26T01:30:14.168Z",
-  "totalDocs": 998,
-  "sizeKB": 1850.5,
-  "file": "backup-2026-11-26.json",
+  "lastBackup": "2026-11-27T01:28:00.042Z",
+  "totalDocs": 992,
+  "sizeKB": 1850.4,
+  "file": "backup-2026-11-27.json",
   "note": "전체 백업은 Actions → 해당 실행 → Artifacts 에서 90일간 받을 수 있습니다. 매월 1일 것은 backups/ 폴더에 남습니다.",
   "collections": [
     {
       "name": "users",
-      "count": 101
+      "count": 102
     },
     {
       "name": "notices",
@@ -35,7 +35,7 @@
     },
     {
       "name": "audit_logs",
-      "count": 333
+      "count": 326
     },
     {
       "name": "scheduled_notifications",
